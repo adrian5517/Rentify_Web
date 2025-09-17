@@ -1,5 +1,6 @@
 "use client"
 import { useState, useEffect, useMemo } from "react"
+import Image from "next/image"
 import {
   Search,
   MapPin,
@@ -379,12 +380,14 @@ function AuthPage({ onAuth }: { onAuth: () => void }) {
         <CardContent className="p-8">
           <div className="text-center mb-8">
             <div className="flex items-center justify-center gap-3 mb-6">
-              <div className="p-3 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-2xl shadow-lg">
-                <Home className="h-8 w-8 text-white" />
-              </div>
-              <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
-                Rentify
-              </h1>
+              <Image
+                src="/titke-logo (1).png"
+                alt="Rentify"
+                width={200}
+                height={52}
+                className="h-12 w-auto"
+                priority
+              />
             </div>
             <p className="text-slate-600 text-lg font-medium">Find your perfect rental in Naga City</p>
           </div>
@@ -624,16 +627,18 @@ export default function PropertyListingPage() {
 
   return (
     <div className="min-h-screen bg-slate-50">
-      <header className="bg-white border-b border-slate-200 shadow-sm sticky top-0 z-40">
-        <div className="container mx-auto px-4 py-4">
+      <header className="bg-white/80 backdrop-blur supports-[backdrop-filter]:bg-white/60 border-b border-slate-200 sticky top-0 z-40">
+        <div className="container mx-auto px-4 py-3">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <div className="p-2 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-xl shadow-md">
-                <Home className="h-6 w-6 text-white" />
-              </div>
-              <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
-                Rentify
-              </h1>
+            <div className="flex items-center gap-3">
+              <Image
+                src="/title-logo (1).png"
+                alt="Rentify"
+                width={140}
+                height={36}
+                className="h-9 w-auto"
+                priority
+              />
               {/* Inline navbar beside logo on md+ */}
               <div className="ml-2">
                 <Navbar currentPage={currentPage} onPageChange={setCurrentPage} />
@@ -644,45 +649,35 @@ export default function PropertyListingPage() {
                 <>
                   <button
                     onClick={handleOpenModal}
-                    className="hidden md:flex items-center gap-2 px-6 py-2 rounded-lg shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 font-semibold"
-                    style={{
-                      background: "linear-gradient(to right, #10b981, #059669, #0d9488)",
-                      color: "white !important",
-                    }}
-                    onMouseEnter={(e) => {
-                      (e.target as HTMLElement).style.background = "linear-gradient(to right, #059669, #047857, #0f766e)"
-                    }}
-                    onMouseLeave={(e) => {
-                      (e.target as HTMLElement).style.background = "linear-gradient(to right, #10b981, #059669, #0d9488)"
-                    }}
+                    className="hidden md:flex items-center gap-2 px-4 h-10 rounded-lg bg-purple-600 text-white hover:bg-purple-700 transition-colors font-semibold shadow-sm"
                   >
                     <Plus className="h-4 w-4" />
                     Post Property
                   </button>
-                  <Button
-                    variant={viewMode === "grid" ? "default" : "outline"}
-                    onClick={() => setViewMode("grid")}
-                    className={
-                      viewMode === "grid"
-                        ? "bg-blue-600 hover:bg-blue-700 text-white"
-                        : "border-slate-300 hover:bg-slate-50"
-                    }
-                  >
-                    <Grid className="h-4 w-4 mr-2" />
-                    Grid
-                  </Button>
-                  <Button
-                    variant={viewMode === "map" ? "default" : "outline"}
-                    onClick={() => setViewMode("map")}
-                    className={
-                      viewMode === "map"
-                        ? "bg-blue-600 hover:bg-blue-700 text-white"
-                        : "border-slate-300 hover:bg-slate-50"
-                    }
-                  >
-                    <Map className="h-4 w-4 mr-2" />
-                    Map
-                  </Button>
+                  <div className="hidden md:flex items-center rounded-full border border-slate-200 p-1 bg-white shadow-sm">
+                    <button
+                      onClick={() => setViewMode("grid")}
+                      className={`flex items-center gap-2 px-4 h-9 rounded-full text-sm ${
+                        viewMode === "grid"
+                          ? "bg-purple-600 text-white"
+                          : "text-slate-700 hover:bg-slate-100"
+                      }`}
+                    >
+                      <Grid className="h-4 w-4" />
+                      Grid
+                    </button>
+                    <button
+                      onClick={() => setViewMode("map")}
+                      className={`flex items-center gap-2 px-4 h-9 rounded-full text-sm ${
+                        viewMode === "map"
+                          ? "bg-purple-600 text-white"
+                          : "text-slate-700 hover:bg-slate-100"
+                      }`}
+                    >
+                      <Map className="h-4 w-4" />
+                      Map
+                    </button>
+                  </div>
                 </>
               )}
             </div>
@@ -693,29 +688,28 @@ export default function PropertyListingPage() {
   {/* Removed separate navbar below header to avoid duplication */}
 
       {currentPage === "home" && (
-        <div className="bg-white border-b border-slate-200 shadow-sm">
-          <div className="container mx-auto px-4 py-6">
-            <div className="flex flex-col gap-4 md:flex-row md:items-center">
+        <div className="bg-white border-b border-slate-200">
+          <div className="container mx-auto px-4 py-5">
+            <div className="flex flex-col gap-3 md:flex-row md:items-center">
               <div className="relative flex-1">
                 <Search className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
                 <Input
                   placeholder="Search properties in Naga City..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-12 h-12 border-slate-200 focus:border-blue-500 focus:ring-blue-500/20 bg-slate-50 focus:bg-white transition-colors"
+                  className="pl-12 h-11 rounded-full border-slate-200 focus:border-purple-500 focus:ring-purple-500/20 bg-white"
                 />
               </div>
-              <Button
-                variant="outline"
+              <button
                 onClick={() => setShowFilters(!showFilters)}
-                className="flex items-center gap-2 h-12 px-6 border-slate-300 hover:bg-slate-50"
+                className="flex items-center gap-2 h-11 px-4 rounded-full border border-slate-200 text-slate-700 hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-purple-500/30"
               >
                 <Filter className="h-4 w-4" />
                 Filters
-              </Button>
+              </button>
             </div>
             {showFilters && (
-              <div className="mt-6 rounded-xl border border-slate-200 bg-slate-50 p-6">
+              <div className="mt-5 rounded-2xl border border-slate-200 bg-slate-50 p-6">
                 <div className="grid gap-6 md:grid-cols-2">
                   <div>
                     <label className="text-sm font-semibold text-slate-700 mb-3 block">Price Range</label>
