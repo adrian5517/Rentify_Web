@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useEffect, useRef, useState, useCallback } from "react"
@@ -18,79 +17,120 @@ interface PropertyMapProps {
   zoom?: number
 }
 
-// Helper function to calculate distance using Haversine formula
+// Haversine distance in KM
 function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
-  const R = 6371 // Radius of the Earth in kilometers
+  const R = 6371
   const dLat = (lat2 - lat1) * Math.PI / 180
   const dLon = (lon2 - lon1) * Math.PI / 180
-  const a = 
-    Math.sin(dLat/2) * Math.sin(dLat/2) +
-    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
-    Math.sin(dLon/2) * Math.sin(dLon/2)
+  const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+            Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+            Math.sin(dLon/2) * Math.sin(dLon/2)
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a))
-  return R * c // Distance in kilometers
+  return R * c
 }
 
-export default function PropertyMap({ 
-  properties, 
-  clusters = [], 
-  center = [123.1815, 13.6218], // Naga City Center (Magsaysay Avenue)
-  zoom = 13 
+export default function PropertyMap({
+  properties,
+  clusters = [],
+  center = [123.1815, 13.6218], // Naga City
+  zoom = 13,
 }: PropertyMapProps) {
   const mapRef = useRef<HTMLDivElement>(null)
   const mapInstanceRef = useRef<mapboxgl.Map | null>(null)
   const markersRef = useRef<mapboxgl.Marker[]>([])
+
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [userLocation, setUserLocation] = useState<{lat: number, lng: number} | null>(null)
+  const [userLocation, setUserLocation] = useState<{ lat: number, lng: number } | null>(null)
   const [selectedProperty, setSelectedProperty] = useState<Property | null>(null)
+  const [routeInfo, setRouteInfo] = useState<{ distanceKm: number; durationMin: number } | null>(null)
+
   const initializedRef = useRef(false)
   const loadedRef = useRef(false)
   const propertiesRef = useRef<Property[]>(properties)
   const resizeObserverRef = useRef<ResizeObserver | null>(null)
   const intersectionObserverRef = useRef<IntersectionObserver | null>(null)
+  const routeSourceId = useRef<string>('route-source')
+  const routeLayerId = useRef<string>('route-layer')
 
-  // Keep latest properties in a ref for use inside event handlers
-  useEffect(() => {
-    propertiesRef.current = properties
-  }, [properties])
+  // Keep latest properties reference
+  useEffect(() => { propertiesRef.current = properties }, [properties])
 
-  // Get user's current location
+  // Geolocation
   useEffect(() => {
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         (position) => {
-          setUserLocation({
-            lat: position.coords.latitude,
-            lng: position.coords.longitude
-          })
+          setUserLocation({ lat: position.coords.latitude, lng: position.coords.longitude })
         },
-        (error) => {
-          console.log("Location access denied or error:", error)
-          // Default to Naga City if location access denied
-          setUserLocation({ lat: 13.6218, lng: 123.1815 })
+        (e) => {
+          console.log("Location access denied or error:", e)
+          setUserLocation({ lat: 13.6218, lng: 123.1815 }) // Fallback to Naga
         },
         { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
       )
     }
   }, [])
 
-  // Cleanup markers
   const clearMarkers = useCallback(() => {
-    markersRef.current.forEach(marker => marker.remove())
+    markersRef.current.forEach(m => m.remove())
     markersRef.current = []
   }, [])
 
-  // Add markers to map (adapted from mobile version)
-  const addMarkersToMap = useCallback((map: mapboxgl.Map, properties: Property[]) => {
+  const clearRoute = useCallback((map: mapboxgl.Map) => {
+    try {
+      if (map.getLayer(routeLayerId.current)) map.removeLayer(routeLayerId.current)
+      if (map.getSource(routeSourceId.current)) map.removeSource(routeSourceId.current)
+    } catch {
+      // ignore
+    }
+    setRouteInfo(null)
+  }, [])
+
+  const drawDirections = useCallback(async (map: mapboxgl.Map, from: [number, number], to: [number, number]) => {
+    clearRoute(map)
+    const token = mapboxgl.accessToken
+    if (!token) throw new Error('Missing Mapbox access token for directions')
+    const url = `https://api.mapbox.com/directions/v5/mapbox/driving/${from[0]},${from[1]};${to[0]},${to[1]}?geometries=geojson&overview=full&access_token=${token}`
+    const res = await fetch(url)
+    if (!res.ok) throw new Error(`Directions request failed: ${res.status}`)
+    const data = await res.json()
+    const route = data?.routes?.[0]
+    if (!route) throw new Error('No route found')
+    const geometry = route.geometry
+
+    // Source
+    map.addSource(routeSourceId.current, {
+      type: 'geojson',
+      data: { type: 'Feature', properties: {}, geometry }
+    } as any)
+
+    // Layer
+    map.addLayer({
+      id: routeLayerId.current,
+      type: 'line',
+      source: routeSourceId.current,
+      layout: { 'line-join': 'round', 'line-cap': 'round' },
+      paint: { 'line-color': '#2563eb', 'line-width': 5, 'line-opacity': 0.85 }
+    })
+
+    // Fit bounds
+    try {
+      const coords: [number, number][] = geometry.coordinates
+      let minX = coords[0][0], minY = coords[0][1], maxX = coords[0][0], maxY = coords[0][1]
+      for (const [x, y] of coords) { if (x < minX) minX = x; if (x > maxX) maxX = x; if (y < minY) minY = y; if (y > maxY) maxY = y }
+      map.fitBounds([[minX, minY], [maxX, maxY]], { padding: 60, maxZoom: 16 })
+    } catch {}
+
+    setRouteInfo({ distanceKm: route.distance / 1000, durationMin: route.duration / 60 })
+  }, [clearRoute])
+
+  const addMarkersToMap = useCallback((map: mapboxgl.Map, props: Property[]) => {
     clearMarkers()
-    
-    // Add user location marker if available
+
+    // User marker
     if (userLocation) {
-      const userMarker = new mapboxgl.Marker({
-        color: "#3B82F6", // Blue color for user
-        scale: 1.0
-      })
+      const userMarker = new mapboxgl.Marker({ color: "#3B82F6", scale: 1.0 })
         .setLngLat([userLocation.lng, userLocation.lat])
         .setPopup(new mapboxgl.Popup({ offset: 25 }).setHTML(`
           <div class="p-3 text-center font-sans">
@@ -99,69 +139,40 @@ export default function PropertyMap({
           </div>
         `))
         .addTo(map)
-      
       markersRef.current.push(userMarker)
     }
 
-    // Add Naga City landmarks (keeping your landmarks)
-    const landmarks = [
-      {
-        name: "🏛️ Naga City Hall",
-        coordinates: [123.1815, 13.6218] as [number, number],
-        description: "Central Business District"
-      },
-      {
-        name: "� Ateneo de Naga University",
-        coordinates: [123.1967, 13.6301] as [number, number],
-        description: "University District"
-      },
-      {
-        name: "🏢 SM City Naga",
-        coordinates: [123.1834, 13.6234] as [number, number],
-        description: "Shopping Center"
-      },
-      {
-        name: "🏥 Bicol Medical Center",
-        coordinates: [123.1756, 13.6156] as [number, number],
-        description: "Medical District"
-      }
+    // Landmarks
+    const landmarks: { name: string; coordinates: [number, number]; description: string }[] = [
+      { name: "🏛️ Naga City Hall", coordinates: [123.1815, 13.6218], description: "Central Business District" },
+      { name: "🎓 Ateneo de Naga University", coordinates: [123.1967, 13.6301], description: "University District" },
+      { name: "🏢 SM City Naga", coordinates: [123.1834, 13.6234], description: "Shopping Center" },
+      { name: "🏥 Bicol Medical Center", coordinates: [123.1756, 13.6156], description: "Medical District" },
     ]
 
-    // Add landmark markers
-    landmarks.forEach((landmark) => {
-      const landmarkMarker = new mapboxgl.Marker({
-        color: "#dc2626", // Red color for landmarks
-        scale: 0.7
-      })
-        .setLngLat(landmark.coordinates)
+    landmarks.forEach((lm) => {
+      const landmarkMarker = new mapboxgl.Marker({ color: "#dc2626", scale: 0.7 })
+        .setLngLat(lm.coordinates)
         .setPopup(new mapboxgl.Popup({ offset: 25 }).setHTML(`
           <div class="p-3 text-center font-sans">
-            <h3 class="font-bold text-base text-gray-900">${landmark.name}</h3>
-            <p class="text-sm text-gray-600">${landmark.description}</p>
+            <h3 class="font-bold text-base text-gray-900">${lm.name}</h3>
+            <p class="text-sm text-gray-600">${lm.description}</p>
             <p class="text-xs text-gray-500 mt-1">Naga City, Camarines Sur</p>
           </div>
         `))
         .addTo(map)
-      
       markersRef.current.push(landmarkMarker)
     })
-    
-    // Add property markers with distance calculation
-    properties.forEach((property) => {
+
+    // Property markers
+    props.forEach((property: Property) => {
       try {
-        // Calculate distance if user location is available
         let distance = ""
         if (userLocation) {
-          const dist = calculateDistance(
-            userLocation.lat,
-            userLocation.lng,
-            property.location.latitude,
-            property.location.longitude
-          )
+          const dist = calculateDistance(userLocation.lat, userLocation.lng, property.location.latitude, property.location.longitude)
           distance = ` • ${dist.toFixed(1)}km away`
         }
 
-        // Create enhanced popup content (adapted from mobile)
         const popupContent = `
           <div class="p-4 min-w-[280px] font-sans bg-white rounded-lg">
             <div class="mb-3">
@@ -171,7 +182,6 @@ export default function PropertyMap({
                 <span class="text-xs text-gray-500">${property.amenities.length} amenities</span>
               </div>
             </div>
-            
             <div class="mb-3">
               <p class="text-xl font-bold text-green-600 mb-1">₱${new Intl.NumberFormat("en-PH").format(property.price)}</p>
               <p class="text-sm text-gray-600 flex items-center">
@@ -179,76 +189,49 @@ export default function PropertyMap({
                 ${property.location.address}${distance}
               </p>
             </div>
-            
             <div class="border-t pt-3 mt-3">
               <div class="flex flex-wrap gap-1 mb-3">
-                ${property.amenities.slice(0, 3).map(amenity => 
-                  `<span class="inline-block px-2 py-1 bg-gray-100 text-gray-700 text-xs rounded">${amenity}</span>`
-                ).join('')}
+                ${property.amenities.slice(0, 3).map((amenity: string) => `<span class="inline-block px-2 py-1 bg-gray-100 text-gray-700 text-xs rounded">${amenity}</span>`).join('')}
                 ${property.amenities.length > 3 ? `<span class="text-xs text-gray-500">+${property.amenities.length - 3} more</span>` : ''}
               </div>
-              
               <div class="flex gap-2">
-                <button class="flex-1 bg-blue-600 text-white px-3 py-2 rounded text-sm font-medium hover:bg-blue-700 transition-colors">
-                  📞 Contact
-                </button>
-                <button class="flex-1 bg-gray-100 text-gray-700 px-3 py-2 rounded text-sm font-medium hover:bg-gray-200 transition-colors">
-                  📅 Book Visit
-                </button>
+                <button class="flex-1 bg-blue-600 text-white px-3 py-2 rounded text-sm font-medium hover:bg-blue-700 transition-colors">📞 Contact</button>
+                <button class="flex-1 bg-gray-100 text-gray-700 px-3 py-2 rounded text-sm font-medium hover:bg-gray-200 transition-colors">📅 Book Visit</button>
               </div>
             </div>
           </div>
         `
 
-        // Create popup
-        const popup = new mapboxgl.Popup({
-          offset: 25,
-          closeButton: true,
-          closeOnClick: false,
-          maxWidth: "350px",
-          className: "property-popup"
-        }).setHTML(popupContent)
+        const popup = new mapboxgl.Popup({ offset: 25, closeButton: true, closeOnClick: false, maxWidth: "350px", className: "property-popup" }).setHTML(popupContent)
 
-        // Create marker with color based on status (adapted from mobile logic)
-        const markerColor = property.status === "Available" ? "#10b981" : 
-                           property.status === "Rented" ? "#f59e0b" : "#ef4444"
-        
-        const marker = new mapboxgl.Marker({
-          color: markerColor,
-          scale: 0.9
-        })
+        const markerColor = property.status === "Available" ? "#10b981" : property.status === "Rented" ? "#f59e0b" : "#ef4444"
+        const marker = new mapboxgl.Marker({ color: markerColor, scale: 0.9 })
           .setLngLat([property.location.longitude, property.location.latitude])
           .setPopup(popup)
           .addTo(map)
 
-        // Add click event to show property details (similar to mobile handlePropertySelect)
-        marker.getElement().addEventListener('click', () => {
+        marker.getElement().addEventListener('click', async () => {
           setSelectedProperty(property)
-          
-          // Animate to property location
-          map.flyTo({
-            center: [property.location.longitude, property.location.latitude],
-            zoom: 16,
-            speed: 1.2,
-            curve: 1.4
-          })
+          map.flyTo({ center: [property.location.longitude, property.location.latitude], zoom: 16, speed: 1.2, curve: 1.4 })
+          if (userLocation) {
+            try { await drawDirections(map, [userLocation.lng, userLocation.lat], [property.location.longitude, property.location.latitude]) } catch (e) { console.warn('Could not draw directions:', e) }
+          } else {
+            console.log('User location unknown. Click the geolocate button or allow location access to get directions.')
+          }
         })
 
         markersRef.current.push(marker)
-      } catch (markerError) {
-        console.error(`Error adding marker for ${property.name}:`, markerError)
+      } catch (err) {
+        console.error(`Error adding marker for ${property.name}:`, err)
       }
     })
 
-    console.log(`🗺️ Added ${markersRef.current.length} markers (${properties.length} properties + ${landmarks.length} landmarks + ${userLocation ? 1 : 0} user location)`)
-  }, [clearMarkers, userLocation])
+    console.log(`🗺️ Added ${markersRef.current.length} markers (${props.length} properties + ${landmarks.length} landmarks + ${userLocation ? 1 : 0} user location)`) // landmarks in closure
+  }, [clearMarkers, userLocation, drawDirections])
 
-  // Initialize map once (enhanced version)
+  // Initialize map once
   useEffect(() => {
-    if (!mapRef.current) {
-      console.log("🚨 Map container ref not available")
-      return
-    }
+    if (!mapRef.current) { console.log("🚨 Map container ref not available"); return }
 
     let mounted = true
     let loadTimeout: NodeJS.Timeout
@@ -258,11 +241,10 @@ export default function PropertyMap({
         console.log("🗺️ Starting map initialization...")
         console.log("🗺️ Token:", mapboxgl.accessToken ? "✅ Available" : "❌ Missing")
         console.log("🗺️ Center:", center, "Zoom:", zoom, "Properties:", properties.length)
-        
+
         setIsLoading(true)
         setError(null)
 
-        // If already initialized, just update view and return
         if (initializedRef.current && mapInstanceRef.current) {
           console.log("🔁 Map already initialized - updating view only")
           mapInstanceRef.current.jumpTo({ center, zoom })
@@ -277,23 +259,15 @@ export default function PropertyMap({
           return
         }
 
-        // Set timeout for loading issues
         loadTimeout = setTimeout(() => {
-          if (mounted) {
-            console.log("⏰ Map load timeout after 15 seconds")
-            setError("Map loading timeout - please refresh and try again")
-            setIsLoading(false)
-          }
+          if (mounted) { console.log("⏰ Map load timeout after 15 seconds"); setError("Map loading timeout - please refresh and try again"); setIsLoading(false) }
         }, 15000)
 
-        console.log("🗺️ Creating new map instance...")
-        
-        // Create new map instance with enhanced settings
         const map = new mapboxgl.Map({
           container: mapRef.current!,
           style: "mapbox://styles/mapbox/streets-v12",
-          center: center,
-          zoom: zoom,
+          center,
+          zoom,
           attributionControl: true,
           logoPosition: 'bottom-right'
         })
@@ -302,67 +276,65 @@ export default function PropertyMap({
         const cont = map.getContainer() as HTMLElement
         console.log("📐 Container size (init):", cont.clientWidth, "x", cont.clientHeight)
 
-        // Add navigation controls
         map.addControl(new mapboxgl.NavigationControl(), 'top-right')
-        
-        // Add fullscreen control
         map.addControl(new mapboxgl.FullscreenControl(), 'top-right')
 
-        // Map load event
+        const geolocate = new mapboxgl.GeolocateControl({ positionOptions: { enableHighAccuracy: true }, trackUserLocation: true, showUserHeading: true, showAccuracyCircle: true, fitBoundsOptions: { maxZoom: 15 } })
+        map.addControl(geolocate, 'top-right')
+
         map.on("load", () => {
           if (!mounted) return
           console.log("🎉 Map loaded successfully! Adding markers...")
           clearTimeout(loadTimeout)
-          if (!loadedRef.current) {
-            setIsLoading(false)
-            initializedRef.current = true
-            loadedRef.current = true
-          }
+          if (!loadedRef.current) { setIsLoading(false); initializedRef.current = true; loadedRef.current = true }
           addMarkersToMap(map, propertiesRef.current)
 
-          // Perform a couple of delayed resizes to account for hidden containers/modals
-          map.resize()
-          requestAnimationFrame(() => map.resize())
-          setTimeout(() => map.resize(), 300)
+          // Resize cadence
+          map.resize(); requestAnimationFrame(() => map.resize()); setTimeout(() => map.resize(), 300)
           const el = map.getContainer() as HTMLElement
           console.log("📐 Container size (after load):", el.clientWidth, "x", el.clientHeight)
 
-          // Ensure a visible base background layer
+          // Background layer
           try {
             const style = map.getStyle()
             const bgLayer = style.layers?.find(l => l.type === 'background')
-            if (bgLayer) {
-              map.setPaintProperty(bgLayer.id, 'background-color', '#eef2ff')
-            } else {
+            if (bgLayer) { map.setPaintProperty(bgLayer.id, 'background-color', '#eef2ff') }
+            else {
               const firstLayerId = style.layers && style.layers.length > 0 ? style.layers[0].id : undefined
-              map.addLayer({
-                id: 'bg-layer',
-                type: 'background',
-                paint: { 'background-color': '#eef2ff' }
-              }, firstLayerId)
+              map.addLayer({ id: 'bg-layer', type: 'background', paint: { 'background-color': '#eef2ff' } }, firstLayerId)
             }
-          } catch (bgErr) {
-            console.warn('Could not set background layer:', bgErr)
-          }
+          } catch (bgErr) { console.warn('Could not set background layer:', bgErr) }
+
+          // Poll for size until visible
+          let attempts = 0
+          const maxAttempts = 20
+          const interval = setInterval(() => {
+            if (!mapInstanceRef.current) { clearInterval(interval); return }
+            const c = map.getContainer() as HTMLElement
+            const w = c.clientWidth; const h = c.clientHeight
+            if (w > 0 && h > 0) {
+              clearInterval(interval)
+              console.log("✅ Container visible:", w, "x", h, "→ final resize + recenter")
+              map.resize()
+              map.easeTo({ center, zoom, duration: 0 })
+              if (userLocation) map.flyTo({ center: [userLocation.lng, userLocation.lat], zoom: Math.max(14, zoom), speed: 1.2 })
+            } else {
+              attempts++
+              if (attempts % 2 === 0) console.log(`⏳ Waiting for container size (attempt ${attempts}/${maxAttempts})`)
+              map.resize()
+              if (attempts >= maxAttempts) { clearInterval(interval); console.warn("⚠️ Container remained 0 size after retries") }
+            }
+          }, 150)
         })
 
-        // Also mark loaded on idle as a fallback
         map.on("idle", () => {
           if (!mounted) return
-          if (!loadedRef.current) {
-            console.log("✅ Map idle - considering loaded")
-            clearTimeout(loadTimeout)
-            setIsLoading(false)
-            initializedRef.current = true
-            loadedRef.current = true
-          }
-          // Ensure layout is correct when tiles/style are fully settled
+          if (!loadedRef.current) { console.log("✅ Map idle - considering loaded"); clearTimeout(loadTimeout); setIsLoading(false); initializedRef.current = true; loadedRef.current = true }
           map.resize()
           const el2 = map.getContainer() as HTMLElement
           console.log("📐 Container size (idle):", el2.clientWidth, "x", el2.clientHeight)
         })
 
-        // Map error event
         map.on("error", (e) => {
           if (!mounted) return
           console.error("🚨 Map error:", e.error)
@@ -371,114 +343,101 @@ export default function PropertyMap({
           setIsLoading(false)
         })
 
-        // Additional events for debugging
-        map.on("styledata", () => {
-          console.log("🎨 Map style loaded")
-        })
-
-        map.on("sourcedata", (e) => {
-          if (e.isSourceLoaded) {
-            console.log("📊 Map source data loaded")
-          }
-        })
+        map.on("styledata", () => { console.log("🎨 Map style loaded") })
+        map.on("sourcedata", (e: any) => { if (e.isSourceLoaded) console.log("📊 Map source data loaded") })
 
         mapInstanceRef.current = map
 
-        // Observe container size changes
+        // Observers
         if (mapRef.current && typeof ResizeObserver !== 'undefined') {
-          resizeObserverRef.current = new ResizeObserver(() => {
-            if (mapInstanceRef.current) {
-              mapInstanceRef.current.resize()
-            }
-          })
+          resizeObserverRef.current = new ResizeObserver(() => { if (mapInstanceRef.current) mapInstanceRef.current.resize() })
           resizeObserverRef.current.observe(mapRef.current)
         }
-
-        // Observe visibility (e.g., when dialog opens)
         if (mapRef.current && typeof IntersectionObserver !== 'undefined') {
           intersectionObserverRef.current = new IntersectionObserver((entries) => {
             const entry = entries[0]
-            if (entry && entry.isIntersecting && mapInstanceRef.current) {
-              console.log("👀 Map container became visible - resizing map")
-              mapInstanceRef.current.resize()
-            }
+            if (entry && entry.isIntersecting && mapInstanceRef.current) { console.log("👀 Map container became visible - resizing map"); mapInstanceRef.current.resize() }
           }, { threshold: 0.1 })
           intersectionObserverRef.current.observe(mapRef.current)
         }
 
-        // Handle window resize and visibility changes
+        // Window events
         const onWindowResize = () => map.resize()
         const onVisibility = () => map.resize()
         window.addEventListener('resize', onWindowResize)
         document.addEventListener('visibilitychange', onVisibility)
         document.addEventListener('fullscreenchange', onVisibility)
-
-        // Store cleanup for these listeners
         ;(map as any)._customCleanup = () => {
           window.removeEventListener('resize', onWindowResize)
           document.removeEventListener('visibilitychange', onVisibility)
           document.removeEventListener('fullscreenchange', onVisibility)
         }
-
-      } catch (error) {
+      } catch (err) {
         if (!mounted) return
-        console.error("🚨 Error initializing map:", error)
+        console.error("🚨 Error initializing map:", err)
         clearTimeout(loadTimeout)
-        setError(`Failed to initialize map: ${error instanceof Error ? error.message : "Unknown error"}`)
+        setError(`Failed to initialize map: ${err instanceof Error ? err.message : "Unknown error"}`)
         setIsLoading(false)
       }
     }
 
-    // Initialize map with slight delay
     const timeoutId = setTimeout(initMap, 100)
 
     return () => {
       mounted = false
       clearTimeout(timeoutId)
       if (loadTimeout) clearTimeout(loadTimeout)
-      // Only clean up on unmount
       clearMarkers()
       if (mapInstanceRef.current) {
-        // Clean listeners
         const anyMap = mapInstanceRef.current as any
         if (anyMap._customCleanup) anyMap._customCleanup()
+        try { clearRoute(mapInstanceRef.current) } catch {}
         mapInstanceRef.current.remove()
         mapInstanceRef.current = null
       }
-      if (resizeObserverRef.current) {
-        try { resizeObserverRef.current.disconnect() } catch {}
-        resizeObserverRef.current = null
-      }
-      if (intersectionObserverRef.current) {
-        try { intersectionObserverRef.current.disconnect() } catch {}
-        intersectionObserverRef.current = null
-      }
+      if (resizeObserverRef.current) { try { resizeObserverRef.current.disconnect() } catch {} ; resizeObserverRef.current = null }
+      if (intersectionObserverRef.current) { try { intersectionObserverRef.current.disconnect() } catch {} ; intersectionObserverRef.current = null }
       initializedRef.current = false
       loadedRef.current = false
     }
-  }, [])
+  }, [center, zoom, clearMarkers, clearRoute, addMarkersToMap, properties.length, userLocation])
 
   // Respond to center/zoom changes without re-initializing the map
-  useEffect(() => {
-    if (mapInstanceRef.current) {
-      mapInstanceRef.current.easeTo({ center, zoom, duration: 500 })
-    }
-  }, [center, zoom])
+  useEffect(() => { if (mapInstanceRef.current) mapInstanceRef.current.easeTo({ center, zoom, duration: 500 }) }, [center, zoom])
 
   // Update markers when properties change
-  useEffect(() => {
-    if (mapInstanceRef.current && !isLoading && !error) {
-      addMarkersToMap(mapInstanceRef.current, properties)
-    }
-  }, [properties, addMarkersToMap, isLoading, error])
+  useEffect(() => { if (mapInstanceRef.current && !isLoading && !error) addMarkersToMap(mapInstanceRef.current, properties) }, [properties, addMarkersToMap, isLoading, error])
 
   return (
     <div className="relative w-full h-full rounded-lg" style={{ minHeight: "300px" }}>
-      <div 
-        ref={mapRef} 
-        className="absolute inset-0 rounded-lg"
-        style={{ backgroundColor: "#274093ff", outline: "1px solid rgba(99,102,241,0.25)" }}
-      />
+      {/* Route info overlay */}
+      {routeInfo && (
+        <div className="absolute top-4 left-4 z-10 bg-white/90 backdrop-blur px-3 py-2 rounded-md shadow border border-slate-200 text-sm text-slate-700 flex items-center gap-3">
+          <span>🧭 {routeInfo.distanceKm.toFixed(1)} km</span>
+          <span>⏱ {Math.round(routeInfo.durationMin)} min</span>
+          <button
+            onClick={() => { setRouteInfo(null); if (mapInstanceRef.current) clearRoute(mapInstanceRef.current) }}
+            className="ml-2 text-slate-500 hover:text-slate-700"
+            aria-label="Clear route"
+            title="Clear route"
+          >✖</button>
+        </div>
+      )}
+
+      <div ref={mapRef} className="absolute inset-0 rounded-lg" style={{ backgroundColor: "#eef2ff", outline: "1px solid rgba(99,102,241,0.25)" }} />
+
+      {/* My Location floating button */}
+      {userLocation && (
+        <button
+          aria-label="My location"
+          title="My location"
+          onClick={() => { if (mapInstanceRef.current) mapInstanceRef.current.flyTo({ center: [userLocation.lng, userLocation.lat], zoom: 15, speed: 1.2 }) }}
+          className="absolute z-10 bottom-4 right-4 inline-flex items-center gap-2 px-3 py-2 rounded-md shadow-md bg-white/90 hover:bg-white text-slate-700 border border-slate-200"
+        >
+          <span>📍</span>
+          <span className="text-sm font-medium">My location</span>
+        </button>
+      )}
 
       {isLoading && (
         <div className="absolute inset-0 flex items-center justify-center bg-gray-50/80 backdrop-blur-sm rounded-lg">
@@ -487,15 +446,7 @@ export default function PropertyMap({
             <p className="text-gray-600">Loading Mapbox...</p>
             <p className="text-xs text-gray-500 mt-1">Initializing map with {properties.length} properties</p>
             <div className="mt-4">
-              <button 
-                onClick={() => {
-                  setIsLoading(false)
-                  setError("Loading cancelled by user")
-                }}
-                className="text-xs text-gray-400 hover:text-gray-600 underline"
-              >
-                Cancel and show fallback
-              </button>
+              <button onClick={() => { setIsLoading(false); setError("Loading cancelled by user") }} className="text-xs text-gray-400 hover:text-gray-600 underline">Cancel and show fallback</button>
             </div>
           </div>
         </div>
@@ -508,21 +459,8 @@ export default function PropertyMap({
             <p className="text-gray-600 mb-2">{error}</p>
             <p className="text-sm text-gray-500 mb-4">Showing {properties.length} properties</p>
             <div className="space-y-2">
-              <button 
-                onClick={() => {
-                  setError(null)
-                  setIsLoading(true)
-                }} 
-                className="px-4 py-2 bg-blue-500 text-white rounded text-sm hover:bg-blue-600 mr-2"
-              >
-                Retry Map
-              </button>
-              <button 
-                onClick={() => window.location.reload()} 
-                className="px-4 py-2 bg-gray-500 text-white rounded text-sm hover:bg-gray-600"
-              >
-                Reload Page
-              </button>
+              <button onClick={() => { setError(null); setIsLoading(true) }} className="px-4 py-2 bg-blue-500 text-white rounded text-sm hover:bg-blue-600 mr-2">Retry Map</button>
+              <button onClick={() => window.location.reload()} className="px-4 py-2 bg-gray-500 text-white rounded text-sm hover:bg-gray-600">Reload Page</button>
             </div>
           </div>
         </div>
