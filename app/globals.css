@@ -2,6 +2,20 @@
 @import "tw-animate-css";
 @import "mapbox-gl/dist/mapbox-gl.css";
 
+/* Ensure Mapbox containers fill parent and remain visible */
+.mapboxgl-map,
+.mapboxgl-canvas,
+.mapboxgl-canvas-container {
+  width: 100% !important;
+  height: 100% !important;
+  min-height: 300px;
+}
+
+/* Optional subtle background to differentiate from white */
+.mapboxgl-map {
+  background-color: #eef2ff; /* indigo-50 */
+}
+
 @custom-variant dark (&:is(.dark *));
 
 :root {

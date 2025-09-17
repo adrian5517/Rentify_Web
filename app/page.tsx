@@ -600,7 +600,12 @@ export default function PropertyListingPage() {
               </div>
             ) : (
               <div className="h-[600px] rounded-2xl overflow-hidden shadow-xl border border-slate-200">
-                <PropertyMap properties={filteredProperties} clusters={clusters} />
+                <PropertyMap 
+                  properties={filteredProperties} 
+                  clusters={clusters}
+                  center={[123.1815, 13.6218]} 
+                  zoom={13}
+                />
               </div>
             )}
             {filteredProperties.length === 0 && (
