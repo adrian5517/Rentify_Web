@@ -627,13 +627,17 @@ export default function PropertyListingPage() {
       <header className="bg-white border-b border-slate-200 shadow-sm sticky top-0 z-40">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-4">
               <div className="p-2 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-xl shadow-md">
                 <Home className="h-6 w-6 text-white" />
               </div>
               <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
                 Rentify
               </h1>
+              {/* Inline navbar beside logo on md+ */}
+              <div className="ml-2">
+                <Navbar currentPage={currentPage} onPageChange={setCurrentPage} />
+              </div>
             </div>
             <div className="flex items-center gap-3">
               {currentPage === "home" && (
@@ -686,7 +690,7 @@ export default function PropertyListingPage() {
         </div>
       </header>
 
-      <Navbar currentPage={currentPage} onPageChange={setCurrentPage} />
+  {/* Removed separate navbar below header to avoid duplication */}
 
       {currentPage === "home" && (
         <div className="bg-white border-b border-slate-200 shadow-sm">
