@@ -1,187 +1,223 @@
+
 "use client"
 
-import { useEffect, useRef, useState } from "react"
+import { useEffect, useRef, useState, useCallback } from "react"
+import mapboxgl from "mapbox-gl"
+import "mapbox-gl/dist/mapbox-gl.css"
 import type { Property } from "@/lib/property-data"
+
+// Set your Mapbox access token
+mapboxgl.accessToken = "pk.eyJ1IjoiYWRyaWFuNTUxNyIsImEiOiJjbWZkdWxxaXQwMTd2MmxyNGxkcG9sNzI0In0.m16yaRrCnBmAk3nWvKDz_A"
 
 interface PropertyMapProps {
   properties: Property[]
-  clusters: any[]
+  clusters?: any[]
   center?: [number, number]
   zoom?: number
 }
 
-export default function PropertyMap({ properties, clusters, center, zoom = 12 }: PropertyMapProps) {
+export default function PropertyMap({ 
+  properties, 
+  clusters = [], 
+  center = [123.1815, 13.6218], // Naga City Center (Magsaysay Avenue)
+  zoom = 13 
+}: PropertyMapProps) {
   const mapRef = useRef<HTMLDivElement>(null)
-  const mapInstanceRef = useRef<any>(null)
+  const mapInstanceRef = useRef<mapboxgl.Map | null>(null)
+  const markersRef = useRef<mapboxgl.Marker[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const timeoutRef = useRef<NodeJS.Timeout>()
 
+  // Cleanup markers
+  const clearMarkers = useCallback(() => {
+    markersRef.current.forEach(marker => marker.remove())
+    markersRef.current = []
+  }, [])
+
+  // Add markers to map
+  const addMarkersToMap = useCallback((map: mapboxgl.Map, properties: Property[]) => {
+    clearMarkers()
+    
+    // Add Naga City landmarks
+    const landmarks = [
+      {
+        name: "📍 Naga City Hall",
+        coordinates: [123.1815, 13.6218] as [number, number],
+        description: "Central Business District"
+      },
+      {
+        name: "🏛️ Ateneo de Naga University",
+        coordinates: [123.1967, 13.6301] as [number, number],
+        description: "University District"
+      },
+      {
+        name: "🏢 SM City Naga",
+        coordinates: [123.1834, 13.6234] as [number, number],
+        description: "Shopping Center"
+      },
+      {
+        name: "🏥 Bicol Medical Center",
+        coordinates: [123.1756, 13.6156] as [number, number],
+        description: "Medical District"
+      }
+    ]
+
+    // Add landmark markers
+    landmarks.forEach((landmark) => {
+      const landmarkMarker = new mapboxgl.Marker({
+        color: "#dc2626", // Red color for landmarks
+        scale: 0.9
+      })
+        .setLngLat(landmark.coordinates)
+        .setPopup(new mapboxgl.Popup({ offset: 25 }).setHTML(`
+          <div class="p-3 text-center font-sans">
+            <h3 class="font-bold text-base text-gray-900">${landmark.name}</h3>
+            <p class="text-sm text-gray-600">${landmark.description}</p>
+            <p class="text-xs text-gray-500 mt-1">Naga City, Camarines Sur</p>
+          </div>
+        `))
+        .addTo(map)
+      
+      markersRef.current.push(landmarkMarker)
+    })
+    
+    // Add property markers
+    properties.forEach((property) => {
+      try {
+        // Create popup content
+        const popupContent = `
+          <div class="p-3 min-w-[250px] font-sans">
+            <h3 class="font-semibold text-lg mb-2 text-gray-900">🏠 ${property.name}</h3>
+            <p class="text-lg font-bold text-green-600 mb-2">₱${new Intl.NumberFormat("en-PH").format(property.price)}</p>
+            <p class="text-sm text-gray-600 mb-2">📍 ${property.location.address}</p>
+            <div class="flex items-center gap-2">
+              <span class="inline-block bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded">${property.status}</span>
+              <span class="text-xs text-gray-500">${property.amenities.length} amenities</span>
+            </div>
+          </div>
+        `
+
+        // Create popup
+        const popup = new mapboxgl.Popup({
+          offset: 25,
+          closeButton: true,
+          closeOnClick: false,
+          maxWidth: "320px",
+        }).setHTML(popupContent)
+
+        // Create marker with color based on status
+        const marker = new mapboxgl.Marker({
+          color: property.status === "Available" ? "#10b981" : property.status === "Rented" ? "#f59e0b" : "#ef4444",
+          scale: 0.8
+        })
+          .setLngLat([property.location.longitude, property.location.latitude])
+          .setPopup(popup)
+          .addTo(map)
+
+        markersRef.current.push(marker)
+      } catch (markerError) {
+        console.error(`Error adding marker for ${property.name}:`, markerError)
+      }
+    })
+
+    console.log(`Added ${markersRef.current.length} markers to map (${properties.length} properties + ${landmarks.length} landmarks)`)
+  }, [clearMarkers])
+
+  // Initialize map
   useEffect(() => {
     if (!mapRef.current) return
 
-    timeoutRef.current = setTimeout(() => {
-      if (isLoading) {
-        console.log("[v0] Map loading timeout - falling back to property list")
-        setError("Map loading timeout")
-        setIsLoading(false)
-      }
-    }, 10000) // 10 second timeout
+    let mounted = true
 
     const initMap = async () => {
       try {
-        console.log("[v0] Starting map initialization...")
+        console.log("🗺️ Initializing map with:", { center, zoom, propertiesCount: properties.length })
         setIsLoading(true)
         setError(null)
 
-        if (!(window as any).mapboxgl) {
-          console.log("[v0] Loading Mapbox GL resources...")
-
-          // Load CSS
-          const link = document.createElement("link")
-          link.href = "https://api.mapbox.com/mapbox-gl-js/v3.1.0/mapbox-gl.css"
-          link.rel = "stylesheet"
-          document.head.appendChild(link)
-
-          // Load JS with timeout
-          await new Promise((resolve, reject) => {
-            const script = document.createElement("script")
-            script.src = "https://api.mapbox.com/mapbox-gl-js/v3.1.0/mapbox-gl.js"
-            script.onload = () => {
-              console.log("[v0] Mapbox JS loaded successfully")
-              resolve(true)
-            }
-            script.onerror = () => {
-              console.error("[v0] Failed to load Mapbox GL script")
-              reject(new Error("Failed to load Mapbox GL"))
-            }
-
-            // Add timeout for script loading
-            setTimeout(() => {
-              reject(new Error("Script loading timeout"))
-            }, 5000)
-
-            document.head.appendChild(script)
-          })
-        }
-
-        const mapboxgl = (window as any).mapboxgl
-
-        if (!mapboxgl) {
-          throw new Error("Mapbox GL not available after loading")
-        }
-
-        console.log("[v0] Setting access token...")
-        mapboxgl.accessToken =
-          "pk.eyJ1IjoiYWRyaWFuNTUxNyIsImEiOiJjbWZkdWxxaXQwMTd2MmxyNGxkcG9sNzI0In0.m16yaRrCnBmAk3nWvKDz_A"
-
+        // Remove existing map instance
         if (mapInstanceRef.current) {
-          console.log("[v0] Removing existing map instance")
+          console.log("🗺️ Removing existing map instance")
           mapInstanceRef.current.remove()
+          mapInstanceRef.current = null
         }
 
-        const defaultCenter: [number, number] = center || [123.1815, 13.6218]
-        console.log("[v0] Creating map with center:", defaultCenter)
-
+        console.log("🗺️ Creating new map instance...")
+        
+        // Create new map instance
         const map = new mapboxgl.Map({
-          container: mapRef.current,
-          style: "mapbox://styles/mapbox/streets-v12", // Changed to more reliable style
-          center: [defaultCenter[0], defaultCenter[1]],
+          container: mapRef.current!,
+          style: "mapbox://styles/mapbox/streets-v12",
+          center: center,
           zoom: zoom,
+          attributionControl: true,
         })
 
+        console.log("🗺️ Map instance created, waiting for load event...")
+
+        // Add navigation controls
+        map.addControl(new mapboxgl.NavigationControl(), 'top-right')
+
+        // Map load event
         map.on("load", () => {
-          console.log("[v0] Map loaded successfully!")
-          if (timeoutRef.current) {
-            clearTimeout(timeoutRef.current)
-          }
+          if (!mounted) return
+          console.log("🗺️ Map loaded successfully! Adding markers...")
           setIsLoading(false)
           addMarkersToMap(map, properties)
         })
 
-        map.on("style.load", () => {
-          console.log("[v0] Map style loaded")
-        })
-
-        map.on("sourcedata", (e) => {
-          if (e.isSourceLoaded) {
-            console.log("[v0] Map source data loaded")
-          }
-        })
-
+        // Map error event
         map.on("error", (e) => {
-          console.error("[v0] Map error:", e)
-          if (timeoutRef.current) {
-            clearTimeout(timeoutRef.current)
-          }
+          if (!mounted) return
+          console.error("🚨 Map error:", e.error)
           setError(`Map error: ${e.error?.message || "Unknown error"}`)
           setIsLoading(false)
         })
 
         mapInstanceRef.current = map
+
       } catch (error) {
-        console.error("[v0] Error initializing map:", error)
-        if (timeoutRef.current) {
-          clearTimeout(timeoutRef.current)
-        }
-        setError(`Unable to load map: ${error instanceof Error ? error.message : "Unknown error"}`)
+        if (!mounted) return
+        console.error("🚨 Error initializing map:", error)
+        setError(`Failed to initialize map: ${error instanceof Error ? error.message : "Unknown error"}`)
         setIsLoading(false)
       }
     }
 
-    const addMarkersToMap = (map: any, properties: Property[]) => {
-      console.log("[v0] Adding", properties.length, "markers to map")
-
-      properties.forEach((property, index) => {
-        try {
-          const popup = new (window as any).mapboxgl.Popup({
-            offset: 25,
-            closeButton: true,
-            closeOnClick: true,
-            maxWidth: "300px",
-          }).setHTML(`
-            <div style="padding: 12px; min-width: 200px; font-family: system-ui;">
-              <h3 style="font-weight: 600; font-size: 16px; margin-bottom: 4px; color: #1f2937;">${property.name}</h3>
-              <p style="color: #1f2937; font-weight: 700; margin-bottom: 4px;">₱${new Intl.NumberFormat("en-PH", {
-                minimumFractionDigits: 0,
-              }).format(property.price)}</p>
-              <p style="font-size: 14px; color: #6b7280; margin-bottom: 8px;">${property.location.address}</p>
-              <span style="display: inline-block; background-color: #1f2937; color: white; font-size: 12px; padding: 4px 8px; border-radius: 4px;">${property.status}</span>
-            </div>
-          `)
-          ;new (window as any).mapboxgl.Marker({
-            color: "#1f2937",
-          })
-            .setLngLat([property.location.longitude, property.location.latitude])
-            .setPopup(popup)
-            .addTo(map)
-        } catch (markerError) {
-          console.error(`[v0] Error adding marker ${index}:`, markerError)
-        }
-      })
-
-      console.log("[v0] All markers added successfully")
-    }
-
-    initMap()
+    // Add a small delay to ensure DOM is ready
+    const timeoutId = setTimeout(initMap, 100)
 
     return () => {
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current)
-      }
+      mounted = false
+      clearTimeout(timeoutId)
+      clearMarkers()
       if (mapInstanceRef.current) {
         mapInstanceRef.current.remove()
+        mapInstanceRef.current = null
       }
     }
-  }, [properties, center, zoom])
+  }, [center, zoom, addMarkersToMap])
+
+  // Update markers when properties change
+  useEffect(() => {
+    if (mapInstanceRef.current && !isLoading && !error) {
+      addMarkersToMap(mapInstanceRef.current, properties)
+    }
+  }, [properties, addMarkersToMap, isLoading, error])
 
   if (error) {
     return (
-      <div className="flex items-center justify-center h-full bg-muted rounded-lg">
+      <div className="flex items-center justify-center h-full w-full bg-gray-100 rounded-lg min-h-[300px]">
         <div className="text-center p-6">
-          <p className="text-muted-foreground mb-2">Map unavailable</p>
-          <p className="text-sm text-muted-foreground">{error}</p>
-          <p className="text-sm text-muted-foreground mt-2">Showing {properties.length} properties in Naga City</p>
+          <div className="text-red-500 mb-2">🗺️ Map Error</div>
+          <p className="text-gray-600 mb-2">{error}</p>
+          <p className="text-sm text-gray-500">Showing {properties.length} properties</p>
+          <button 
+            onClick={() => window.location.reload()} 
+            className="mt-2 px-4 py-2 bg-blue-500 text-white rounded text-sm hover:bg-blue-600"
+          >
+            Reload Page
+          </button>
         </div>
       </div>
     )
@@ -189,15 +225,24 @@ export default function PropertyMap({ properties, clusters, center, zoom = 12 }:
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-full bg-muted rounded-lg">
+      <div className="flex items-center justify-center h-full w-full bg-gray-50 rounded-lg min-h-[300px]">
         <div className="text-center p-6">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-2"></div>
-          <p className="text-muted-foreground">Loading map...</p>
-          <p className="text-xs text-muted-foreground mt-1">Initializing Mapbox...</p>
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading Mapbox...</p>
+          <p className="text-xs text-gray-500 mt-1">Initializing map with {properties.length} properties</p>
         </div>
       </div>
     )
   }
 
-  return <div ref={mapRef} className="w-full h-full rounded-lg" style={{ minHeight: "300px" }} />
+  return (
+    <div 
+      ref={mapRef} 
+      className="w-full h-full rounded-lg" 
+      style={{ 
+        minHeight: "300px",
+        position: "relative" 
+      }} 
+    />
+  )
 }

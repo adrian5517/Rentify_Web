@@ -26,7 +26,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Slider } from "@/components/ui/slider"
 import PropertyMap from "@/components/property-map"
 import Navbar from "@/components/navbar"
-import { properties } from "@/lib/property-data"
+import { properties, type Property } from "@/lib/property-data"
 import { getRecommendations, clusterProperties } from "@/lib/ml-utils"
 import AnalyticsDashboard from "@/components/analytics-dashboard"
 import AddPropertyModal from "@/components/add-property-modal"
@@ -62,7 +62,7 @@ function NearbyPage() {
   )
 }
 
-function ListPage({ onOpenModal }) {
+function ListPage({ onOpenModal }: { onOpenModal: () => void }) {
   const [activeTab, setActiveTab] = useState<"posted" | "rented">("posted")
   const postedProperties = properties.filter(
     (property) => property.status === "Available" || property.status === "Rented",
@@ -107,10 +107,10 @@ function ListPage({ onOpenModal }) {
             color: "white !important",
           }}
           onMouseEnter={(e) => {
-            e.target.style.background = "linear-gradient(to right, #059669, #047857, #0f766e)"
+            (e.target as HTMLElement).style.background = "linear-gradient(to right, #059669, #047857, #0f766e)"
           }}
           onMouseLeave={(e) => {
-            e.target.style.background = "linear-gradient(to right, #10b981, #059669, #0d9488)"
+            (e.target as HTMLElement).style.background = "linear-gradient(to right, #10b981, #059669, #0d9488)"
           }}
         >
           <div className="absolute inset-0 bg-gradient-to-r from-green-400 to-teal-400 rounded-xl blur opacity-30 group-hover:opacity-50 transition-opacity duration-300"></div>
@@ -361,13 +361,13 @@ function AnalyticsPage() {
   return <AnalyticsDashboard />
 }
 
-function AuthPage({ onAuth }) {
+function AuthPage({ onAuth }: { onAuth: () => void }) {
   const [isLogin, setIsLogin] = useState(true)
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [name, setName] = useState("")
 
-  const handleSubmit = (e) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     localStorage.setItem("rentify_auth", JSON.stringify({ email, name: name || email }))
     onAuth()
@@ -449,11 +449,11 @@ function AuthPage({ onAuth }) {
 export default function PropertyListingPage() {
   const [searchTerm, setSearchTerm] = useState("")
   const [priceRange, setPriceRange] = useState([0, 50000000])
-  const [selectedProperty, setSelectedProperty] = useState(null)
+  const [selectedProperty, setSelectedProperty] = useState<Property | null>(null)
   const [showFilters, setShowFilters] = useState(false)
   const [viewMode, setViewMode] = useState("grid")
-  const [recommendations, setRecommendations] = useState([])
-  const [clusters, setClusters] = useState([])
+  const [recommendations, setRecommendations] = useState<Property[]>([])
+  const [clusters, setClusters] = useState<any[]>([])
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [currentPage, setCurrentPage] = useState("home")
   const [showAddPropertyModal, setShowAddPropertyModal] = useState(false)
@@ -497,7 +497,7 @@ export default function PropertyListingPage() {
     setShowAddPropertyModal(false)
   }
 
-  const formatPrice = (price) => {
+  const formatPrice = (price: number) => {
     return new Intl.NumberFormat("en-PH", {
       style: "currency",
       currency: "PHP",
@@ -586,10 +586,10 @@ export default function PropertyListingPage() {
                           color: "white !important",
                         }}
                         onMouseEnter={(e) => {
-                          e.target.style.background = "linear-gradient(to right, #1d4ed8, #4338ca)"
+                          (e.target as HTMLElement).style.background = "linear-gradient(to right, #1d4ed8, #4338ca)"
                         }}
                         onMouseLeave={(e) => {
-                          e.target.style.background = "linear-gradient(to right, #2563eb, #4f46e5)"
+                          (e.target as HTMLElement).style.background = "linear-gradient(to right, #2563eb, #4f46e5)"
                         }}
                       >
                         View Details
@@ -641,10 +641,10 @@ export default function PropertyListingPage() {
                       color: "white !important",
                     }}
                     onMouseEnter={(e) => {
-                      e.target.style.background = "linear-gradient(to right, #059669, #047857, #0f766e)"
+                      (e.target as HTMLElement).style.background = "linear-gradient(to right, #059669, #047857, #0f766e)"
                     }}
                     onMouseLeave={(e) => {
-                      e.target.style.background = "linear-gradient(to right, #10b981, #059669, #0d9488)"
+                      (e.target as HTMLElement).style.background = "linear-gradient(to right, #10b981, #059669, #0d9488)"
                     }}
                   >
                     <Plus className="h-4 w-4" />
@@ -775,7 +775,7 @@ export default function PropertyListingPage() {
                     <PropertyMap
                       properties={[selectedProperty]}
                       clusters={[]}
-                      center={[selectedProperty.location.latitude, selectedProperty.location.longitude]}
+                      center={[selectedProperty.location.longitude, selectedProperty.location.latitude]}
                       zoom={15}
                     />
                   </div>
@@ -798,7 +798,7 @@ export default function PropertyListingPage() {
                   <div>
                     <h4 className="font-semibold text-foreground mb-2">Amenities</h4>
                     <div className="flex flex-wrap gap-2">
-                      {selectedProperty.amenities.map((amenity) => (
+                      {selectedProperty.amenities.map((amenity: string) => (
                         <Badge key={amenity} variant="outline">
                           {amenity}
                         </Badge>
