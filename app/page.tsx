@@ -570,6 +570,11 @@ export default function PropertyListingPage() {
   const [properties, setProperties] = useState<Property[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  
+  // New clustering state
+  const [selectedCluster, setSelectedCluster] = useState(0)
+  const [enableClustering, setEnableClustering] = useState(false)
+  const [navigationMode, setNavigationMode] = useState(false)
 
   // Function to convert API property to Property interface
   const convertAPIProperty = (apiProperty: APIProperty): Property => ({
@@ -801,6 +806,11 @@ export default function PropertyListingPage() {
                   clusters={clusters}
                   center={[123.1815, 13.6218]} 
                   zoom={13}
+                  enableClustering={enableClustering}
+                  selectedCluster={selectedCluster}
+                  onClusterChange={setSelectedCluster}
+                  navigationMode={navigationMode}
+                  onNavigationToggle={setNavigationMode}
                 />
               </div>
             )}
@@ -871,6 +881,38 @@ export default function PropertyListingPage() {
                       Map
                     </button>
                   </div>
+                  
+                  {/* Clustering Toggle - only show in map view */}
+                  {viewMode === "map" && (
+                    <div className="hidden md:flex items-center rounded-full border border-slate-200 p-1 bg-white shadow-sm">
+                      <button
+                        onClick={() => setEnableClustering(!enableClustering)}
+                        className={`flex items-center gap-2 px-3 h-9 rounded-full text-sm transition-colors ${
+                          enableClustering
+                            ? "bg-blue-600 text-white shadow-sm"
+                            : "text-slate-700 hover:bg-slate-100"
+                        }`}
+                        title={enableClustering ? "Disable ML Clustering" : "Enable ML Clustering"}
+                      >
+                        <span className="text-xs">🧠</span>
+                        {enableClustering ? "ML On" : "ML Off"}
+                      </button>
+                      
+                      {/* Navigation Toggle */}
+                      <button
+                        onClick={() => setNavigationMode(!navigationMode)}
+                        className={`flex items-center gap-2 px-3 h-9 rounded-full text-sm transition-colors ${
+                          navigationMode
+                            ? "bg-green-600 text-white shadow-sm"
+                            : "text-slate-700 hover:bg-slate-100"
+                        }`}
+                        title={navigationMode ? "Disable Navigation" : "Enable Navigation"}
+                      >
+                        <span className="text-xs">🧭</span>
+                        {navigationMode ? "Nav On" : "Nav Off"}
+                      </button>
+                    </div>
+                  )}
                 </>
               )}
             </div>
