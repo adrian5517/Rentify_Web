@@ -6,6 +6,10 @@ export interface Property {
   images: string[]
   status: "Available" | "Rented" | "Sold"
   amenities: string[]
+  bedrooms: number
+  bathrooms: number
+  parking: number
+  propertyType: string
   location: {
     address: string
     latitude: number

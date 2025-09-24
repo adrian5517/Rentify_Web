@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 import { useState, useEffect, useMemo } from "react"
 import Image from "next/image"
 import {
@@ -18,6 +18,8 @@ import {
   User,
   Navigation,
   List,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -27,12 +29,129 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Slider } from "@/components/ui/slider"
 import PropertyMap from "@/components/property-map"
 import Navbar from "@/components/navbar"
-import { properties, type Property } from "@/lib/property-data"
+import { type Property } from "@/lib/property-data"
 import { getRecommendations, clusterProperties } from "@/lib/ml-utils"
 import AnalyticsDashboard from "@/components/analytics-dashboard"
 import AddPropertyModal from "@/components/add-property-modal"
 
-function NearbyPage() {
+// API Property interface matching the API response
+interface APIProperty {
+  _id: string
+  name: string
+  description: string
+  images: string[]
+  price: number
+  propertyType: string
+  amenities: string[]
+  status: string
+  location: {
+    address: string
+    latitude: number
+    longitude: number
+  }
+  createdAt: string
+  __v: number
+}
+
+// Helper function to get proper image URI
+const getImageUri = (property: Property | APIProperty, imageIndex: number = 0) => {
+  if (!property?.images?.length) return 'https://via.placeholder.com/400x300?text=No+Image';
+  const path = property.images[imageIndex];
+  if (!path) return 'https://via.placeholder.com/400x300?text=No+Image';
+  return path.startsWith('http') ? path : `https://rentify-server-ge0f.onrender.com${path.startsWith('/') ? path : '/' + path}`;
+};
+
+// Image Slider Component
+interface ImageSliderProps {
+  property: Property
+  className?: string
+}
+
+function ImageSlider({ property, className = "h-56" }: ImageSliderProps) {
+  const [currentImageIndex, setCurrentImageIndex] = useState(0)
+  const totalImages = property.images?.length || 0
+
+  const nextImage = (e: React.MouseEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setCurrentImageIndex((prev) => (prev + 1) % totalImages)
+  }
+
+  const prevImage = (e: React.MouseEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setCurrentImageIndex((prev) => (prev - 1 + totalImages) % totalImages)
+  }
+
+  const goToImage = (index: number, e: React.MouseEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setCurrentImageIndex(index)
+  }
+
+  if (totalImages === 0) {
+    return (
+      <div className={`${className} bg-slate-200 flex items-center justify-center rounded-t-lg`}>
+        <span className="text-slate-500">No Image Available</span>
+      </div>
+    )
+  }
+
+  return (
+    <div className={`relative ${className} overflow-hidden group`}>
+      <img
+        src={getImageUri(property, currentImageIndex)}
+        alt={`${property.name} - Image ${currentImageIndex + 1}`}
+        className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-300"
+        onError={(e) => {
+          (e.target as HTMLImageElement).src = 'https://via.placeholder.com/400x300?text=Image+Error'
+        }}
+      />
+      
+      {/* Navigation Arrows */}
+      {totalImages > 1 && (
+        <>
+          <button
+            onClick={prevImage}
+            className="absolute left-2 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+          >
+            <ChevronLeft className="h-4 w-4" />
+          </button>
+          <button
+            onClick={nextImage}
+            className="absolute right-2 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+          >
+            <ChevronRight className="h-4 w-4" />
+          </button>
+        </>
+      )}
+
+      {/* Image Indicators */}
+      {totalImages > 1 && (
+        <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1">
+          {property.images.map((_, index) => (
+            <button
+              key={index}
+              onClick={(e) => goToImage(index, e)}
+              className={`w-2 h-2 rounded-full transition-colors duration-200 ${
+                index === currentImageIndex ? 'bg-white' : 'bg-white/50 hover:bg-white/75'
+              }`}
+            />
+          ))}
+        </div>
+      )}
+
+      {/* Image Counter */}
+      {totalImages > 1 && (
+        <div className="absolute top-2 right-2 bg-black/50 text-white text-xs px-2 py-1 rounded">
+          {currentImageIndex + 1} / {totalImages}
+        </div>
+      )}
+    </div>
+  )
+}
+
+function NearbyPage({ properties }: { properties: Property[] }) {
   return (
     <div className="space-y-6">
       <div className="text-center py-8">
@@ -44,11 +163,7 @@ function NearbyPage() {
         {properties.slice(0, 6).map((property) => (
           <Card key={property.id} className="hover:shadow-lg transition-shadow">
             <div className="relative h-48">
-              <img
-                src={property.images[0] || "/placeholder.svg"}
-                alt={property.name}
-                className="h-full w-full object-cover rounded-t-lg"
-              />
+              <ImageSlider property={property} className="h-48" />
               <Badge className="absolute top-2 right-2 bg-green-600 text-white">0.5 km away</Badge>
             </div>
             <CardContent className="p-4">
@@ -63,7 +178,7 @@ function NearbyPage() {
   )
 }
 
-function ListPage({ onOpenModal }: { onOpenModal: () => void }) {
+function ListPage({ onOpenModal, properties }: { onOpenModal: () => void; properties: Property[] }) {
   const [activeTab, setActiveTab] = useState<"posted" | "rented">("posted")
   const postedProperties = properties.filter(
     (property) => property.status === "Available" || property.status === "Rented",
@@ -136,11 +251,7 @@ function ListPage({ onOpenModal }: { onOpenModal: () => void }) {
               <Card key={property.id} className="hover:shadow-lg transition-shadow">
                 <div className="flex flex-col md:flex-row">
                   <div className="md:w-1/3">
-                    <img
-                      src={property.images[0] || "/placeholder.svg"}
-                      alt={property.name}
-                      className="h-48 md:h-full w-full object-cover rounded-l-lg"
-                    />
+                    <ImageSlider property={property} className="h-48 md:h-full rounded-l-lg" />
                   </div>
                   <CardContent className="md:w-2/3 p-6">
                     <div className="flex justify-between items-start mb-2">
@@ -162,15 +273,15 @@ function ListPage({ onOpenModal }: { onOpenModal: () => void }) {
                     <div className="flex items-center gap-4 text-slate-600 mb-4">
                       <div className="flex items-center gap-1">
                         <Bed className="h-4 w-4" />
-                        <span>3 beds</span>
+                        <span>{property.bedrooms} bed{property.bedrooms !== 1 ? 's' : ''}</span>
                       </div>
                       <div className="flex items-center gap-1">
                         <Bath className="h-4 w-4" />
-                        <span>2 baths</span>
+                        <span>{property.bathrooms} bath{property.bathrooms !== 1 ? 's' : ''}</span>
                       </div>
                       <div className="flex items-center gap-1">
-                        <Car className="h-4 w-4" />
-                        <span>1 parking</span>
+                        <Home className="h-4 w-4" />
+                        <span className="capitalize">{property.propertyType}</span>
                       </div>
                     </div>
                     <div className="flex gap-2">
@@ -202,11 +313,7 @@ function ListPage({ onOpenModal }: { onOpenModal: () => void }) {
               <Card key={`rented-${property.id}`} className="hover:shadow-lg transition-shadow border-green-200">
                 <div className="flex flex-col md:flex-row">
                   <div className="md:w-1/3">
-                    <img
-                      src={property.images[0] || "/placeholder.svg"}
-                      alt={property.name}
-                      className="h-48 md:h-full w-full object-cover rounded-l-lg"
-                    />
+                    <ImageSlider property={property} className="h-48 md:h-full rounded-l-lg" />
                   </div>
                   <CardContent className="md:w-2/3 p-6">
                     <div className="flex justify-between items-start mb-2">
@@ -224,15 +331,15 @@ function ListPage({ onOpenModal }: { onOpenModal: () => void }) {
                     <div className="flex items-center gap-4 text-slate-600 mb-4">
                       <div className="flex items-center gap-1">
                         <Bed className="h-4 w-4" />
-                        <span>3 beds</span>
+                        <span>{property.bedrooms} bed{property.bedrooms !== 1 ? 's' : ''}</span>
                       </div>
                       <div className="flex items-center gap-1">
                         <Bath className="h-4 w-4" />
-                        <span>2 baths</span>
+                        <span>{property.bathrooms} bath{property.bathrooms !== 1 ? 's' : ''}</span>
                       </div>
                       <div className="flex items-center gap-1">
-                        <Car className="h-4 w-4" />
-                        <span>1 parking</span>
+                        <Home className="h-4 w-4" />
+                        <span className="capitalize">{property.propertyType}</span>
                       </div>
                     </div>
                     <div className="flex gap-2">
@@ -460,6 +567,56 @@ export default function PropertyListingPage() {
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [currentPage, setCurrentPage] = useState("home")
   const [showAddPropertyModal, setShowAddPropertyModal] = useState(false)
+  const [properties, setProperties] = useState<Property[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  // Function to convert API property to Property interface
+  const convertAPIProperty = (apiProperty: APIProperty): Property => ({
+    id: apiProperty._id,
+    name: apiProperty.name,
+    description: apiProperty.description,
+    price: apiProperty.price,
+    location: {
+      address: apiProperty.location.address,
+      latitude: apiProperty.location.latitude,
+      longitude: apiProperty.location.longitude,
+    },
+    images: apiProperty.images,
+    amenities: apiProperty.amenities,
+    status: apiProperty.status === "available" ? "Available" : 
+            apiProperty.status === "rented" ? "Rented" : "Available" as "Available" | "Rented" | "Sold",
+    propertyType: apiProperty.propertyType,
+    bedrooms: 1, // Default values as API doesn't provide these
+    bathrooms: 1,
+    parking: apiProperty.amenities.some(a => a.toLowerCase().includes('parking')) ? 1 : 0,
+  })
+
+  // Fetch properties from API
+  useEffect(() => {
+    const fetchProperties = async () => {
+      try {
+        setLoading(true)
+        setError(null)
+        const response = await fetch('https://rentify-server-ge0f.onrender.com/api/properties')
+        
+        if (!response.ok) {
+          throw new Error('Failed to fetch properties')
+        }
+        
+        const apiProperties: APIProperty[] = await response.json()
+        const convertedProperties = apiProperties.map(convertAPIProperty)
+        setProperties(convertedProperties)
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'An error occurred')
+        console.error('Error fetching properties:', err)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchProperties()
+  }, [])
 
   const filteredProperties = useMemo(() => {
     return properties.filter((property) => {
@@ -469,20 +626,22 @@ export default function PropertyListingPage() {
       const matchesPrice = property.price >= priceRange[0] && property.price <= priceRange[1]
       return matchesSearch && matchesPrice
     })
-  }, [searchTerm, priceRange])
+  }, [searchTerm, priceRange, properties])
 
   useEffect(() => {
-    const propertyData = filteredProperties.map((p) => [p.location.latitude, p.location.longitude, p.price])
-    const clusteredData = clusterProperties(propertyData, 3)
-    setClusters(clusteredData)
+    if (filteredProperties.length > 0) {
+      const propertyData = filteredProperties.map((p) => [p.location.latitude, p.location.longitude, p.price])
+      const clusteredData = clusterProperties(propertyData, 3)
+      setClusters(clusteredData)
+    }
   }, [filteredProperties])
 
   useEffect(() => {
-    if (selectedProperty) {
+    if (selectedProperty && properties.length > 0) {
       const recs = getRecommendations(selectedProperty, properties, 3)
       setRecommendations(recs)
     }
-  }, [selectedProperty])
+  }, [selectedProperty, properties])
 
   useEffect(() => {
     const authStatus = localStorage.getItem("rentify_auth")
@@ -509,11 +668,43 @@ export default function PropertyListingPage() {
   }
 
   const renderCurrentPage = () => {
+    if (loading) {
+      return (
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="text-center">
+            <div className="w-16 h-16 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+            <p className="text-slate-600 text-lg">Loading properties...</p>
+          </div>
+        </div>
+      )
+    }
+
+    if (error) {
+      return (
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="text-center">
+            <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <Search className="h-8 w-8 text-red-600" />
+            </div>
+            <p className="text-red-600 text-lg mb-2">Error loading properties</p>
+            <p className="text-slate-500">{error}</p>
+            <Button 
+              onClick={() => window.location.reload()} 
+              className="mt-4"
+              variant="outline"
+            >
+              Try Again
+            </Button>
+          </div>
+        </div>
+      )
+    }
+
     switch (currentPage) {
       case "nearby":
-        return <NearbyPage />
+        return <NearbyPage properties={properties} />
       case "list":
-        return <ListPage onOpenModal={handleOpenModal} />
+        return <ListPage onOpenModal={handleOpenModal} properties={properties} />
       case "messages":
         return <MessagesPage />
       case "profile":
@@ -531,16 +722,12 @@ export default function PropertyListingPage() {
                     className="group overflow-hidden hover:shadow-2xl transition-all duration-300 border-0 shadow-lg bg-white"
                   >
                     <div className="relative h-56 overflow-hidden">
-                      <img
-                        src={property.images[0] || "/placeholder.svg"}
-                        alt={property.name}
-                        className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-300"
-                      />
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
-                      <Badge className="absolute top-3 right-3 bg-white/90 text-slate-700 border-0 shadow-md font-semibold">
+                      <ImageSlider property={property} className="h-56" />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent pointer-events-none" />
+                      <Badge className="absolute top-3 right-3 bg-white/90 text-slate-700 border-0 shadow-md font-semibold z-10">
                         {property.status}
                       </Badge>
-                      <div className="absolute top-3 left-3 flex items-center gap-1 bg-white/90 rounded-full px-2 py-1">
+                      <div className="absolute top-3 left-3 flex items-center gap-1 bg-white/90 rounded-full px-2 py-1 z-10">
                         <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
                         <span className="text-xs font-semibold text-slate-700">4.8</span>
                       </div>
@@ -555,15 +742,21 @@ export default function PropertyListingPage() {
                       <div className="flex items-center gap-4 mb-4 text-slate-600">
                         <div className="flex items-center gap-1">
                           <Bed className="h-4 w-4" />
-                          <span className="text-sm font-medium">3 beds</span>
+                          <span className="text-sm font-medium">{property.bedrooms} bed{property.bedrooms !== 1 ? 's' : ''}</span>
                         </div>
                         <div className="flex items-center gap-1">
                           <Bath className="h-4 w-4" />
-                          <span className="text-sm font-medium">2 baths</span>
+                          <span className="text-sm font-medium">{property.bathrooms} bath{property.bathrooms !== 1 ? 's' : ''}</span>
                         </div>
+                        {property.parking > 0 && (
+                          <div className="flex items-center gap-1">
+                            <Car className="h-4 w-4" />
+                            <span className="text-sm font-medium">{property.parking} parking</span>
+                          </div>
+                        )}
                         <div className="flex items-center gap-1">
-                          <Car className="h-4 w-4" />
-                          <span className="text-sm font-medium">1 parking</span>
+                          <Home className="h-4 w-4" />
+                          <span className="text-sm font-medium capitalize">{property.propertyType}</span>
                         </div>
                       </div>
                       <p className="text-sm text-slate-600 mb-4 line-clamp-2">{property.description}</p>
@@ -768,11 +961,7 @@ export default function PropertyListingPage() {
               <div className="grid gap-6 md:grid-cols-2">
                 <div>
                   <div className="relative h-64 rounded-lg overflow-hidden">
-                    <img
-                      src={selectedProperty.images[0] || "/placeholder.svg"}
-                      alt={selectedProperty.name}
-                      className="h-full w-full object-cover"
-                    />
+                    <ImageSlider property={selectedProperty} className="h-64 rounded-lg" />
                   </div>
                   <div className="mt-4 h-48 rounded-lg overflow-hidden">
                     <PropertyMap
@@ -780,6 +969,7 @@ export default function PropertyListingPage() {
                       clusters={[]}
                       center={[selectedProperty.location.longitude, selectedProperty.location.latitude]}
                       zoom={15}
+                      focusOnProperty={true}
                     />
                   </div>
                 </div>

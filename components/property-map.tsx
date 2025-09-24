@@ -6,15 +6,14 @@ import "mapbox-gl/dist/mapbox-gl.css"
 import type { Property } from "@/lib/property-data"
 
 // Set your Mapbox access token from environment variable (required)
-if (process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN) {
-  mapboxgl.accessToken = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN
-}
+mapboxgl.accessToken = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN || 'pk.eyJ1IjoiYWRyaWFuNTUxNyIsImEiOiJjbWZkdTg4dmIwMThpMnFyNG10cWJwZjRhIn0.JLRzE6qmyDfePYgSs11ALg'
 
 interface PropertyMapProps {
   properties: Property[]
   clusters?: any[]
   center?: [number, number]
   zoom?: number
+  focusOnProperty?: boolean // New prop to indicate if we should focus on a single property
 }
 
 // Haversine distance in KM
@@ -34,6 +33,7 @@ export default function PropertyMap({
   clusters = [],
   center = [123.1815, 13.6218], // Naga City
   zoom = 13,
+  focusOnProperty = false, // Default to false for multiple properties view
 }: PropertyMapProps) {
   const mapRef = useRef<HTMLDivElement>(null)
   const mapInstanceRef = useRef<mapboxgl.Map | null>(null)
@@ -128,41 +128,44 @@ export default function PropertyMap({
   const addMarkersToMap = useCallback((map: mapboxgl.Map, props: Property[]) => {
     clearMarkers()
 
-    // User marker
-    if (userLocation) {
-      const userMarker = new mapboxgl.Marker({ color: "#3B82F6", scale: 1.0 })
-        .setLngLat([userLocation.lng, userLocation.lat])
-        .setPopup(new mapboxgl.Popup({ offset: 25 }).setHTML(`
-          <div class="p-3 text-center font-sans">
-            <h3 class="font-bold text-base text-gray-900">📍 Your Location</h3>
-            <p class="text-sm text-gray-600">Current Position</p>
-          </div>
-        `))
-        .addTo(map)
-      markersRef.current.push(userMarker)
+    // Only add user marker and landmarks if not focusing on a single property
+    if (!focusOnProperty) {
+      // User marker
+      if (userLocation) {
+        const userMarker = new mapboxgl.Marker({ color: "#3B82F6", scale: 1.0 })
+          .setLngLat([userLocation.lng, userLocation.lat])
+          .setPopup(new mapboxgl.Popup({ offset: 25 }).setHTML(`
+            <div class="p-3 text-center font-sans">
+              <h3 class="font-bold text-base text-gray-900">📍 Your Location</h3>
+              <p class="text-sm text-gray-600">Current Position</p>
+            </div>
+          `))
+          .addTo(map)
+        markersRef.current.push(userMarker)
+      }
+
+      // Landmarks
+      const landmarks: { name: string; coordinates: [number, number]; description: string }[] = [
+        { name: "🏛️ Naga City Hall", coordinates: [123.1815, 13.6218], description: "Central Business District" },
+        { name: "🎓 Ateneo de Naga University", coordinates: [123.1967, 13.6301], description: "University District" },
+        { name: "🏢 SM City Naga", coordinates: [123.1834, 13.6234], description: "Shopping Center" },
+        { name: "🏥 Bicol Medical Center", coordinates: [123.1756, 13.6156], description: "Medical District" },
+      ]
+
+      landmarks.forEach((lm) => {
+        const landmarkMarker = new mapboxgl.Marker({ color: "#dc2626", scale: 0.7 })
+          .setLngLat(lm.coordinates)
+          .setPopup(new mapboxgl.Popup({ offset: 25 }).setHTML(`
+            <div class="p-3 text-center font-sans">
+              <h3 class="font-bold text-base text-gray-900">${lm.name}</h3>
+              <p class="text-sm text-gray-600">${lm.description}</p>
+              <p class="text-xs text-gray-500 mt-1">Naga City, Camarines Sur</p>
+            </div>
+          `))
+          .addTo(map)
+        markersRef.current.push(landmarkMarker)
+      })
     }
-
-    // Landmarks
-    const landmarks: { name: string; coordinates: [number, number]; description: string }[] = [
-      { name: "🏛️ Naga City Hall", coordinates: [123.1815, 13.6218], description: "Central Business District" },
-      { name: "🎓 Ateneo de Naga University", coordinates: [123.1967, 13.6301], description: "University District" },
-      { name: "🏢 SM City Naga", coordinates: [123.1834, 13.6234], description: "Shopping Center" },
-      { name: "🏥 Bicol Medical Center", coordinates: [123.1756, 13.6156], description: "Medical District" },
-    ]
-
-    landmarks.forEach((lm) => {
-      const landmarkMarker = new mapboxgl.Marker({ color: "#dc2626", scale: 0.7 })
-        .setLngLat(lm.coordinates)
-        .setPopup(new mapboxgl.Popup({ offset: 25 }).setHTML(`
-          <div class="p-3 text-center font-sans">
-            <h3 class="font-bold text-base text-gray-900">${lm.name}</h3>
-            <p class="text-sm text-gray-600">${lm.description}</p>
-            <p class="text-xs text-gray-500 mt-1">Naga City, Camarines Sur</p>
-          </div>
-        `))
-        .addTo(map)
-      markersRef.current.push(landmarkMarker)
-    })
 
     // Property markers
     props.forEach((property: Property) => {
@@ -226,8 +229,8 @@ export default function PropertyMap({
       }
     })
 
-    console.log(`🗺️ Added ${markersRef.current.length} markers (${props.length} properties + ${landmarks.length} landmarks + ${userLocation ? 1 : 0} user location)`) // landmarks in closure
-  }, [clearMarkers, userLocation, drawDirections])
+    console.log(`🗺️ Added ${markersRef.current.length} markers (${props.length} properties + ${focusOnProperty ? 0 : 4} landmarks + ${focusOnProperty ? 0 : (userLocation ? 1 : 0)} user location)`)
+  }, [clearMarkers, userLocation, drawDirections, focusOnProperty])
 
   // Initialize map once
   useEffect(() => {
@@ -317,7 +320,11 @@ export default function PropertyMap({
               console.log("✅ Container visible:", w, "x", h, "→ final resize + recenter")
               map.resize()
               map.easeTo({ center, zoom, duration: 0 })
-              if (userLocation) map.flyTo({ center: [userLocation.lng, userLocation.lat], zoom: Math.max(14, zoom), speed: 1.2 })
+              
+              // Only fly to user location if not focusing on a specific property
+              if (userLocation && !focusOnProperty) {
+                map.flyTo({ center: [userLocation.lng, userLocation.lat], zoom: Math.max(14, zoom), speed: 1.2 })
+              }
             } else {
               attempts++
               if (attempts % 2 === 0) console.log(`⏳ Waiting for container size (attempt ${attempts}/${maxAttempts})`)
@@ -426,8 +433,8 @@ export default function PropertyMap({
 
       <div ref={mapRef} className="absolute inset-0 rounded-lg" style={{ backgroundColor: "#eef2ff", outline: "1px solid rgba(99,102,241,0.25)" }} />
 
-      {/* My Location floating button */}
-      {userLocation && (
+      {/* My Location floating button - only show when not focusing on a single property */}
+      {userLocation && !focusOnProperty && (
         <button
           aria-label="My location"
           title="My location"
