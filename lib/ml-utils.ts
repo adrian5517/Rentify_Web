@@ -29,12 +29,19 @@ export function getRecommendations(targetProperty: Property, allProperties: Prop
   return distances
 }
 
+// Define cluster result type
+interface ClusterResult {
+  centroid: number[]
+  points: number[][]
+  size: number
+}
+
 // Simple K-Means clustering for map markers
-export function clusterProperties(data: number[][], k = 3): any[] {
+export function clusterProperties(data: number[][], k = 3): ClusterResult[] {
   if (data.length === 0) return []
 
   // Initialize centroids randomly
-  const centroids = []
+  const centroids: number[][] = []
   for (let i = 0; i < k; i++) {
     const randomIndex = Math.floor(Math.random() * data.length)
     centroids.push([...data[randomIndex]])

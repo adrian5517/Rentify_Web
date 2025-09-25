@@ -151,218 +151,218 @@ function ImageSlider({ property, className = "h-56" }: ImageSliderProps) {
   )
 }
 
-function NearbyPage({ properties }: { properties: Property[] }) {
-  return (
-    <div className="space-y-6">
-      <div className="text-center py-8">
-        <Navigation className="h-16 w-16 mx-auto text-blue-600 mb-4" />
-        <h2 className="text-2xl font-bold text-slate-900 mb-2">Properties Near You</h2>
-        <p className="text-slate-600">Discover rentals within walking distance</p>
-      </div>
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {properties.slice(0, 6).map((property) => (
-          <Card key={property.id} className="hover:shadow-lg transition-shadow">
-            <div className="relative h-48">
-              <ImageSlider property={property} className="h-48" />
-              <Badge className="absolute top-2 right-2 bg-green-600 text-white">0.5 km away</Badge>
-            </div>
-            <CardContent className="p-4">
-              <h3 className="font-semibold text-lg mb-1">{property.name}</h3>
-              <p className="text-blue-600 font-bold">₱{property.price.toLocaleString()}</p>
-              <p className="text-sm text-slate-600 mt-1">{property.location.address}</p>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-    </div>
-  )
-}
+// function NearbyPage({ properties }: { properties: Property[] }) {
+//   return (
+//     <div className="space-y-6">
+//       <div className="text-center py-8">
+//         <Navigation className="h-16 w-16 mx-auto text-blue-600 mb-4" />
+//         <h2 className="text-2xl font-bold text-slate-900 mb-2">Properties Near You</h2>
+//         <p className="text-slate-600">Discover rentals within walking distance</p>
+//       </div>
+//       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+//         {properties.slice(0, 6).map((property) => (
+//           <Card key={property.id} className="hover:shadow-lg transition-shadow">
+//             <div className="relative h-48">
+//               <ImageSlider property={property} className="h-48" />
+//               <Badge className="absolute top-2 right-2 bg-green-600 text-white">0.5 km away</Badge>
+//             </div>
+//             <CardContent className="p-4">
+//               <h3 className="font-semibold text-lg mb-1">{property.name}</h3>
+//               <p className="text-blue-600 font-bold">₱{property.price.toLocaleString()}</p>
+//               <p className="text-sm text-slate-600 mt-1">{property.location.address}</p>
+//             </CardContent>
+//           </Card>
+//         ))}
+//       </div>
+//     </div>
+//   )
+// }
 
-function ListPage({ onOpenModal, properties }: { onOpenModal: () => void; properties: Property[] }) {
-  const [activeTab, setActiveTab] = useState<"posted" | "rented">("posted")
-  const postedProperties = properties.filter(
-    (property) => property.status === "Available" || property.status === "Rented",
-  )
-  const rentedProperties = properties.filter((property) => property.status === "Rented").slice(0, 2)
+// function ListPage({ onOpenModal, properties }: { onOpenModal: () => void; properties: Property[] }) {
+//   const [activeTab, setActiveTab] = useState<"posted" | "rented">("posted")
+//   const postedProperties = properties.filter(
+//     (property) => property.status === "Available" || property.status === "Rented",
+//   )
+//   const rentedProperties = properties.filter((property) => property.status === "Rented").slice(0, 2)
 
-  return (
-    <div className="space-y-8">
-      <div className="text-center py-8">
-        <List className="h-16 w-16 mx-auto text-blue-600 mb-4" />
-        <h2 className="text-2xl font-bold text-slate-900 mb-2">My Properties</h2>
-        <p className="text-slate-600">Manage your posted and rented properties</p>
-      </div>
+//   return (
+//     <div className="space-y-8">
+//       <div className="text-center py-8">
+//         <List className="h-16 w-16 mx-auto text-blue-600 mb-4" />
+//         <h2 className="text-2xl font-bold text-slate-900 mb-2">My Properties</h2>
+//         <p className="text-slate-600">Manage your posted and rented properties</p>
+//       </div>
 
-      <div className="flex flex-col sm:flex-row gap-4 items-center justify-between">
-        <div className="flex bg-slate-100 rounded-lg p-1">
-          <Button
-            variant={activeTab === "posted" ? "default" : "ghost"}
-            onClick={() => setActiveTab("posted")}
-            className={`px-6 py-2 rounded-md transition-all ${
-              activeTab === "posted" ? "bg-blue-600 text-white shadow-md" : "text-slate-600 hover:text-slate-900"
-            }`}
-          >
-            Your Posted ({postedProperties.length})
-          </Button>
-          <Button
-            variant={activeTab === "rented" ? "default" : "ghost"}
-            onClick={() => setActiveTab("rented")}
-            className={`px-6 py-2 rounded-md transition-all ${
-              activeTab === "rented" ? "bg-blue-600 text-white shadow-md" : "text-slate-600 hover:text-slate-900"
-            }`}
-          >
-            Your Rented ({rentedProperties.length})
-          </Button>
-        </div>
+//       <div className="flex flex-col sm:flex-row gap-4 items-center justify-between">
+//         <div className="flex bg-slate-100 rounded-lg p-1">
+//           <Button
+//             variant={activeTab === "posted" ? "default" : "ghost"}
+//             onClick={() => setActiveTab("posted")}
+//             className={`px-6 py-2 rounded-md transition-all ${
+//               activeTab === "posted" ? "bg-blue-600 text-white shadow-md" : "text-slate-600 hover:text-slate-900"
+//             }`}
+//           >
+//             Your Posted ({postedProperties.length})
+//           </Button>
+//           <Button
+//             variant={activeTab === "rented" ? "default" : "ghost"}
+//             onClick={() => setActiveTab("rented")}
+//             className={`px-6 py-2 rounded-md transition-all ${
+//               activeTab === "rented" ? "bg-blue-600 text-white shadow-md" : "text-slate-600 hover:text-slate-900"
+//             }`}
+//           >
+//             Your Rented ({rentedProperties.length})
+//           </Button>
+//         </div>
 
-        <button
-          onClick={onOpenModal}
-          className="relative px-8 py-3 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 animate-pulse hover:animate-none font-semibold text-lg group"
-          style={{
-            background: "linear-gradient(to right, #10b981, #059669, #0d9488)",
-            color: "white !important",
-          }}
-          onMouseEnter={(e) => {
-            (e.target as HTMLElement).style.background = "linear-gradient(to right, #059669, #047857, #0f766e)"
-          }}
-          onMouseLeave={(e) => {
-            (e.target as HTMLElement).style.background = "linear-gradient(to right, #10b981, #059669, #0d9488)"
-          }}
-        >
-          <div className="absolute inset-0 bg-gradient-to-r from-green-400 to-teal-400 rounded-xl blur opacity-30 group-hover:opacity-50 transition-opacity duration-300"></div>
-          <div className="relative flex items-center gap-3">
-            <Plus className="h-5 w-5" />
-            <span>Post Your Property</span>
-            <div className="w-2 h-2 bg-white rounded-full animate-bounce"></div>
-          </div>
-        </button>
-      </div>
+//         <button
+//           onClick={onOpenModal}
+//           className="relative px-8 py-3 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 animate-pulse hover:animate-none font-semibold text-lg group"
+//           style={{
+//             background: "linear-gradient(to right, #10b981, #059669, #0d9488)",
+//             color: "white !important",
+//           }}
+//           onMouseEnter={(e) => {
+//             (e.target as HTMLElement).style.background = "linear-gradient(to right, #059669, #047857, #0f766e)"
+//           }}
+//           onMouseLeave={(e) => {
+//             (e.target as HTMLElement).style.background = "linear-gradient(to right, #10b981, #059669, #0d9488)"
+//           }}
+//         >
+//           <div className="absolute inset-0 bg-gradient-to-r from-green-400 to-teal-400 rounded-xl blur opacity-30 group-hover:opacity-50 transition-opacity duration-300"></div>
+//           <div className="relative flex items-center gap-3">
+//             <Plus className="h-5 w-5" />
+//             <span>Post Your Property</span>
+//             <div className="w-2 h-2 bg-white rounded-full animate-bounce"></div>
+//           </div>
+//         </button>
+//       </div>
 
-      {activeTab === "posted" && (
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <h3 className="text-xl font-bold text-slate-900">Your Posted Properties</h3>
-            <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
-              {postedProperties.length} properties
-            </Badge>
-          </div>
-          <div className="space-y-4">
-            {postedProperties.slice(0, 3).map((property) => (
-              <Card key={property.id} className="hover:shadow-lg transition-shadow">
-                <div className="flex flex-col md:flex-row">
-                  <div className="md:w-1/3">
-                    <ImageSlider property={property} className="h-48 md:h-full rounded-l-lg" />
-                  </div>
-                  <CardContent className="md:w-2/3 p-6">
-                    <div className="flex justify-between items-start mb-2">
-                      <h4 className="font-bold text-xl">{property.name}</h4>
-                      <Badge
-                        className={
-                          property.status === "Available" ? "bg-green-100 text-green-800" : "bg-blue-100 text-blue-800"
-                        }
-                      >
-                        {property.status}
-                      </Badge>
-                    </div>
-                    <p className="text-2xl font-bold text-blue-600 mb-2">₱{property.price.toLocaleString()}</p>
-                    <div className="flex items-center gap-2 mb-3 text-slate-600">
-                      <MapPin className="h-4 w-4" />
-                      <span>{property.location.address}</span>
-                    </div>
-                    <p className="text-slate-600 mb-4">{property.description}</p>
-                    <div className="flex items-center gap-4 text-slate-600 mb-4">
-                      <div className="flex items-center gap-1">
-                        <Bed className="h-4 w-4" />
-                        <span>{property.bedrooms} bed{property.bedrooms !== 1 ? 's' : ''}</span>
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <Bath className="h-4 w-4" />
-                        <span>{property.bathrooms} bath{property.bathrooms !== 1 ? 's' : ''}</span>
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <Home className="h-4 w-4" />
-                        <span className="capitalize">{property.propertyType}</span>
-                      </div>
-                    </div>
-                    <div className="flex gap-2">
-                      <Button variant="outline" size="sm">
-                        Edit Listing
-                      </Button>
-                      <Button variant="outline" size="sm">
-                        View Analytics
-                      </Button>
-                    </div>
-                  </CardContent>
-                </div>
-              </Card>
-            ))}
-          </div>
-        </div>
-      )}
+//       {activeTab === "posted" && (
+//         <div className="space-y-4">
+//           <div className="flex items-center justify-between">
+//             <h3 className="text-xl font-bold text-slate-900">Your Posted Properties</h3>
+//             <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
+//               {postedProperties.length} properties
+//             </Badge>
+//           </div>
+//           <div className="space-y-4">
+//             {postedProperties.slice(0, 3).map((property) => (
+//               <Card key={property.id} className="hover:shadow-lg transition-shadow">
+//                 <div className="flex flex-col md:flex-row">
+//                   <div className="md:w-1/3">
+//                     <ImageSlider property={property} className="h-48 md:h-full rounded-l-lg" />
+//                   </div>
+//                   <CardContent className="md:w-2/3 p-6">
+//                     <div className="flex justify-between items-start mb-2">
+//                       <h4 className="font-bold text-xl">{property.name}</h4>
+//                       <Badge
+//                         className={
+//                           property.status === "Available" ? "bg-green-100 text-green-800" : "bg-blue-100 text-blue-800"
+//                         }
+//                       >
+//                         {property.status}
+//                       </Badge>
+//                     </div>
+//                     <p className="text-2xl font-bold text-blue-600 mb-2">₱{property.price.toLocaleString()}</p>
+//                     <div className="flex items-center gap-2 mb-3 text-slate-600">
+//                       <MapPin className="h-4 w-4" />
+//                       <span>{property.location.address}</span>
+//                     </div>
+//                     <p className="text-slate-600 mb-4">{property.description}</p>
+//                     <div className="flex items-center gap-4 text-slate-600 mb-4">
+//                       <div className="flex items-center gap-1">
+//                         <Bed className="h-4 w-4" />
+//                         <span>{property.bedrooms} bed{property.bedrooms !== 1 ? 's' : ''}</span>
+//                       </div>
+//                       <div className="flex items-center gap-1">
+//                         <Bath className="h-4 w-4" />
+//                         <span>{property.bathrooms} bath{property.bathrooms !== 1 ? 's' : ''}</span>
+//                       </div>
+//                       <div className="flex items-center gap-1">
+//                         <Home className="h-4 w-4" />
+//                         <span className="capitalize">{property.propertyType}</span>
+//                       </div>
+//                     </div>
+//                     <div className="flex gap-2">
+//                       <Button variant="outline" size="sm">
+//                         Edit Listing
+//                       </Button>
+//                       <Button variant="outline" size="sm">
+//                         View Analytics
+//                       </Button>
+//                     </div>
+//                   </CardContent>
+//                 </div>
+//               </Card>
+//             ))}
+//           </div>
+//         </div>
+//       )}
 
-      {activeTab === "rented" && (
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <h3 className="text-xl font-bold text-slate-900">Your Rented Properties</h3>
-            <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
-              {rentedProperties.length} properties
-            </Badge>
-          </div>
-          <div className="space-y-4">
-            {rentedProperties.map((property) => (
-              <Card key={`rented-${property.id}`} className="hover:shadow-lg transition-shadow border-green-200">
-                <div className="flex flex-col md:flex-row">
-                  <div className="md:w-1/3">
-                    <ImageSlider property={property} className="h-48 md:h-full rounded-l-lg" />
-                  </div>
-                  <CardContent className="md:w-2/3 p-6">
-                    <div className="flex justify-between items-start mb-2">
-                      <h4 className="font-bold text-xl">{property.name}</h4>
-                      <Badge className="bg-green-100 text-green-800">Currently Renting</Badge>
-                    </div>
-                    <p className="text-2xl font-bold text-green-600 mb-2">₱{property.price.toLocaleString()}/month</p>
-                    <div className="flex items-center gap-2 mb-3 text-slate-600">
-                      <MapPin className="h-4 w-4" />
-                      <span>{property.location.address}</span>
-                    </div>
-                    <p className="text-slate-600 mb-4">
-                      Lease started: January 2024 • Next payment due: March 15, 2024
-                    </p>
-                    <div className="flex items-center gap-4 text-slate-600 mb-4">
-                      <div className="flex items-center gap-1">
-                        <Bed className="h-4 w-4" />
-                        <span>{property.bedrooms} bed{property.bedrooms !== 1 ? 's' : ''}</span>
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <Bath className="h-4 w-4" />
-                        <span>{property.bathrooms} bath{property.bathrooms !== 1 ? 's' : ''}</span>
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <Home className="h-4 w-4" />
-                        <span className="capitalize">{property.propertyType}</span>
-                      </div>
-                    </div>
-                    <div className="flex gap-2">
-                      <Button variant="outline" size="sm">
-                        Contact Landlord
-                      </Button>
-                      <Button variant="outline" size="sm">
-                        Pay Rent
-                      </Button>
-                      <Button variant="outline" size="sm">
-                        Report Issue
-                      </Button>
-                    </div>
-                  </CardContent>
-                </div>
-              </Card>
-            ))}
-          </div>
-        </div>
-      )}
-    </div>
-  )
-}
+//       {activeTab === "rented" && (
+//         <div className="space-y-4">
+//           <div className="flex items-center justify-between">
+//             <h3 className="text-xl font-bold text-slate-900">Your Rented Properties</h3>
+//             <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+//               {rentedProperties.length} properties
+//             </Badge>
+//           </div>
+//           <div className="space-y-4">
+//             {rentedProperties.map((property) => (
+//               <Card key={`rented-${property.id}`} className="hover:shadow-lg transition-shadow border-green-200">
+//                 <div className="flex flex-col md:flex-row">
+//                   <div className="md:w-1/3">
+//                     <ImageSlider property={property} className="h-48 md:h-full rounded-l-lg" />
+//                   </div>
+//                   <CardContent className="md:w-2/3 p-6">
+//                     <div className="flex justify-between items-start mb-2">
+//                       <h4 className="font-bold text-xl">{property.name}</h4>
+//                       <Badge className="bg-green-100 text-green-800">Currently Renting</Badge>
+//                     </div>
+//                     <p className="text-2xl font-bold text-green-600 mb-2">₱{property.price.toLocaleString()}/month</p>
+//                     <div className="flex items-center gap-2 mb-3 text-slate-600">
+//                       <MapPin className="h-4 w-4" />
+//                       <span>{property.location.address}</span>
+//                     </div>
+//                     <p className="text-slate-600 mb-4">
+//                       Lease started: January 2024 • Next payment due: March 15, 2024
+//                     </p>
+//                     <div className="flex items-center gap-4 text-slate-600 mb-4">
+//                       <div className="flex items-center gap-1">
+//                         <Bed className="h-4 w-4" />
+//                         <span>{property.bedrooms} bed{property.bedrooms !== 1 ? 's' : ''}</span>
+//                       </div>
+//                       <div className="flex items-center gap-1">
+//                         <Bath className="h-4 w-4" />
+//                         <span>{property.bathrooms} bath{property.bathrooms !== 1 ? 's' : ''}</span>
+//                       </div>
+//                       <div className="flex items-center gap-1">
+//                         <Home className="h-4 w-4" />
+//                         <span className="capitalize">{property.propertyType}</span>
+//                       </div>
+//                     </div>
+//                     <div className="flex gap-2">
+//                       <Button variant="outline" size="sm">
+//                         Contact Landlord
+//                       </Button>
+//                       <Button variant="outline" size="sm">
+//                         Pay Rent
+//                       </Button>
+//                       <Button variant="outline" size="sm">
+//                         Report Issue
+//                       </Button>
+//                     </div>
+//                   </CardContent>
+//                 </div>
+//               </Card>
+//             ))}
+//           </div>
+//         </div>
+//       )}
+//     </div>
+//   )
+// }
 
 function MessagesPage() {
   const messages = [
@@ -706,10 +706,10 @@ export default function PropertyListingPage() {
     }
 
     switch (currentPage) {
-      case "nearby":
-        return <NearbyPage properties={properties} />
-      case "list":
-        return <ListPage onOpenModal={handleOpenModal} properties={properties} />
+      // case "nearby":
+      //   return <NearbyPage properties={properties} />
+      // case "list":
+      //   return <ListPage onOpenModal={handleOpenModal} properties={properties} />
       case "messages":
         return <MessagesPage />
       case "profile":
@@ -922,7 +922,7 @@ export default function PropertyListingPage() {
 
   {/* Removed separate navbar below header to avoid duplication */}
 
-      {currentPage === "home" && (
+      {currentPage === "home" && viewMode !== "map" && (
         <div className="bg-white border-b border-slate-200">
           <div className="container mx-auto px-4 py-5">
             <div className="flex flex-col gap-3 md:flex-row md:items-center">

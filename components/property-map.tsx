@@ -4,6 +4,8 @@ import { useEffect, useRef, useState, useCallback } from "react"
 import mapboxgl from "mapbox-gl"
 import "mapbox-gl/dist/mapbox-gl.css"
 import type { Property } from "@/lib/property-data"
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
 
 // Set your Mapbox access token from environment variable (required)
 mapboxgl.accessToken = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN || 'pk.eyJ1IjoiYWRyaWFuNTUxNyIsImEiOiJjbWZkdTg4dmIwMThpMnFyNG10cWJwZjRhIn0.JLRzE6qmyDfePYgSs11ALg'
@@ -86,12 +88,14 @@ export default function PropertyMap({
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [userLocation, setUserLocation] = useState<{ lat: number, lng: number } | null>(null)
+  const [locationAccuracy, setLocationAccuracy] = useState<number | null>(null)
   const [selectedProperty, setSelectedProperty] = useState<Property | null>(null)
   const [routeInfo, setRouteInfo] = useState<{ distanceKm: number; durationMin: number } | null>(null)
   const [mlProperties, setMlProperties] = useState<MLProperty[]>([])
   const [loadingML, setLoadingML] = useState(false)
   const [routeSteps, setRouteSteps] = useState<RouteStep[]>([])
   const [currentStep, setCurrentStep] = useState(0)
+  const [currentImageIndex, setCurrentImageIndex] = useState(0)
 
   const initializedRef = useRef(false)
   const loadedRef = useRef(false)
@@ -235,36 +239,98 @@ export default function PropertyMap({
     }
   }, [])
 
-  // Enhanced geolocation with better error handling
+  // Enhanced geolocation with better accuracy and manual override
   useEffect(() => {
     let locationTimeout: NodeJS.Timeout
+    let watchId: number | null = null
     
     if (navigator.geolocation) {
-      locationTimeout = setTimeout(() => {
-        console.log("⏰ Geolocation timeout - using fallback")
-        setUserLocation({ lat: 13.6218, lng: 123.1815 })
-      }, 5000)
+      console.log("🌍 Starting enhanced geolocation...")
       
+      locationTimeout = setTimeout(() => {
+        console.log("⏰ Geolocation timeout - using fallback location (Naga City)")
+        setUserLocation({ lat: 13.6218, lng: 123.1815 })
+      }, 15000) // Increased timeout for better accuracy
+      
+      // First try to get a quick position
       navigator.geolocation.getCurrentPosition(
         (position) => {
           clearTimeout(locationTimeout)
-          const newLocation = { lat: position.coords.latitude, lng: position.coords.longitude }
+          const newLocation = { 
+            lat: position.coords.latitude, 
+            lng: position.coords.longitude 
+          }
           setUserLocation(newLocation)
-          console.log("✅ User location obtained:", newLocation)
+          setLocationAccuracy(position.coords.accuracy)
+          console.log("✅ Initial location obtained:", newLocation, "Accuracy:", position.coords.accuracy + "m")
+          
+          // Then start watching for more accurate position
+          watchId = navigator.geolocation.watchPosition(
+            (position) => {
+              const watchLocation = { 
+                lat: position.coords.latitude, 
+                lng: position.coords.longitude 
+              }
+              
+              // Only update if accuracy is better than 100m
+              if (position.coords.accuracy <= 100) {
+                setUserLocation(watchLocation)
+                setLocationAccuracy(position.coords.accuracy)
+                console.log("📍 Updated location:", watchLocation, "Accuracy:", position.coords.accuracy + "m")
+                
+                // Stop watching after getting good accuracy
+                if (position.coords.accuracy <= 50 && watchId) {
+                  navigator.geolocation.clearWatch(watchId)
+                  watchId = null
+                  console.log("🎯 High accuracy achieved, stopping location watch")
+                }
+              }
+            },
+            (error) => {
+              console.warn("⚠️ Location watch error:", error)
+            },
+            { 
+              enableHighAccuracy: true, 
+              maximumAge: 30000, 
+              timeout: 10000 
+            }
+          )
         },
         (e) => {
           clearTimeout(locationTimeout)
-          console.log("⚠️ Location access denied or error:", e)
-          setUserLocation({ lat: 13.6218, lng: 123.1815 }) // Fallback to Naga
+          console.log("⚠️ Location access denied or error:", e.message)
+          
+          // Try with less strict requirements
+          navigator.geolocation.getCurrentPosition(
+            (position) => {
+              const fallbackLocation = { lat: position.coords.latitude, lng: position.coords.longitude }
+              setUserLocation(fallbackLocation)
+              console.log("📍 Fallback location obtained:", fallbackLocation)
+            },
+            () => {
+              console.log("❌ All location attempts failed, using Naga City")
+              setUserLocation({ lat: 13.6218, lng: 123.1815 })
+            },
+            { enableHighAccuracy: false, timeout: 5000, maximumAge: 600000 }
+          )
         },
-        { enableHighAccuracy: false, timeout: 10000, maximumAge: 300000 } // Less aggressive settings
+        { 
+          enableHighAccuracy: true, 
+          timeout: 15000, 
+          maximumAge: 60000 
+        }
       )
     } else {
+      console.log("❌ Geolocation not supported, using Naga City")
       setUserLocation({ lat: 13.6218, lng: 123.1815 })
     }
 
     return () => {
       if (locationTimeout) clearTimeout(locationTimeout)
+      if (watchId) {
+        navigator.geolocation.clearWatch(watchId)
+        console.log("🛑 Stopped location watching")
+      }
     }
   }, []) // Only run once on mount
 
@@ -343,43 +409,15 @@ export default function PropertyMap({
         })()
       : activeProperties
 
-    // Only add user marker and landmarks if not focusing on a single property
+    // Only add user marker if not focusing on a single property
     if (!focusOnProperty) {
       // User marker
       if (userLocation) {
         const userMarker = new mapboxgl.Marker({ color: "#3B82F6", scale: 1.0 })
           .setLngLat([userLocation.lng, userLocation.lat])
-          .setPopup(new mapboxgl.Popup({ offset: 25 }).setHTML(`
-            <div class="p-3 text-center font-sans">
-              <h3 class="font-bold text-base text-gray-900">📍 Your Location</h3>
-              <p class="text-sm text-gray-600">Current Position</p>
-            </div>
-          `))
           .addTo(map)
         markersRef.current.push(userMarker)
       }
-
-      // Landmarks
-      const landmarks: { name: string; coordinates: [number, number]; description: string }[] = [
-        { name: "🏛️ Naga City Hall", coordinates: [123.1815, 13.6218], description: "Central Business District" },
-        { name: "🎓 Ateneo de Naga University", coordinates: [123.1967, 13.6301], description: "University District" },
-        { name: "🏢 SM City Naga", coordinates: [123.1834, 13.6234], description: "Shopping Center" },
-        { name: "🏥 Bicol Medical Center", coordinates: [123.1756, 13.6156], description: "Medical District" },
-      ]
-
-      landmarks.forEach((lm) => {
-        const landmarkMarker = new mapboxgl.Marker({ color: "#dc2626", scale: 0.7 })
-          .setLngLat(lm.coordinates)
-          .setPopup(new mapboxgl.Popup({ offset: 25 }).setHTML(`
-            <div class="p-3 text-center font-sans">
-              <h3 class="font-bold text-base text-gray-900">${lm.name}</h3>
-              <p class="text-sm text-gray-600">${lm.description}</p>
-              <p class="text-xs text-gray-500 mt-1">Naga City, Camarines Sur</p>
-            </div>
-          `))
-          .addTo(map)
-        markersRef.current.push(landmarkMarker)
-      })
     }
 
     // Property markers
@@ -391,110 +429,6 @@ export default function PropertyMap({
           distance = ` • ${dist.toFixed(1)}km away`
         }
 
-        // Enhanced popup with clustering info and navigation buttons
-        const clusterInfo = enableClustering && property.cluster !== undefined 
-          ? `<span class="inline-block px-2 py-1 bg-${staticColors[selectedCluster]}-100 text-${staticColors[selectedCluster]}-800 text-xs rounded-full font-medium mb-2">${staticLabels[selectedCluster]} Cluster</span>`
-          : ''
-
-        const popupContent = `
-          <div class="p-4 min-w-[300px] font-sans bg-white rounded-lg">
-            <div class="mb-3">
-              <h3 class="font-bold text-lg text-gray-900 mb-1">🏠 ${property.name}</h3>
-              <div class="flex items-center gap-2 mb-2">
-                <span class="inline-block px-3 py-1 bg-blue-100 text-blue-800 text-xs rounded-full font-medium">${property.status}</span>
-                ${clusterInfo}
-                <span class="text-xs text-gray-500">${property.amenities.length} amenities</span>
-              </div>
-            </div>
-            <div class="mb-3">
-              <p class="text-xl font-bold text-green-600 mb-1">₱${new Intl.NumberFormat("en-PH").format(property.price)}</p>
-              <p class="text-sm text-gray-600 flex items-center">
-                <span class="mr-1">📍</span>
-                ${property.location.address}${distance}
-              </p>
-            </div>
-            <div class="border-t pt-3 mt-3">
-              <div class="flex flex-wrap gap-1 mb-3">
-                ${property.amenities.slice(0, 3).map((amenity: string) => `<span class="inline-block px-2 py-1 bg-gray-100 text-gray-700 text-xs rounded">${amenity}</span>`).join('')}
-                ${property.amenities.length > 3 ? `<span class="text-xs text-gray-500">+${property.amenities.length - 3} more</span>` : ''}
-              </div>
-              <div class="flex gap-2 mb-2">
-                <button class="contact-btn flex-1 bg-blue-600 text-white px-3 py-2 rounded text-sm font-medium hover:bg-blue-700 transition-colors" data-property-id="${property.id}">📞 Contact</button>
-                <button class="booking-btn flex-1 bg-gray-100 text-gray-700 px-3 py-2 rounded text-sm font-medium hover:bg-gray-200 transition-colors" data-property-id="${property.id}">📅 Book Visit</button>
-              </div>
-              <button class="directions-btn w-full bg-green-600 text-white px-3 py-2 rounded text-sm font-medium hover:bg-green-700 transition-colors" data-property-id="${property.id}">🧭 Get Directions</button>
-            </div>
-          </div>
-        `
-
-        const popup = new mapboxgl.Popup({ 
-          offset: 25, 
-          closeButton: true, 
-          closeOnClick: false, 
-          maxWidth: "350px", 
-          className: "property-popup" 
-        }).setHTML(popupContent)
-
-        // Add event listeners for popup buttons
-        popup.on('open', () => {
-          const popupElement = popup.getElement()
-          if (popupElement) {
-            // Contact button
-            const contactBtn = popupElement.querySelector('.contact-btn')
-            if (contactBtn) {
-              contactBtn.addEventListener('click', () => {
-                console.log(`Contact owner for property: ${property.name}`)
-                alert(`Contact owner for ${property.name}\nPhone: +63 912 345 6789`)
-              })
-            }
-
-            // Booking button
-            const bookingBtn = popupElement.querySelector('.booking-btn')
-            if (bookingBtn) {
-              bookingBtn.addEventListener('click', () => {
-                console.log(`Book visit for property: ${property.name}`)
-                alert(`Booking request sent for ${property.name}`)
-              })
-            }
-
-            // Directions button
-            const directionsBtn = popupElement.querySelector('.directions-btn')
-            if (directionsBtn) {
-              directionsBtn.addEventListener('click', async () => {
-                console.log(`Starting navigation to: ${property.name}`)
-                if (userLocation) {
-                  try {
-                    // Enable navigation mode
-                    if (onNavigationToggle) {
-                      onNavigationToggle(true)
-                    }
-                    
-                    // Get turn-by-turn directions
-                    await getTurnByTurnDirections(
-                      [userLocation.lng, userLocation.lat], 
-                      [property.location.longitude, property.location.latitude]
-                    )
-                    
-                    // Draw route on map
-                    await drawDirections(
-                      map, 
-                      [userLocation.lng, userLocation.lat], 
-                      [property.location.longitude, property.location.latitude]
-                    )
-                    
-                    console.log('Navigation started successfully!')
-                  } catch (error) {
-                    console.error('Navigation error:', error)
-                    alert('Unable to get directions. Please try again.')
-                  }
-                } else {
-                  alert('Location permission is required for directions')
-                }
-              })
-            }
-          }
-        })
-
         // Dynamic marker color based on cluster or status
         let markerColor = "#10b981" // Default green
         if (enableClustering && property.cluster !== undefined) {
@@ -505,7 +439,6 @@ export default function PropertyMap({
 
         const marker = new mapboxgl.Marker({ color: markerColor, scale: 0.9 })
           .setLngLat([property.location.longitude, property.location.latitude])
-          .setPopup(popup)
           .addTo(map)
 
         marker.getElement().addEventListener('click', async () => {
@@ -539,7 +472,7 @@ export default function PropertyMap({
       }
     })
 
-    console.log(`🗺️ Added ${markersRef.current.length} markers (${filteredProperties.length} properties + ${focusOnProperty ? 0 : 4} landmarks + ${focusOnProperty ? 0 : (userLocation ? 1 : 0)} user location)`)
+    console.log(`🗺️ Added ${markersRef.current.length} markers (${filteredProperties.length} properties + ${focusOnProperty ? 0 : (userLocation ? 1 : 0)} user location)`)
   }, [clearMarkers, userLocation, drawDirections, focusOnProperty, enableClustering, mlProperties.length, selectedCluster, navigationMode, onNavigationToggle, getTurnByTurnDirections]) // Added missing callbacks
 
   // Initialize map once
@@ -768,25 +701,127 @@ export default function PropertyMap({
   }, [properties.length, mlProperties.length, selectedCluster, enableClustering, isLoading, error]) // Simplified dependencies
 
   return (
-    <div className="relative w-full h-full rounded-lg" style={{ minHeight: "300px" }}>
-      {/* Cluster Filter Buttons - only show when clustering is enabled */}
-      {enableClustering && !focusOnProperty && mlProperties.length > 0 && (
-        <div className="absolute top-4 left-4 z-20 flex gap-2">
-          {staticLabels.map((name, idx) => (
-            <button
-              key={name}
-              onClick={() => onClusterChange && onClusterChange(idx)}
-              className={`
-                px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 transform
-                ${selectedCluster === idx 
-                  ? `bg-${staticColors[idx]?.toLowerCase()}-500 text-white shadow-md scale-105` 
-                  : 'bg-white/90 text-gray-700 hover:bg-white shadow-sm hover:shadow-md'
-                }
-              `}
-              style={{
-                backgroundColor: selectedCluster === idx ? staticColors[idx] : undefined
-              }}
-            >
+    <div className="relative w-full h-full rounded-lg flex" style={{ minHeight: "300px" }}>
+      {/* Navigation Panel - moved to left sidebar */}
+      {navigationMode && routeSteps.length > 0 && (
+        <div className="w-96 bg-gray-50 border-r border-gray-200 overflow-y-auto">
+          <div className="p-4">
+            {/* Close button */}
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-xl font-bold text-gray-900">Turn-by-turn Navigation</h2>
+              <button
+                onClick={() => onNavigationToggle && onNavigationToggle(false)}
+                className="text-gray-400 hover:text-gray-600 text-xl p-1 hover:bg-gray-200 rounded-full transition-colors"
+                aria-label="Close navigation"
+              >
+                ✕
+              </button>
+            </div>
+
+            <Card className="shadow-lg">
+              <CardHeader>
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <span className="text-2xl">{getDirectionIcon(routeSteps[currentStep]?.type, routeSteps[currentStep]?.modifier)}</span>
+                  Current Step
+                </CardTitle>
+              </CardHeader>
+
+              <CardContent className="space-y-4">
+                {/* Current Step Display */}
+                <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
+                  <p className="font-medium text-blue-900 mb-2">{routeSteps[currentStep]?.instruction}</p>
+                  <div className="flex items-center gap-4 text-sm text-blue-700">
+                    <div className="flex items-center gap-1">
+                      <span>📏</span>
+                      <span>{Math.round(routeSteps[currentStep]?.distance || 0)}m</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <span>⏱️</span>
+                      <span>{Math.round((routeSteps[currentStep]?.duration || 0) / 60)} min</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Step Navigation Controls */}
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setCurrentStep(Math.max(0, currentStep - 1))}
+                    disabled={currentStep === 0}
+                    className="flex-1 px-3 py-2 bg-gray-100 text-gray-700 rounded text-sm font-medium hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  >
+                    ⬅ Previous
+                  </button>
+                  <button
+                    onClick={() => setCurrentStep(Math.min(routeSteps.length - 1, currentStep + 1))}
+                    disabled={currentStep === routeSteps.length - 1}
+                    className="flex-1 px-3 py-2 bg-blue-600 text-white rounded text-sm font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  >
+                    Next ➡
+                  </button>
+                </div>
+
+                {/* All Steps List */}
+                <div>
+                  <h4 className="font-semibold text-gray-900 mb-3">All Navigation Steps</h4>
+                  <div className="max-h-64 overflow-y-auto space-y-2">
+                    {routeSteps.map((step, index) => (
+                      <button
+                        key={index}
+                        onClick={() => setCurrentStep(index)}
+                        className={`w-full text-left p-3 rounded-lg border transition-all ${
+                          index === currentStep 
+                            ? 'bg-blue-100 border-blue-300 text-blue-900' 
+                            : 'bg-white border-gray-200 text-gray-700 hover:bg-gray-50 hover:border-gray-300'
+                        }`}
+                      >
+                        <div className="flex items-center gap-3">
+                          <span className="text-lg">{getDirectionIcon(step.type, step.modifier)}</span>
+                          <div className="flex-1">
+                            <p className={`text-sm ${index === currentStep ? 'font-medium' : ''}`}>
+                              {step.instruction}
+                            </p>
+                            <p className="text-xs text-gray-500 mt-1">
+                              {Math.round(step.distance)}m • {Math.round(step.duration / 60)} min
+                            </p>
+                          </div>
+                          {index === currentStep && (
+                            <Badge className="bg-blue-600 text-white">Current</Badge>
+                          )}
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      )}
+
+      {/* Main Map Container */}
+      <div className={`relative rounded-lg transition-all duration-300 ${
+        (selectedProperty && navigationMode && routeSteps.length > 0) ? 'flex-1' : // Both panels open
+        (selectedProperty || (navigationMode && routeSteps.length > 0)) ? 'flex-1' : // One panel open
+        'w-full' // No panels open
+      }`} style={{ minHeight: "300px" }}>
+        {/* Cluster Filter Buttons - only show when clustering is enabled */}
+        {enableClustering && !focusOnProperty && mlProperties.length > 0 && (
+          <div className="absolute top-4 left-4 z-20 flex gap-2">
+            {staticLabels.map((name, idx) => (
+              <button
+                key={name}
+                onClick={() => onClusterChange && onClusterChange(idx)}
+                className={`
+                  px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 transform
+                  ${selectedCluster === idx 
+                    ? `bg-${staticColors[idx]?.toLowerCase()}-500 text-white shadow-md scale-105` 
+                    : 'bg-white/90 text-gray-700 hover:bg-white shadow-sm hover:shadow-md'
+                  }
+                `}
+                style={{
+                  backgroundColor: selectedCluster === idx ? staticColors[idx] : undefined
+                }}
+              >
               <span className="mr-1">
                 {idx === 0 ? '💰' : idx === 1 ? '🏠' : '💎'}
               </span>
@@ -804,75 +839,24 @@ export default function PropertyMap({
         </div>
       )}
 
-      {/* Route info overlay */}
+      {/* Route info overlay - moved to left side */}
       {routeInfo && (
-        <div className="absolute top-4 left-4 z-10 bg-white/90 backdrop-blur px-3 py-2 rounded-md shadow border border-slate-200 text-sm text-slate-700 flex items-center gap-3">
-          <span>🧭 {routeInfo.distanceKm.toFixed(1)} km</span>
-          <span>⏱ {Math.round(routeInfo.durationMin)} min</span>
-          <button
-            onClick={() => { setRouteInfo(null); if (mapInstanceRef.current) clearRoute(mapInstanceRef.current) }}
-            className="ml-2 text-slate-500 hover:text-slate-700"
-            aria-label="Clear route"
-            title="Clear route"
-          >✖</button>
-        </div>
-      )}
-
-      {/* Turn-by-turn navigation panel */}
-      {navigationMode && routeSteps.length > 0 && (
-        <div className="absolute top-16 left-4 z-30 bg-white/95 backdrop-blur rounded-lg shadow-lg border border-slate-200 p-4 max-w-sm">
-          <div className="flex justify-between items-center mb-3">
-            <h3 className="font-bold text-gray-900">Navigation</h3>
-            <button
-              onClick={() => onNavigationToggle && onNavigationToggle(false)}
-              className="text-gray-500 hover:text-gray-700"
-            >
-              ✖
-            </button>
-          </div>
-          
-          <div className="flex items-start gap-3 mb-4 p-3 bg-blue-50 rounded-lg">
-            <span className="text-2xl">{getDirectionIcon(routeSteps[currentStep]?.type, routeSteps[currentStep]?.modifier)}</span>
-            <div>
-              <p className="font-medium text-gray-900">{routeSteps[currentStep]?.instruction}</p>
-              <p className="text-sm text-gray-600">
-                {Math.round(routeSteps[currentStep]?.distance || 0)}m • {Math.round((routeSteps[currentStep]?.duration || 0) / 60)} min
-              </p>
+        <div className="absolute bottom-4 left-4 z-10 bg-white/90 backdrop-blur px-4 py-3 rounded-lg shadow-lg border border-slate-200 text-sm text-slate-700">
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2">
+              <span className="text-blue-600">🧭</span>
+              <span className="font-medium">{routeInfo.distanceKm.toFixed(1)} km</span>
             </div>
-          </div>
-
-          <div className="max-h-40 overflow-y-auto space-y-1">
-            {routeSteps.map((step, index) => (
-              <button
-                key={index}
-                onClick={() => setCurrentStep(index)}
-                className={`w-full text-left p-2 rounded flex items-center gap-2 transition-colors ${
-                  index === currentStep ? 'bg-blue-100' : 'hover:bg-gray-100'
-                }`}
-              >
-                <span className="text-sm">{getDirectionIcon(step.type, step.modifier)}</span>
-                <span className={`text-sm ${index === currentStep ? 'font-medium text-blue-900' : 'text-gray-700'}`}>
-                  {step.instruction}
-                </span>
-              </button>
-            ))}
-          </div>
-
-          <div className="flex gap-2 mt-3">
+            <div className="flex items-center gap-2">
+              <span className="text-green-600">⏱</span>
+              <span className="font-medium">{Math.round(routeInfo.durationMin)} min</span>
+            </div>
             <button
-              onClick={() => setCurrentStep(Math.max(0, currentStep - 1))}
-              disabled={currentStep === 0}
-              className="flex-1 px-3 py-2 bg-gray-100 text-gray-700 rounded text-sm font-medium hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              ⬅ Previous
-            </button>
-            <button
-              onClick={() => setCurrentStep(Math.min(routeSteps.length - 1, currentStep + 1))}
-              disabled={currentStep === routeSteps.length - 1}
-              className="flex-1 px-3 py-2 bg-blue-600 text-white rounded text-sm font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              Next ➡
-            </button>
+              onClick={() => { setRouteInfo(null); if (mapInstanceRef.current) clearRoute(mapInstanceRef.current) }}
+              className="ml-2 text-slate-500 hover:text-slate-700 hover:bg-slate-100 rounded p-1 transition-colors"
+              aria-label="Clear route"
+              title="Clear route"
+            >✖</button>
           </div>
         </div>
       )}
@@ -881,49 +865,113 @@ export default function PropertyMap({
 
       {/* Enhanced controls section */}
       <div className="absolute bottom-4 right-4 z-10 flex flex-col gap-2">
-        {/* My Location button - only show when not focusing on a single property */}
-        {userLocation && !focusOnProperty && (
-          <button
-            aria-label="My location"
-            title="My location"
-            onClick={() => { if (mapInstanceRef.current) mapInstanceRef.current.flyTo({ center: [userLocation.lng, userLocation.lat], zoom: 15, speed: 1.2 }) }}
-            className="inline-flex items-center gap-2 px-3 py-2 rounded-md shadow-md bg-white/90 hover:bg-white text-slate-700 border border-slate-200"
-          >
-            <span>📍</span>
-            <span className="text-sm font-medium">My location</span>
-          </button>
+        {/* My Location button with refresh capability - only show when not focusing on a single property */}
+        {!focusOnProperty && (
+          <div className="flex flex-col gap-1">
+            <button
+              aria-label="My location"
+              title="Go to my location"
+              onClick={() => { if (mapInstanceRef.current && userLocation) mapInstanceRef.current.flyTo({ center: [userLocation.lng, userLocation.lat], zoom: 15, speed: 1.2 }) }}
+              className="inline-flex items-center gap-2 px-3 py-2 rounded-md shadow-md bg-white/90 hover:bg-white text-slate-700 border border-slate-200"
+              disabled={!userLocation}
+            >
+              <span>📍</span>
+              <span className="text-sm font-medium">My location</span>
+            </button>
+            
+            <button
+              aria-label="Refresh location"
+              title="Refresh my location for better accuracy"
+              onClick={() => {
+                console.log("🔄 Manually refreshing location...")
+                if (navigator.geolocation) {
+                  navigator.geolocation.getCurrentPosition(
+                    (position) => {
+                      const newLocation = { 
+                        lat: position.coords.latitude, 
+                        lng: position.coords.longitude 
+                      }
+                      setUserLocation(newLocation)
+                      setLocationAccuracy(position.coords.accuracy)
+                      console.log("✅ Manual location refresh:", newLocation, "Accuracy:", position.coords.accuracy + "m")
+                      
+                      // Fly to the new location
+                      if (mapInstanceRef.current) {
+                        mapInstanceRef.current.flyTo({ 
+                          center: [newLocation.lng, newLocation.lat], 
+                          zoom: 15, 
+                          speed: 1.2 
+                        })
+                      }
+                    },
+                    (error) => {
+                      console.error("❌ Manual location refresh failed:", error.message)
+                      alert("Could not refresh location. Please check your browser's location permissions.")
+                    },
+                    { 
+                      enableHighAccuracy: true, 
+                      timeout: 10000, 
+                      maximumAge: 0 // Force fresh location
+                    }
+                  )
+                }
+              }}
+              className="inline-flex items-center gap-2 px-2 py-1 rounded-md shadow-sm bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 text-xs"
+            >
+              <span>🔄</span>
+              <span>Refresh GPS</span>
+            </button>
+          </div>
         )}
 
-        {/* Navigation toggle button */}
-        {selectedProperty && routeInfo && (
-          <button
-            onClick={() => onNavigationToggle && onNavigationToggle(!navigationMode)}
-            className={`inline-flex items-center gap-2 px-3 py-2 rounded-md shadow-md border border-slate-200 text-sm font-medium ${
-              navigationMode 
-                ? 'bg-blue-600 text-white hover:bg-blue-700' 
-                : 'bg-white/90 hover:bg-white text-slate-700'
-            }`}
-          >
-            <span>🧭</span>
-            <span>{navigationMode ? 'Stop Navigation' : 'Start Navigation'}</span>
-          </button>
-        )}
+        {/* Navigation toggle button - always visible */}
+        <button
+          onClick={() => onNavigationToggle && onNavigationToggle(!navigationMode)}
+          className={`inline-flex items-center gap-2 px-3 py-2 rounded-md shadow-md border border-slate-200 text-sm font-medium ${
+            navigationMode 
+              ? 'bg-blue-600 text-white hover:bg-blue-700' 
+              : 'bg-white/90 hover:bg-white text-slate-700'
+          }`}
+          disabled={!selectedProperty || !routeInfo}
+        >
+          <span>🧭</span>
+          <span>{navigationMode ? 'Stop Navigation' : 'Start Navigation'}</span>
+        </button>
 
-        {/* Refresh ML clusters button */}
-        {enableClustering && (
-          <button
-            onClick={fetchMLClusters}
-            disabled={loadingML}
-            className="inline-flex items-center gap-2 px-3 py-2 rounded-md shadow-md bg-white/90 hover:bg-white text-slate-700 border border-slate-200 disabled:opacity-50"
-          >
-            <span className={loadingML ? 'animate-spin' : ''}>🔄</span>
-            <span className="text-sm font-medium">Refresh Clusters</span>
-          </button>
-        )}
+        {/* Refresh ML clusters button - always visible */}
+        <button
+          onClick={fetchMLClusters}
+          disabled={loadingML}
+          className="inline-flex items-center gap-2 px-3 py-2 rounded-md shadow-md bg-white/90 hover:bg-white text-slate-700 border border-slate-200 disabled:opacity-50"
+        >
+          <span className={loadingML ? 'animate-spin' : ''}>🔄</span>
+          <span className="text-sm font-medium">Refresh ML</span>
+        </button>
       </div>
 
+      {/* Location accuracy indicator */}
+      {userLocation && locationAccuracy && !focusOnProperty && !routeInfo && (
+        <div className="absolute bottom-16 left-4 z-10 bg-white/90 backdrop-blur px-3 py-2 rounded-md shadow border border-slate-200 text-sm text-slate-700">
+          <div className="flex items-center gap-2">
+            <span className={`w-2 h-2 rounded-full ${
+              locationAccuracy <= 20 ? 'bg-green-500' : 
+              locationAccuracy <= 50 ? 'bg-yellow-500' : 
+              locationAccuracy <= 100 ? 'bg-orange-500' : 'bg-red-500'
+            }`}></span>
+            <span className="font-medium">
+              GPS: {locationAccuracy.toFixed(0)}m accuracy
+            </span>
+            <span className="text-xs text-slate-500">
+              {locationAccuracy <= 20 ? '(Excellent)' : 
+               locationAccuracy <= 50 ? '(Good)' : 
+               locationAccuracy <= 100 ? '(Fair)' : '(Poor)'}
+            </span>
+          </div>
+        </div>
+      )}
+
       {/* Cluster stats overlay */}
-      {enableClustering && mlProperties.length > 0 && !focusOnProperty && (
+      {enableClustering && mlProperties.length > 0 && !focusOnProperty && !routeInfo && (
         <div className="absolute bottom-4 left-4 z-10 bg-white/90 backdrop-blur px-3 py-2 rounded-md shadow border border-slate-200 text-sm text-slate-700">
           <div className="flex items-center gap-2">
             <span className="font-medium">{staticLabels[selectedCluster]} Properties:</span>
@@ -959,6 +1007,146 @@ export default function PropertyMap({
               <button onClick={() => { setError(null); setIsLoading(true) }} className="px-4 py-2 bg-blue-500 text-white rounded text-sm hover:bg-blue-600 mr-2">Retry Map</button>
               <button onClick={() => window.location.reload()} className="px-4 py-2 bg-gray-500 text-white rounded text-sm hover:bg-gray-600">Reload Page</button>
             </div>
+          </div>
+        </div>
+      )}
+      </div>
+
+      {/* Property Details Panel */}
+      {selectedProperty && (
+        <div className="w-96 bg-gray-50 border-l border-gray-200 overflow-y-auto">
+          <div className="p-4">
+            {/* Close button */}
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-xl font-bold text-gray-900">Property Details</h2>
+              <button
+                onClick={() => setSelectedProperty(null)}
+                className="text-gray-400 hover:text-gray-600 text-xl p-1 hover:bg-gray-200 rounded-full transition-colors"
+                aria-label="Close property details"
+              >
+                ✕
+              </button>
+            </div>
+
+            <Card className="shadow-lg">
+              {/* Property Image */}
+              {selectedProperty.images && selectedProperty.images.length > 0 && (
+                <div className="relative">
+                  <img
+                    src={selectedProperty.images[0]}
+                    alt={selectedProperty.name}
+                    className="w-full h-48 object-cover rounded-t-xl"
+                    onError={(e) => {
+                      const target = e.target as HTMLImageElement;
+                      target.src = '/placeholder.jpg';
+                    }}
+                  />
+                  <Badge 
+                    className={`absolute top-3 right-3 ${
+                      selectedProperty.status === 'Available' ? 'bg-green-600 hover:bg-green-700' :
+                      selectedProperty.status === 'Rented' ? 'bg-yellow-600 hover:bg-yellow-700' :
+                      'bg-red-600 hover:bg-red-700'
+                    }`}
+                  >
+                    {selectedProperty.status}
+                  </Badge>
+                </div>
+              )}
+
+              <CardHeader>
+                <CardTitle className="text-lg">{selectedProperty.name}</CardTitle>
+                <div className="flex items-center gap-2">
+                  <span className="text-2xl font-bold text-green-600">
+                    ₱{selectedProperty.price.toLocaleString()}
+                  </span>
+                  <span className="text-sm text-gray-500">/month</span>
+                </div>
+              </CardHeader>
+
+              <CardContent className="space-y-4">
+                {/* Property Description */}
+                <div>
+                  <h4 className="font-semibold text-gray-900 mb-2">Description</h4>
+                  <p className="text-gray-600 text-sm leading-relaxed">
+                    {selectedProperty.description}
+                  </p>
+                </div>
+
+                {/* Property Specs */}
+                <div>
+                  <h4 className="font-semibold text-gray-900 mb-3">Specifications</h4>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="flex items-center gap-2 p-2 bg-gray-50 rounded-lg">
+                      <span className="text-gray-500">🛏️</span>
+                      <span className="text-sm font-medium">{selectedProperty.bedrooms} Bedrooms</span>
+                    </div>
+                    <div className="flex items-center gap-2 p-2 bg-gray-50 rounded-lg">
+                      <span className="text-gray-500">🚿</span>
+                      <span className="text-sm font-medium">{selectedProperty.bathrooms} Bathrooms</span>
+                    </div>
+                    <div className="flex items-center gap-2 p-2 bg-gray-50 rounded-lg">
+                      <span className="text-gray-500">🚗</span>
+                      <span className="text-sm font-medium">{selectedProperty.parking} Parking</span>
+                    </div>
+                    <div className="flex items-center gap-2 p-2 bg-gray-50 rounded-lg">
+                      <span className="text-gray-500">🏠</span>
+                      <span className="text-sm font-medium">{selectedProperty.propertyType}</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Location */}
+                <div>
+                  <h4 className="font-semibold text-gray-900 mb-2">Location</h4>
+                  <div className="flex items-start gap-2 p-3 bg-blue-50 rounded-lg border border-blue-100">
+                    <span className="text-blue-500 mt-0.5">📍</span>
+                    <span className="text-blue-800 text-sm font-medium">
+                      {selectedProperty.location.address}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Amenities */}
+                {selectedProperty.amenities && selectedProperty.amenities.length > 0 && (
+                  <div>
+                    <h4 className="font-semibold text-gray-900 mb-2">Amenities</h4>
+                    <div className="flex flex-wrap gap-2">
+                      {selectedProperty.amenities.map((amenity, index) => (
+                        <Badge key={index} variant="secondary" className="text-xs">
+                          {amenity}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Route Information */}
+                {routeInfo && (
+                  <div className="p-4 bg-gradient-to-r from-green-50 to-blue-50 rounded-lg border border-green-200">
+                    <h4 className="font-semibold text-green-900 mb-3 flex items-center gap-2">
+                      <span>🗺️</span>
+                      Distance from your location
+                    </h4>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="flex items-center gap-2 p-2 bg-white/70 rounded-lg">
+                        <span className="text-green-600">🛣️</span>
+                        <div>
+                          <div className="text-sm font-medium text-green-800">{routeInfo.distanceKm.toFixed(1)} km</div>
+                          <div className="text-xs text-green-600">Distance</div>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2 p-2 bg-white/70 rounded-lg">
+                        <span className="text-blue-600">⏱️</span>
+                        <div>
+                          <div className="text-sm font-medium text-blue-800">{Math.round(routeInfo.durationMin)} min</div>
+                          <div className="text-xs text-blue-600">Drive time</div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
           </div>
         </div>
       )}
