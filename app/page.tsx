@@ -562,7 +562,10 @@ export default function PropertyListingPage() {
   const [selectedProperty, setSelectedProperty] = useState<Property | null>(null)
   const [showFilters, setShowFilters] = useState(false)
   const [viewMode, setViewMode] = useState("grid")
+  const [sortBy, setSortBy] = useState("newest")
   const [recommendations, setRecommendations] = useState<Property[]>([])
+  const [nearbyProperties, setNearbyProperties] = useState<Property[]>([])
+  const [budgetFriendly, setBudgetFriendly] = useState<Property[]>([])
   const [clusters, setClusters] = useState<any[]>([])
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [currentPage, setCurrentPage] = useState("home")
@@ -624,14 +627,44 @@ export default function PropertyListingPage() {
   }, [])
 
   const filteredProperties = useMemo(() => {
-    return properties.filter((property) => {
+    let filtered = properties.filter((property) => {
       const matchesSearch =
         property.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         property.location.address.toLowerCase().includes(searchTerm.toLowerCase())
       const matchesPrice = property.price >= priceRange[0] && property.price <= priceRange[1]
       return matchesSearch && matchesPrice
     })
-  }, [searchTerm, priceRange, properties])
+
+    // Apply sorting
+    switch (sortBy) {
+      case "price-low":
+        filtered.sort((a, b) => a.price - b.price)
+        break
+      case "price-high":
+        filtered.sort((a, b) => b.price - a.price)
+        break
+      case "newest":
+        // Assuming newer properties have higher indices or use createdAt if available
+        filtered.sort((a, b) => b.id.localeCompare(a.id))
+        break
+      case "popular":
+        // Sort by status (Available first) then by name
+        filtered.sort((a, b) => {
+          if (a.status === "Available" && b.status !== "Available") return -1
+          if (b.status === "Available" && a.status !== "Available") return 1
+          return a.name.localeCompare(b.name)
+        })
+        break
+      case "rating":
+        // Random sort to simulate rating (since we don't have actual ratings)
+        filtered.sort(() => Math.random() - 0.5)
+        break
+      default:
+        break
+    }
+
+    return filtered
+  }, [searchTerm, priceRange, properties, sortBy])
 
   useEffect(() => {
     if (filteredProperties.length > 0) {
@@ -647,6 +680,26 @@ export default function PropertyListingPage() {
       setRecommendations(recs)
     }
   }, [selectedProperty, properties])
+
+  // Generate nearby properties (simulate with first few available properties)
+  useEffect(() => {
+    if (properties.length > 0) {
+      const nearby = properties
+        .filter(p => p.status === "Available")
+        .slice(0, 6)
+        .map(p => ({ ...p, distance: Math.random() * 2 + 0.1 })) // Simulate distance 0.1-2.1 km
+      setNearbyProperties(nearby)
+    }
+  }, [properties])
+
+  // Generate budget-friendly properties (lowest 25% of prices)
+  useEffect(() => {
+    if (properties.length > 0) {
+      const sorted = [...properties].sort((a, b) => a.price - b.price)
+      const budgetCount = Math.max(3, Math.floor(sorted.length * 0.25))
+      setBudgetFriendly(sorted.slice(0, budgetCount).filter(p => p.status === "Available"))
+    }
+  }, [properties])
 
   useEffect(() => {
     const authStatus = localStorage.getItem("rentify_auth")
@@ -1066,6 +1119,123 @@ export default function PropertyListingPage() {
       )}
 
       <main className="container mx-auto px-4 py-8">
+        {/* Recommendations Section */}
+        {currentPage === "home" && viewMode === "grid" && (nearbyProperties.length > 0 || budgetFriendly.length > 0) && (
+          <div className="space-y-8 mb-8">
+            {/* Nearby Properties */}
+            {nearbyProperties.length > 0 && (
+              <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-2xl p-6 border border-blue-100">
+                <div className="flex items-center justify-between mb-6">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center">
+                      <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                      </svg>
+                    </div>
+                    <div>
+                      <h3 className="text-xl font-bold text-slate-900">Properties Near You</h3>
+                      <p className="text-slate-600">Discover {nearbyProperties.length} rentals within walking distance</p>
+                    </div>
+                  </div>
+                  <button 
+                    onClick={() => {
+                      setSearchTerm("")
+                      setSortBy("newest")
+                    }}
+                    className="text-blue-600 hover:text-blue-700 font-semibold text-sm hover:underline transition-colors"
+                  >
+                    View All →
+                  </button>
+                </div>
+                <div className="grid gap-4 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+                  {nearbyProperties.slice(0, 3).map((property) => (
+                    <Card
+                      key={`nearby-${property.id}`}
+                      className="group overflow-hidden hover:shadow-xl hover:-translate-y-1 transition-all duration-300 border-0 shadow-md bg-white rounded-xl cursor-pointer"
+                      onClick={() => setSelectedProperty(property)}
+                    >
+                      <div className="relative h-32 overflow-hidden rounded-t-xl">
+                        <ImageSlider property={property} className="h-32" />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
+                        <Badge className="absolute top-2 right-2 bg-blue-600 text-white border-0 shadow-md text-xs font-bold">
+                          {(property as any).distance?.toFixed(1)}km away
+                        </Badge>
+                      </div>
+                      <CardContent className="p-3">
+                        <h4 className="font-bold text-sm line-clamp-1 mb-1">{property.name}</h4>
+                        <p className="text-blue-600 font-bold text-lg">{formatPrice(property.price)}</p>
+                        <div className="flex items-center gap-1 mt-1">
+                          <MapPin className="h-3 w-3 text-slate-500" />
+                          <span className="text-xs text-slate-600 line-clamp-1">{property.location.address}</span>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Budget-Friendly Properties */}
+            {budgetFriendly.length > 0 && (
+              <div className="bg-gradient-to-br from-emerald-50 to-green-50 rounded-2xl p-6 border border-emerald-100">
+                <div className="flex items-center justify-between mb-6">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-emerald-600 rounded-full flex items-center justify-center">
+                      <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
+                      </svg>
+                    </div>
+                    <div>
+                      <h3 className="text-xl font-bold text-slate-900">Budget-Friendly Options</h3>
+                      <p className="text-slate-600">Great value from {budgetFriendly.length} affordable properties</p>
+                    </div>
+                  </div>
+                  <button 
+                    onClick={() => {
+                      setSortBy("price-low")
+                      setSearchTerm("")
+                    }}
+                    className="text-emerald-600 hover:text-emerald-700 font-semibold text-sm hover:underline transition-colors"
+                  >
+                    View All →
+                  </button>
+                </div>
+                <div className="grid gap-4 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+                  {budgetFriendly.slice(0, 3).map((property) => (
+                    <Card
+                      key={`budget-${property.id}`}
+                      className="group overflow-hidden hover:shadow-xl hover:-translate-y-1 transition-all duration-300 border-0 shadow-md bg-white rounded-xl cursor-pointer"
+                      onClick={() => setSelectedProperty(property)}
+                    >
+                      <div className="relative h-32 overflow-hidden rounded-t-xl">
+                        <ImageSlider property={property} className="h-32" />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
+                        <Badge className="absolute top-2 right-2 bg-emerald-600 text-white border-0 shadow-md text-xs font-bold">
+                          Great Value
+                        </Badge>
+                      </div>
+                      <CardContent className="p-3">
+                        <h4 className="font-bold text-sm line-clamp-1 mb-1">{property.name}</h4>
+                        <div className="flex items-center gap-2">
+                          <p className="text-emerald-600 font-bold text-lg">{formatPrice(property.price)}</p>
+                          <span className="text-xs text-emerald-700 bg-emerald-100 px-2 py-1 rounded-full font-medium">
+                            Budget Pick
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-1 mt-1">
+                          <MapPin className="h-3 w-3 text-slate-500" />
+                          <span className="text-xs text-slate-600 line-clamp-1">{property.location.address}</span>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+        
         {/* Enhanced grid header with sorting options */}
         {currentPage === "home" && viewMode === "grid" && filteredProperties.length > 0 && (
           <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 mb-8">
@@ -1080,6 +1250,11 @@ export default function PropertyListingPage() {
                 <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 font-medium px-3 py-1">
                   {searchTerm ? `"${searchTerm}"` : 'All Locations'}
                 </Badge>
+                {sortBy !== "newest" && (
+                  <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-200 font-medium px-3 py-1">
+                    Sorted by {sortBy === "price-low" ? "Price ↑" : sortBy === "price-high" ? "Price ↓" : sortBy === "popular" ? "Popular" : "Rating"}
+                  </Badge>
+                )}
               </div>
               
               {/* Enhanced Sort & View Options */}
@@ -1087,12 +1262,16 @@ export default function PropertyListingPage() {
                 {/* Sort Options */}
                 <div className="flex items-center gap-2">
                   <span className="text-sm text-slate-600 font-medium">Sort:</span>
-                  <select className="text-sm border border-slate-200 rounded-lg px-3 py-2 bg-white text-slate-700 font-medium focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 min-w-[140px]">
+                  <select 
+                    value={sortBy}
+                    onChange={(e) => setSortBy(e.target.value)}
+                    className="text-sm border border-slate-200 rounded-lg px-3 py-2 bg-white text-slate-700 font-medium focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 min-w-[140px]"
+                  >
                     <option value="price-low">Price ↑</option>
                     <option value="price-high">Price ↓</option>
-                    <option value="newest">Newest</option>
                     <option value="popular">Popular</option>
                     <option value="rating">Rating</option>
+                    <option value="newest">Newest</option>
                   </select>
                 </div>
                 
