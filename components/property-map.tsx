@@ -143,6 +143,13 @@ const modernStyles = `
     animation: scaleIn 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   }
   
+  .line-clamp-4 {
+    display: -webkit-box;
+    -webkit-line-clamp: 4;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  
   @keyframes fadeIn {
     from { opacity: 0; }
     to { opacity: 1; }
@@ -901,203 +908,161 @@ export default function PropertyMap({
     <>
       <style dangerouslySetInnerHTML={{ __html: modernStyles }} />
       <div className="relative w-full h-full rounded-3xl flex overflow-hidden gradient-bg shadow-2xl border border-white/30 backdrop-blur-sm animate-fade-in" style={{ minHeight: "300px" }}>
-      {/* Clean Navigation Panel */}
+      {/* Optimized Navigation Panel */}
       {navigationMode && routeSteps.length > 0 && (
-        <div className="w-96 section-card border-r border-gray-200 overflow-y-auto modern-scrollbar animate-slide-up">
-          <div className="p-6">
-            {/* Header */}
-            <div className="flex items-center justify-between mb-6">
-              <div className="flex items-center gap-3">
-                <div className="step-indicator">
-                  <span className="icon-nav"></span>
+        <div className="w-80 section-card border-r border-gray-200 overflow-y-auto modern-scrollbar animate-slide-up">
+          <div className="p-4">
+            {/* Compact Header */}
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
+                  <span className="icon-nav text-white text-sm"></span>
                 </div>
                 <div>
-                  <h2 className="text-xl font-bold text-gray-900">Navigation</h2>
-                  <p className="text-sm text-gray-500">{routeSteps.length} steps remaining</p>
+                  <h2 className="text-lg font-bold text-gray-900">Navigation</h2>
+                  <p className="text-xs text-gray-500">{routeSteps.length} steps</p>
                 </div>
               </div>
               <button
                 onClick={() => onNavigationToggle && onNavigationToggle(false)}
-                className="modern-button w-10 h-10 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg flex items-center justify-center"
+                className="modern-button w-8 h-8 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg flex items-center justify-center"
                 aria-label="Close navigation"
               >
-                <span className="icon-close text-lg"></span>
+                <span className="icon-close text-sm"></span>
               </button>
             </div>
 
-            {/* Progress Bar */}
-            <div className="mb-6">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-sm font-medium text-gray-700">Step {currentStep + 1} of {routeSteps.length}</span>
-                <span className="text-sm text-gray-500">{Math.round(((currentStep + 1) / routeSteps.length) * 100)}%</span>
+            {/* Compact Progress Bar */}
+            <div className="mb-4">
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-xs font-medium text-gray-700">Step {currentStep + 1}/{routeSteps.length}</span>
+                <span className="text-xs text-gray-500">{Math.round(((currentStep + 1) / routeSteps.length) * 100)}%</span>
               </div>
-              <div className="progress-bar">
+              <div className="progress-bar h-2">
                 <div 
-                  className="progress-fill" 
+                  className="progress-fill h-2" 
                   style={{ width: `${((currentStep + 1) / routeSteps.length) * 100}%` }}
                 ></div>
               </div>
             </div>
 
-            {/* Current Step */}
-            <div className="section-card mb-6">
-              <div className="flex items-start gap-4 mb-4">
-                <div className="step-indicator">
-                  {currentStep + 1}
+            {/* Compact Current Step */}
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-3">
+              <div className="flex items-start gap-3">
+                <div className="w-6 h-6 bg-blue-600 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                  <span className="text-white text-xs font-bold">{currentStep + 1}</span>
                 </div>
-                <div className="flex-1">
-                  <div className="mb-2">
-                    <span className="text-xs font-medium text-blue-600 uppercase tracking-wide">Current Direction</span>
-                  </div>
-                  <p className="text-lg font-semibold text-gray-900 leading-relaxed mb-3">
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold text-gray-900 leading-tight mb-2">
                     {routeSteps[currentStep]?.instruction}
                   </p>
-                  <div className="flex items-center gap-4">
-                    <div className="info-item py-2">
-                      <div className="info-icon">
-                        <span>📏</span>
-                      </div>
-                      <div>
-                        <span className="text-sm font-semibold text-gray-900">
-                          {Math.round(routeSteps[currentStep]?.distance || 0)}m
-                        </span>
-                        <p className="text-xs text-gray-500">Distance</p>
-                      </div>
-                    </div>
-                    <div className="info-item py-2">
-                      <div className="info-icon">
-                        <span>⏱</span>
-                      </div>
-                      <div>
-                        <span className="text-sm font-semibold text-gray-900">
-                          {Math.round((routeSteps[currentStep]?.duration || 0) / 60)} min
-                        </span>
-                        <p className="text-xs text-gray-500">Time</p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Next Destination Preview */}
-            {currentStep < routeSteps.length - 1 && (
-              <div className="section-card mb-6 bg-gray-50 border-gray-100">
-                <div className="flex items-start gap-4">
-                  <div className="flex-shrink-0">
-                    <div className="w-8 h-8 bg-gray-300 rounded-full flex items-center justify-center">
-                      <span className="text-sm font-semibold text-gray-600">{currentStep + 2}</span>
-                    </div>
-                  </div>
-                  <div className="flex-1">
-                    <div className="mb-2">
-                      <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">Next Up</span>
-                    </div>
-                    <p className="text-base font-medium text-gray-700 leading-relaxed mb-2">
-                      {routeSteps[currentStep + 1]?.instruction}
-                    </p>
-                    <div className="flex items-center gap-3">
-                      <span className="text-xs text-gray-500">
-                        {Math.round(routeSteps[currentStep + 1]?.distance || 0)}m
-                      </span>
-                      <span className="text-xs text-gray-400">•</span>
-                      <span className="text-xs text-gray-500">
-                        {Math.round((routeSteps[currentStep + 1]?.duration || 0) / 60)} min
-                      </span>
-                    </div>
-                  </div>
-                  <div className="flex-shrink-0">
-                    <span className="text-lg">
-                      {getDirectionIcon(routeSteps[currentStep + 1]?.type, routeSteps[currentStep + 1]?.modifier)}
+                  <div className="flex items-center gap-3">
+                    <span className="text-xs text-blue-700">
+                      📏 {Math.round(routeSteps[currentStep]?.distance || 0)}m
+                    </span>
+                    <span className="text-xs text-blue-700">
+                      ⏱ {Math.round((routeSteps[currentStep]?.duration || 0) / 60)} min
                     </span>
                   </div>
                 </div>
               </div>
-            )}
-
-            {/* Final Destination Info */}
-            {currentStep === routeSteps.length - 1 && (
-              <div className="section-card mb-6 bg-green-50 border-green-200">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-green-500 rounded-full flex items-center justify-center">
-                    <span className="text-white text-sm">🏁</span>
-                  </div>
-                  <div>
-                    <p className="text-base font-semibold text-green-900">You have arrived!</p>
-                    <p className="text-sm text-green-700">Final destination reached</p>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Navigation Controls with Destination Info */}
-            <div className="space-y-4">
-              {/* Destination Summary */}
-              <div className="section-card bg-blue-50 border-blue-200">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center">
-                      <span className="text-white text-sm">🏠</span>
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium text-blue-900">Destination</p>
-                      <p className="text-xs text-blue-700">
-                        {selectedProperty?.name || 'Selected Property'}
-                      </p>
-                    </div>
-                  </div>
-                  {routeInfo && (
-                    <div className="text-right">
-                      <p className="text-sm font-semibold text-blue-900">
-                        {routeInfo.distanceKm.toFixed(1)} km
-                      </p>
-                      <p className="text-xs text-blue-700">
-                        {Math.round(routeInfo.durationMin)} min total
-                      </p>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Control Buttons */}
-              <div className="flex gap-3">
-                <button
-                  onClick={() => setCurrentStep(Math.max(0, currentStep - 1))}
-                  disabled={currentStep === 0}
-                  className="modern-button flex-1 px-4 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-sm font-semibold transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                >
-                  <span>←</span>
-                  <span>Previous</span>
-                </button>
-                <button
-                  onClick={() => setCurrentStep(Math.min(routeSteps.length - 1, currentStep + 1))}
-                  disabled={currentStep === routeSteps.length - 1}
-                  className="modern-button flex-1 px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-semibold transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                >
-                  <span>{currentStep === routeSteps.length - 1 ? 'Arrived' : 'Next'}</span>
-                  {currentStep < routeSteps.length - 1 && <span>→</span>}
-                </button>
-              </div>
-
-              {/* Quick Jump to Destination */}
-              {currentStep < routeSteps.length - 1 && (
-                <button
-                  onClick={() => setCurrentStep(routeSteps.length - 1)}
-                  className="modern-button w-full px-4 py-2 bg-green-100 hover:bg-green-200 text-green-700 rounded-lg text-sm font-medium transition-all duration-300 flex items-center justify-center gap-2"
-                >
-                  <span>🏁</span>
-                  <span>Jump to Final Step</span>
-                </button>
-              )}
             </div>
+
+            {/* Compact Next Step Preview */}
+            {currentStep < routeSteps.length - 1 && (
+              <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 mb-3">
+                <div className="flex items-start gap-3">
+                  <div className="w-5 h-5 bg-gray-400 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <span className="text-white text-xs">{currentStep + 2}</span>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Next</p>
+                    <p className="text-sm font-medium text-gray-700 leading-tight mb-1">
+                      {routeSteps[currentStep + 1]?.instruction}
+                    </p>
+                    <span className="text-xs text-gray-500">
+                      {Math.round(routeSteps[currentStep + 1]?.distance || 0)}m • {Math.round((routeSteps[currentStep + 1]?.duration || 0) / 60)} min
+                    </span>
+                  </div>
+                  <span className="text-sm flex-shrink-0">
+                    {getDirectionIcon(routeSteps[currentStep + 1]?.type, routeSteps[currentStep + 1]?.modifier)}
+                  </span>
+                </div>
+              </div>
+            )}
+
+            {/* Compact Final Destination Info */}
+            {currentStep === routeSteps.length - 1 && (
+              <div className="bg-green-50 border border-green-200 rounded-lg p-3 mb-3">
+                <div className="flex items-center gap-2">
+                  <span className="text-green-600">🏁</span>
+                  <div>
+                    <p className="text-sm font-semibold text-green-900">Arrived!</p>
+                    <p className="text-xs text-green-700">Destination reached</p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Compact Destination Summary */}
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 min-w-0">
+                  <span className="text-blue-600 text-sm">🏠</span>
+                  <div className="min-w-0">
+                    <p className="text-xs font-medium text-blue-900 truncate">
+                      {selectedProperty?.name || 'Selected Property'}
+                    </p>
+                  </div>
+                </div>
+                {routeInfo && (
+                  <div className="text-right flex-shrink-0">
+                    <p className="text-sm font-semibold text-blue-900">
+                      {routeInfo.distanceKm.toFixed(1)} km
+                    </p>
+                    <p className="text-xs text-blue-700">
+                      {Math.round(routeInfo.durationMin)} min
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Compact Controls */}
+            <div className="flex gap-2 mb-2">
+              <button
+                onClick={() => setCurrentStep(Math.max(0, currentStep - 1))}
+                disabled={currentStep === 0}
+                className="modern-button flex-1 px-3 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-xs font-semibold transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                ← Prev
+              </button>
+              <button
+                onClick={() => setCurrentStep(Math.min(routeSteps.length - 1, currentStep + 1))}
+                disabled={currentStep === routeSteps.length - 1}
+                className="modern-button flex-1 px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-semibold transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {currentStep === routeSteps.length - 1 ? 'Done' : 'Next →'}
+              </button>
+            </div>
+
+            {/* Quick Jump */}
+            {currentStep < routeSteps.length - 1 && (
+              <button
+                onClick={() => setCurrentStep(routeSteps.length - 1)}
+                className="modern-button w-full px-3 py-1.5 bg-green-100 hover:bg-green-200 text-green-700 rounded-lg text-xs font-medium transition-all duration-300"
+              >
+                🏁 Jump to End
+              </button>
+            )}
           </div>
         </div>
       )}
 
       {/* Main Map Container */}
       <div className={`relative rounded-lg transition-all duration-300 ${
-        (selectedProperty && navigationMode && routeSteps.length > 0) ? 'flex-1' : // Both panels open
-        (selectedProperty || (navigationMode && routeSteps.length > 0)) ? 'flex-1' : // One panel open
+        (selectedProperty && navigationMode && routeSteps.length > 0) ? 'flex-1' : // Both panels open (640px used)
+        (selectedProperty || (navigationMode && routeSteps.length > 0)) ? 'flex-1' : // One panel open (320px used)
         'w-full' // No panels open
       }`} style={{ minHeight: "300px" }}>
         
@@ -1345,37 +1310,36 @@ export default function PropertyMap({
       )}
       </div>
 
-      {/* Clean Property Details Panel */}
+      {/* Optimized Property Details Panel */}
       {selectedProperty && (
-        <div className="w-96 section-card border-l border-gray-200 overflow-y-auto modern-scrollbar animate-slide-up">
-          <div className="p-6">
-            {/* Header */}
-            <div className="flex items-center justify-between mb-6">
-              <div className="flex items-center gap-3">
-                <div className="info-icon">
-                  <span className="icon-home"></span>
+        <div className="w-80 section-card border-l border-gray-200 overflow-y-auto modern-scrollbar animate-slide-up">
+          <div className="p-4">
+            {/* Compact Header */}
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
+                  <span className="icon-home text-white text-sm"></span>
                 </div>
                 <div>
-                  <h2 className="text-xl font-bold text-gray-900">Property Details</h2>
-                  <p className="text-sm text-gray-500">Complete information</p>
+                  <h2 className="text-lg font-bold text-gray-900">Property Details</h2>
                 </div>
               </div>
               <button
                 onClick={() => setSelectedProperty(null)}
-                className="modern-button w-10 h-10 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg flex items-center justify-center"
+                className="modern-button w-8 h-8 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg flex items-center justify-center"
                 aria-label="Close property details"
               >
-                <span className="icon-close text-lg"></span>
+                <span className="icon-close text-sm"></span>
               </button>
             </div>
 
-            {/* Property Image */}
+            {/* Compact Property Image */}
             {selectedProperty.images && selectedProperty.images.length > 0 && (
-              <div className="relative mb-6 rounded-xl overflow-hidden">
+              <div className="relative mb-4 rounded-lg overflow-hidden">
                 <img
                   src={selectedProperty.images[0]}
                   alt={selectedProperty.name}
-                  className="w-full h-48 object-cover"
+                  className="w-full h-32 object-cover"
                   onError={(e) => {
                     const target = e.target as HTMLImageElement;
                     target.src = '/placeholder.jpg';
@@ -1383,7 +1347,7 @@ export default function PropertyMap({
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent"></div>
                 <Badge 
-                  className={`absolute top-3 right-3 px-3 py-1 text-sm font-medium rounded-lg ${
+                  className={`absolute top-2 right-2 px-2 py-1 text-xs font-medium rounded ${
                     selectedProperty.status === 'Available' ? 'bg-green-500 text-white' :
                     selectedProperty.status === 'Rented' ? 'bg-orange-500 text-white' :
                     'bg-red-500 text-white'
@@ -1394,132 +1358,112 @@ export default function PropertyMap({
               </div>
             )}
 
-            {/* Property Title & Price */}
-            <div className="mb-6">
-              <h1 className="text-2xl font-bold text-gray-900 mb-2">{selectedProperty.name}</h1>
-              <div className="flex items-baseline gap-2">
-                <span className="text-3xl font-bold text-blue-600">₱{selectedProperty.price.toLocaleString()}</span>
-                <span className="text-gray-500">/month</span>
+            {/* Compact Title & Price */}
+            <div className="mb-4">
+              <h1 className="text-lg font-bold text-gray-900 mb-1 leading-tight">{selectedProperty.name}</h1>
+              <div className="flex items-baseline gap-1">
+                <span className="text-xl font-bold text-blue-600">₱{selectedProperty.price.toLocaleString()}</span>
+                <span className="text-sm text-gray-500">/month</span>
               </div>
             </div>
 
-            {/* Property Specifications */}
-            <div className="section-card mb-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Specifications</h3>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="info-item">
-                  <div className="info-icon">
-                    <span className="icon-bed"></span>
-                  </div>
+            {/* Compact Specifications Grid */}
+            <div className="bg-gray-50 rounded-lg p-3 mb-4">
+              <h3 className="text-sm font-semibold text-gray-900 mb-2">Specifications</h3>
+              <div className="grid grid-cols-2 gap-2">
+                <div className="flex items-center gap-2">
+                  <span className="icon-bed text-blue-600 text-sm"></span>
                   <div>
-                    <span className="font-semibold text-gray-900">{selectedProperty.bedrooms}</span>
-                    <p className="text-sm text-gray-500">Bedrooms</p>
+                    <span className="text-sm font-semibold text-gray-900">{selectedProperty.bedrooms}</span>
+                    <span className="text-xs text-gray-500 ml-1">beds</span>
                   </div>
                 </div>
-                <div className="info-item">
-                  <div className="info-icon">
-                    <span className="icon-bath"></span>
-                  </div>
+                <div className="flex items-center gap-2">
+                  <span className="icon-bath text-blue-600 text-sm"></span>
                   <div>
-                    <span className="font-semibold text-gray-900">{selectedProperty.bathrooms}</span>
-                    <p className="text-sm text-gray-500">Bathrooms</p>
+                    <span className="text-sm font-semibold text-gray-900">{selectedProperty.bathrooms}</span>
+                    <span className="text-xs text-gray-500 ml-1">baths</span>
                   </div>
                 </div>
-                <div className="info-item">
-                  <div className="info-icon">
-                    <span className="icon-car"></span>
-                  </div>
+                <div className="flex items-center gap-2">
+                  <span className="icon-car text-blue-600 text-sm"></span>
                   <div>
-                    <span className="font-semibold text-gray-900">{selectedProperty.parking}</span>
-                    <p className="text-sm text-gray-500">Parking</p>
+                    <span className="text-sm font-semibold text-gray-900">{selectedProperty.parking}</span>
+                    <span className="text-xs text-gray-500 ml-1">parking</span>
                   </div>
                 </div>
-                <div className="info-item">
-                  <div className="info-icon">
-                    <span className="icon-home"></span>
-                  </div>
+                <div className="flex items-center gap-2">
+                  <span className="icon-home text-blue-600 text-sm"></span>
                   <div>
-                    <span className="font-semibold text-gray-900 capitalize">{selectedProperty.propertyType}</span>
-                    <p className="text-sm text-gray-500">Property Type</p>
+                    <span className="text-sm font-semibold text-gray-900 capitalize">{selectedProperty.propertyType}</span>
                   </div>
                 </div>
               </div>
             </div>
 
-            {/* Location */}
-            <div className="section-card mb-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Location</h3>
-              <div className="info-item">
-                <div className="info-icon">
-                  <span className="icon-location"></span>
-                </div>
-                <div>
-                  <span className="font-medium text-gray-900">{selectedProperty.location.address}</span>
-                </div>
+            {/* Compact Location */}
+            <div className="bg-gray-50 rounded-lg p-3 mb-4">
+              <h3 className="text-sm font-semibold text-gray-900 mb-2">Location</h3>
+              <div className="flex items-start gap-2">
+                <span className="icon-location text-blue-600 text-sm mt-0.5"></span>
+                <span className="text-sm text-gray-700 leading-tight">{selectedProperty.location.address}</span>
               </div>
             </div>
 
-            {/* Description */}
-            <div className="section-card mb-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Description</h3>
-              <p className="text-gray-700 leading-relaxed">{selectedProperty.description}</p>
+            {/* Compact Description */}
+            <div className="mb-4">
+              <h3 className="text-sm font-semibold text-gray-900 mb-2">Description</h3>
+              <p className="text-sm text-gray-700 leading-relaxed line-clamp-4">{selectedProperty.description}</p>
             </div>
 
-            {/* Amenities */}
+            {/* Compact Amenities */}
             {selectedProperty.amenities && selectedProperty.amenities.length > 0 && (
-              <div className="section-card mb-6">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">Amenities</h3>
-                <div className="grid grid-cols-2 gap-3">
-                  {selectedProperty.amenities.map((amenity: string, index: number) => (
-                    <div key={index} className="info-item">
-                      <div className="info-icon">
-                        <span className="icon-check"></span>
-                      </div>
-                      <span className="text-sm text-gray-700 capitalize">{amenity}</span>
-                    </div>
+              <div className="mb-4">
+                <h3 className="text-sm font-semibold text-gray-900 mb-2">Amenities</h3>
+                <div className="flex flex-wrap gap-1">
+                  {selectedProperty.amenities.slice(0, 6).map((amenity: string, index: number) => (
+                    <span key={index} className="inline-flex items-center gap-1 px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded">
+                      <span className="icon-check text-blue-600"></span>
+                      {amenity}
+                    </span>
                   ))}
+                  {selectedProperty.amenities.length > 6 && (
+                    <span className="px-2 py-1 bg-gray-100 text-gray-600 text-xs rounded">
+                      +{selectedProperty.amenities.length - 6} more
+                    </span>
+                  )}
                 </div>
               </div>
             )}
 
-            {/* Route Information */}
+            {/* Compact Route Information */}
             {routeInfo && (
-              <div className="section-card mb-6">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">Distance Information</h3>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="info-item">
-                    <div className="info-icon">
-                      <span className="icon-location"></span>
-                    </div>
-                    <div>
-                      <span className="font-semibold text-gray-900">{routeInfo.distanceKm.toFixed(1)} km</span>
-                      <p className="text-sm text-gray-500">Distance</p>
-                    </div>
+              <div className="bg-green-50 border border-green-200 rounded-lg p-3 mb-4">
+                <h3 className="text-sm font-semibold text-green-900 mb-2">Distance</h3>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="icon-location text-green-600 text-sm"></span>
+                    <span className="text-sm font-semibold text-green-900">{routeInfo.distanceKm.toFixed(1)} km</span>
                   </div>
-                  <div className="info-item">
-                    <div className="info-icon">
-                      <span className="icon-clock"></span>
-                    </div>
-                    <div>
-                      <span className="font-semibold text-gray-900">{Math.round(routeInfo.durationMin)} min</span>
-                      <p className="text-sm text-gray-500">Drive time</p>
-                    </div>
+                  <div className="flex items-center gap-2">
+                    <span className="icon-clock text-green-600 text-sm"></span>
+                    <span className="text-sm font-semibold text-green-900">{Math.round(routeInfo.durationMin)} min</span>
                   </div>
                 </div>
               </div>
             )}
 
-            {/* Action Buttons */}
-            <div className="flex gap-3 pt-4 border-t border-gray-200">
+            {/* Compact Action Buttons */}
+            <div className="flex gap-2 pt-2 border-t border-gray-200">
               <button 
                 onClick={() => {
                   console.log(`Contact owner for property: ${selectedProperty.name}`)
                   alert(`Contact Owner\n\nProperty: ${selectedProperty.name}\nPhone: +63 912 345 6789\nEmail: owner@rentify.com`)
                 }}
-                className="modern-button flex-1 bg-blue-600 hover:bg-blue-700 text-white rounded-lg px-4 py-3 font-medium transition-all duration-300 hover:scale-105 hover:shadow-lg flex items-center justify-center gap-2"
+                className="modern-button flex-1 bg-blue-600 hover:bg-blue-700 text-white rounded-lg px-3 py-2 text-sm font-medium transition-all duration-300 hover:scale-105 hover:shadow-lg flex items-center justify-center gap-1"
               >
-                <span className="icon-phone"></span>
-                Contact Owner
+                <span className="icon-phone text-sm"></span>
+                <span>Contact</span>
               </button>
               <button 
                 onClick={() => {
@@ -1530,15 +1474,15 @@ export default function PropertyMap({
                     alert('This property is not currently available for rent.')
                   }
                 }}
-                className={`modern-button flex-1 rounded-lg px-4 py-3 font-medium transition-all duration-300 hover:scale-105 hover:shadow-lg flex items-center justify-center gap-2 ${
+                className={`modern-button flex-1 rounded-lg px-3 py-2 text-sm font-medium transition-all duration-300 hover:scale-105 hover:shadow-lg flex items-center justify-center gap-1 ${
                   selectedProperty.status === 'Available' 
                     ? 'bg-green-600 hover:bg-green-700 text-white' 
                     : 'bg-gray-200 text-gray-500 cursor-not-allowed'
                 }`}
                 disabled={selectedProperty.status !== 'Available'}
               >
-                <span className="icon-heart"></span>
-                {selectedProperty.status === 'Available' ? 'Rent Now' : 'Not Available'}
+                <span className="icon-heart text-sm"></span>
+                <span>{selectedProperty.status === 'Available' ? 'Rent' : 'N/A'}</span>
               </button>
             </div>
           </div>
