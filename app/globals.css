@@ -19,6 +19,9 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
+  /* Font family configuration */
+  --font-poppins: 'Poppins', system-ui, sans-serif;
+  
   /* Updated color palette for property listing platform */
   --background: #ffffff;
   --foreground: #1f2937;
@@ -93,7 +96,7 @@
 }
 
 @theme inline {
-  --font-sans: var(--font-geist-sans);
+  --font-sans: var(--font-poppins);
   --font-mono: var(--font-geist-mono);
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -139,5 +142,6 @@
   }
   body {
     @apply bg-background text-foreground;
+    font-family: var(--font-poppins);
   }
 }

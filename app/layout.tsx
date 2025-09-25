@@ -20,7 +20,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={`font-sans ${poppins.variable} ${GeistMono.variable}`}>
+      <body className={`${poppins.className} ${GeistMono.variable}`}>
         {children}
         <Analytics />
       </body>
