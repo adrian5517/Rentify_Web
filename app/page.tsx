@@ -866,12 +866,56 @@ export default function PropertyListingPage() {
               </div>
             )}
             {filteredProperties.length === 0 && (
-              <div className="text-center py-16">
-                <div className="w-24 h-24 mx-auto mb-6 bg-slate-100 rounded-full flex items-center justify-center">
-                  <Search className="h-10 w-10 text-slate-400" />
+              <div className="text-center py-20">
+                <div className="relative mx-auto mb-8">
+                  {/* Enhanced empty state illustration */}
+                  <div className="w-32 h-32 mx-auto bg-gradient-to-br from-slate-100 to-slate-200 rounded-full flex items-center justify-center mb-4 shadow-inner">
+                    <Search className="h-16 w-16 text-slate-400" />
+                  </div>
+                  {/* Floating elements */}
+                  <div className="absolute top-4 left-1/2 transform -translate-x-1/2 -translate-y-4">
+                    <div className="w-4 h-4 bg-blue-200 rounded-full animate-float" style={{ animationDelay: '0s' }}></div>
+                  </div>
+                  <div className="absolute top-8 right-1/3 transform translate-x-4">
+                    <div className="w-3 h-3 bg-purple-200 rounded-full animate-float" style={{ animationDelay: '1s' }}></div>
+                  </div>
+                  <div className="absolute bottom-8 left-1/3 transform -translate-x-4">
+                    <div className="w-2 h-2 bg-emerald-200 rounded-full animate-float" style={{ animationDelay: '2s' }}></div>
+                  </div>
                 </div>
-                <p className="text-slate-600 text-xl font-medium">No properties found matching your criteria.</p>
-                <p className="text-slate-500 mt-2">Try adjusting your search or filters.</p>
+                <div className="max-w-md mx-auto space-y-4">
+                  <h3 className="text-slate-900 text-2xl font-bold">No Properties Found</h3>
+                  <p className="text-slate-600 text-lg leading-relaxed">
+                    We couldn't find any properties matching your criteria. Try adjusting your search or filters.
+                  </p>
+                  {/* Suggestions */}
+                  <div className="flex flex-wrap gap-2 justify-center mt-6">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="text-blue-600 border-blue-200 hover:bg-blue-50"
+                      onClick={() => setSearchTerm("")}
+                    >
+                      Clear Search
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="text-purple-600 border-purple-200 hover:bg-purple-50"
+                      onClick={() => setPriceRange([0, 50000000])}
+                    >
+                      Reset Filters
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="text-emerald-600 border-emerald-200 hover:bg-emerald-50"
+                      onClick={handleOpenModal}
+                    >
+                      Post Property
+                    </Button>
+                  </div>
+                </div>
               </div>
             )}
           </>
@@ -1024,25 +1068,63 @@ export default function PropertyListingPage() {
       <main className="container mx-auto px-4 py-8">
         {/* Enhanced grid header with sorting options */}
         {currentPage === "home" && viewMode === "grid" && filteredProperties.length > 0 && (
-          <div className="flex items-center justify-between mb-8">
-            <div className="flex items-center gap-4">
-              <h2 className="text-2xl font-bold text-slate-900">
-                {filteredProperties.length} {filteredProperties.length === 1 ? 'Property' : 'Properties'} Found
-              </h2>
-              <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 font-medium">
-                {searchTerm ? `Matching "${searchTerm}"` : 'All Properties'}
-              </Badge>
+          <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 mb-8">
+            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+              <div className="flex items-center gap-4">
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full"></div>
+                  <h2 className="text-2xl font-bold text-slate-900">
+                    {filteredProperties.length} {filteredProperties.length === 1 ? 'Property' : 'Properties'} Found
+                  </h2>
+                </div>
+                <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 font-medium px-3 py-1">
+                  {searchTerm ? `"${searchTerm}"` : 'All Locations'}
+                </Badge>
+              </div>
+              
+              {/* Enhanced Sort & View Options */}
+              <div className="flex items-center gap-4">
+                {/* Sort Options */}
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-slate-600 font-medium">Sort:</span>
+                  <select className="text-sm border border-slate-200 rounded-lg px-3 py-2 bg-white text-slate-700 font-medium focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 min-w-[140px]">
+                    <option value="price-low">Price ↑</option>
+                    <option value="price-high">Price ↓</option>
+                    <option value="newest">Newest</option>
+                    <option value="popular">Popular</option>
+                    <option value="rating">Rating</option>
+                  </select>
+                </div>
+                
+                {/* View Density */}
+                <div className="hidden md:flex items-center border border-slate-200 rounded-lg p-1 bg-slate-50">
+                  <button className="p-1.5 rounded text-slate-600 hover:bg-white hover:shadow-sm transition-all">
+                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                      <path d="M5 3a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2V5a2 2 0 00-2-2H5zM5 11a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2v-2a2 2 0 00-2-2H5zM11 5a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V5zM11 13a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
+                    </svg>
+                  </button>
+                  <button className="p-1.5 rounded text-slate-400 hover:bg-white hover:text-slate-600 hover:shadow-sm transition-all">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 10h16M4 14h16M4 18h16" />
+                    </svg>
+                  </button>
+                </div>
+              </div>
             </div>
             
-            {/* Sort Options */}
-            <div className="hidden md:flex items-center gap-2">
-              <span className="text-sm text-slate-600 font-medium">Sort by:</span>
-              <select className="text-sm border border-slate-200 rounded-lg px-3 py-2 bg-white text-slate-700 font-medium focus:outline-none focus:ring-2 focus:ring-blue-500/30">
-                <option value="price-low">Price: Low to High</option>
-                <option value="price-high">Price: High to Low</option>
-                <option value="newest">Newest First</option>
-                <option value="popular">Most Popular</option>
-              </select>
+            {/* Quick Stats */}
+            <div className="flex items-center gap-6 mt-4 pt-4 border-t border-slate-100">
+              <div className="flex items-center gap-2 text-sm text-slate-600">
+                <div className="w-2 h-2 bg-emerald-500 rounded-full"></div>
+                <span>{filteredProperties.filter(p => p.status === 'Available').length} Available</span>
+              </div>
+              <div className="flex items-center gap-2 text-sm text-slate-600">
+                <div className="w-2 h-2 bg-amber-500 rounded-full"></div>
+                <span>{filteredProperties.filter(p => p.status === 'Rented').length} Rented</span>
+              </div>
+              <div className="flex items-center gap-2 text-sm text-slate-600">
+                <span>Avg: {formatPrice(Math.round(filteredProperties.reduce((sum, p) => sum + p.price, 0) / filteredProperties.length))}</span>
+              </div>
             </div>
           </div>
         )}
