@@ -558,7 +558,7 @@ function AuthPage({ onAuth }: { onAuth: () => void }) {
 
 export default function PropertyListingPage() {
   const [searchTerm, setSearchTerm] = useState("")
-  const [priceRange, setPriceRange] = useState([0, 50000000])
+  const [priceRange, setPriceRange] = useState([0, 50000])
   const [selectedProperty, setSelectedProperty] = useState<Property | null>(null)
   const [showFilters, setShowFilters] = useState(false)
   const [viewMode, setViewMode] = useState("grid")
@@ -578,6 +578,9 @@ export default function PropertyListingPage() {
   const [selectedCluster, setSelectedCluster] = useState(0)
   const [enableClustering, setEnableClustering] = useState(false)
   const [navigationMode, setNavigationMode] = useState(false)
+  
+  // View All filtering state
+  const [activeFilter, setActiveFilter] = useState<'all' | 'nearby' | 'budget'>('all')
 
   // Function to convert API property to Property interface
   const convertAPIProperty = (apiProperty: APIProperty): Property => ({
@@ -626,6 +629,9 @@ export default function PropertyListingPage() {
     fetchProperties()
   }, [])
 
+  // Helper function to check if price range is not default
+  const isPriceFiltered = priceRange[0] > 0 || priceRange[1] < 50000
+
   const filteredProperties = useMemo(() => {
     let filtered = properties.filter((property) => {
       const matchesSearch =
@@ -634,6 +640,15 @@ export default function PropertyListingPage() {
       const matchesPrice = property.price >= priceRange[0] && property.price <= priceRange[1]
       return matchesSearch && matchesPrice
     })
+
+    // Apply active filter
+    if (activeFilter === 'nearby') {
+      const nearbyIds = nearbyProperties.map(p => p.id)
+      filtered = filtered.filter(property => nearbyIds.includes(property.id))
+    } else if (activeFilter === 'budget') {
+      const budgetIds = budgetFriendly.map(p => p.id)
+      filtered = filtered.filter(property => budgetIds.includes(property.id))
+    }
 
     // Apply sorting
     switch (sortBy) {
@@ -664,7 +679,7 @@ export default function PropertyListingPage() {
     }
 
     return filtered
-  }, [searchTerm, priceRange, properties, sortBy])
+  }, [searchTerm, priceRange, properties, sortBy, activeFilter, nearbyProperties, budgetFriendly])
 
   useEffect(() => {
     if (filteredProperties.length > 0) {
@@ -919,54 +934,109 @@ export default function PropertyListingPage() {
               </div>
             )}
             {filteredProperties.length === 0 && (
-              <div className="text-center py-20">
-                <div className="relative mx-auto mb-8">
+              <div className="text-center py-24">
+                <div className="relative mx-auto mb-12 max-w-md">
                   {/* Enhanced empty state illustration */}
-                  <div className="w-32 h-32 mx-auto bg-gradient-to-br from-slate-100 to-slate-200 rounded-full flex items-center justify-center mb-4 shadow-inner">
-                    <Search className="h-16 w-16 text-slate-400" />
+                  <div className="w-40 h-40 mx-auto bg-gradient-to-br from-slate-100 to-slate-200 rounded-full flex items-center justify-center mb-6 shadow-inner relative overflow-hidden">
+                    <Search className="h-20 w-20 text-slate-400" />
+                    {/* Animated search waves */}
+                    <div className="absolute inset-0 rounded-full border-4 border-blue-300 opacity-30 animate-ping"></div>
+                    <div className="absolute inset-4 rounded-full border-4 border-purple-300 opacity-20 animate-ping" style={{ animationDelay: '1s' }}></div>
                   </div>
-                  {/* Floating elements */}
-                  <div className="absolute top-4 left-1/2 transform -translate-x-1/2 -translate-y-4">
-                    <div className="w-4 h-4 bg-blue-200 rounded-full animate-float" style={{ animationDelay: '0s' }}></div>
+                  
+                  {/* Floating elements with emojis */}
+                  <div className="absolute top-8 left-1/2 transform -translate-x-1/2 -translate-y-4">
+                    <div className="w-8 h-8 bg-blue-100 rounded-full animate-float flex items-center justify-center text-lg" style={{ animationDelay: '0s' }}>🏠</div>
                   </div>
-                  <div className="absolute top-8 right-1/3 transform translate-x-4">
-                    <div className="w-3 h-3 bg-purple-200 rounded-full animate-float" style={{ animationDelay: '1s' }}></div>
+                  <div className="absolute top-16 right-1/3 transform translate-x-4">
+                    <div className="w-6 h-6 bg-purple-100 rounded-full animate-float flex items-center justify-center text-sm" style={{ animationDelay: '1s' }}>🔍</div>
                   </div>
-                  <div className="absolute bottom-8 left-1/3 transform -translate-x-4">
-                    <div className="w-2 h-2 bg-emerald-200 rounded-full animate-float" style={{ animationDelay: '2s' }}></div>
+                  <div className="absolute bottom-16 left-1/3 transform -translate-x-4">
+                    <div className="w-5 h-5 bg-emerald-100 rounded-full animate-float flex items-center justify-center text-xs" style={{ animationDelay: '2s' }}>📍</div>
                   </div>
-                </div>
-                <div className="max-w-md mx-auto space-y-4">
-                  <h3 className="text-slate-900 text-2xl font-bold">No Properties Found</h3>
-                  <p className="text-slate-600 text-lg leading-relaxed">
-                    We couldn't find any properties matching your criteria. Try adjusting your search or filters.
-                  </p>
-                  {/* Suggestions */}
-                  <div className="flex flex-wrap gap-2 justify-center mt-6">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="text-blue-600 border-blue-200 hover:bg-blue-50"
-                      onClick={() => setSearchTerm("")}
-                    >
-                      Clear Search
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="text-purple-600 border-purple-200 hover:bg-purple-50"
-                      onClick={() => setPriceRange([0, 50000000])}
-                    >
-                      Reset Filters
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="text-emerald-600 border-emerald-200 hover:bg-emerald-50"
-                      onClick={handleOpenModal}
-                    >
-                      Post Property
-                    </Button>
+                  
+                  <div className="space-y-6">
+                    <div>
+                      <h3 className="text-slate-900 text-3xl font-bold mb-3">🤔 No Properties Found</h3>
+                      <p className="text-slate-600 text-lg leading-relaxed max-w-lg mx-auto">
+                        We couldn't find any properties matching your search criteria. 
+                        Don't worry - let's help you find what you're looking for!
+                      </p>
+                    </div>
+                    
+                    {/* Helpful suggestions */}
+                    <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-2xl p-6 border-2 border-blue-100 max-w-2xl mx-auto">
+                      <h4 className="font-bold text-slate-800 mb-4 text-lg">💡 Try these suggestions:</h4>
+                      <div className="grid gap-3 md:grid-cols-2 text-left">
+                        <div className="flex items-center gap-3">
+                          <span className="text-2xl">🔍</span>
+                          <span className="text-slate-700">Check your spelling</span>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <span className="text-2xl">💰</span>
+                          <span className="text-slate-700">Adjust price range</span>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <span className="text-2xl">📍</span>
+                          <span className="text-slate-700">Try different locations</span>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <span className="text-2xl">✨</span>
+                          <span className="text-slate-700">Browse all properties</span>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    {/* Action buttons */}
+                    <div className="flex flex-wrap gap-4 justify-center mt-8">
+                      <Button
+                        variant="outline"
+                        size="lg"
+                        className="text-blue-600 border-2 border-blue-300 hover:bg-blue-50 font-semibold px-6 py-3 rounded-xl hover:scale-105 transition-all duration-300"
+                        onClick={() => {
+                          setSearchTerm("")
+                          setActiveFilter('all')
+                        }}
+                      >
+                        🔍 Clear Search
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="lg"
+                        className="text-purple-600 border-2 border-purple-300 hover:bg-purple-50 font-semibold px-6 py-3 rounded-xl hover:scale-105 transition-all duration-300"
+                        onClick={() => {
+                          setPriceRange([0, 50000000])
+                          setActiveFilter('all')
+                        }}
+                      >
+                        💰 Reset Budget
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="lg"
+                        className="text-emerald-600 border-2 border-emerald-300 hover:bg-emerald-50 font-semibold px-6 py-3 rounded-xl hover:scale-105 transition-all duration-300"
+                        onClick={handleOpenModal}
+                      >
+                        🏠 List Your Property
+                      </Button>
+                    </div>
+                    
+                    {/* Quick stats to encourage exploration */}
+                    <div className="mt-12 p-6 bg-slate-50 rounded-2xl max-w-md mx-auto">
+                      <p className="text-slate-600 text-sm mb-2">📊 Available on Rentify:</p>
+                      <div className="text-2xl font-bold text-slate-800">
+                        {properties.length} Total Properties
+                      </div>
+                      <div className="flex justify-center gap-6 mt-3 text-sm">
+                        <span className="text-emerald-600 font-medium">
+                          {properties.filter(p => p.status === 'Available').length} Available
+                        </span>
+                        <span className="text-slate-500">•</span>
+                        <span className="text-amber-600 font-medium">
+                          {properties.filter(p => p.status === 'Rented').length} Rented
+                        </span>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -978,55 +1048,66 @@ export default function PropertyListingPage() {
 
   return (
     <div className="min-h-screen bg-slate-50">
-      <header className="bg-white/80 backdrop-blur supports-[backdrop-filter]:bg-white/60 border-b border-slate-200 sticky top-0 z-40">
-        <div className="container mx-auto px-4 py-3">
+      <header className="bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/90 border-b border-slate-200 sticky top-0 z-40 shadow-sm">
+        <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-4">
               <Image
                 src="/title-logo (1).png"
-                alt="Rentify"
+                alt="Rentify - Find Your Perfect Home"
                 width={140}
                 height={36}
                 className="h-9 w-auto"
                 priority
               />
-              {/* Inline navbar beside logo on md+ */}
-              <div className="ml-2">
+              <div className="hidden sm:block h-6 w-px bg-slate-300"></div>
+              {/* Inline navbar with better spacing */}
+              <div className="ml-1">
                 <Navbar currentPage={currentPage} onPageChange={setCurrentPage} />
               </div>
             </div>
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-4">
               {currentPage === "home" && (
                 <>
-                  <button
-                    onClick={handleOpenModal}
-                    className="hidden md:flex items-center gap-2 px-4 h-10 rounded-lg bg-purple-600 text-white hover:bg-purple-700 transition-colors font-semibold shadow-sm"
-                  >
-                    <Plus className="h-4 w-4" />
-                    Post Property
-                  </button>
-                  <div className="hidden md:flex items-center rounded-full border border-slate-200 p-1 bg-white shadow-sm">
+                  {/* Add Property Button with tooltip */}
+                  <div className="relative group">
+                    <button
+                      onClick={handleOpenModal}
+                      className="hidden md:flex items-center gap-2 px-5 h-11 rounded-xl bg-gradient-to-r from-purple-600 to-blue-600 text-white hover:from-purple-700 hover:to-blue-700 transition-all duration-300 font-semibold shadow-lg hover:shadow-xl hover:scale-105"
+                    >
+                      <Plus className="h-4 w-4" />
+                      List Property
+                    </button>
+                    <div className="absolute -bottom-12 left-1/2 transform -translate-x-1/2 bg-slate-800 text-white px-3 py-1 rounded-lg text-sm opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
+                      Add your property for rent
+                    </div>
+                  </div>
+                  
+                  {/* View Mode Toggle with better labels */}
+                  <div className="hidden md:flex items-center rounded-full border-2 border-slate-200 p-1 bg-white shadow-md">
                     <button
                       onClick={() => setViewMode("grid")}
-                      className={`flex items-center gap-2 px-4 h-9 rounded-full text-sm ${
+                      className={`flex items-center gap-2 px-4 h-10 rounded-full text-sm font-medium transition-all duration-300 ${
                         viewMode === "grid"
-                          ? "bg-purple-600 text-white"
+                          ? "bg-purple-600 text-white shadow-md"
                           : "text-slate-700 hover:bg-slate-100"
                       }`}
+                      title="View as grid layout"
                     >
                       <Grid className="h-4 w-4" />
-                      Grid
+                      <span className="hidden lg:inline">Cards</span>
                     </button>
                     <button
                       onClick={() => setViewMode("map")}
-                      className={`flex items-center gap-2 px-4 h-9 rounded-full text-sm ${
+                      className={`flex items-center gap-2 px-4 h-10 rounded-full text-sm font-medium transition-all duration-300 ${
                         viewMode === "map"
-                          ? "bg-purple-600 text-white"
+                          ? "bg-purple-600 text-white shadow-md"
                           : "text-slate-700 hover:bg-slate-100"
                       }`}
+                      title="View on map"
                     >
                       <Map className="h-4 w-4" />
-                      Map
+                      <span className="hidden lg:inline">Map</span>
                     </button>
                   </div>
                   
@@ -1071,46 +1152,122 @@ export default function PropertyListingPage() {
   {/* Removed separate navbar below header to avoid duplication */}
 
       {currentPage === "home" && viewMode !== "map" && (
-        <div className="bg-white border-b border-slate-200">
-          <div className="container mx-auto px-4 py-5">
-            <div className="flex flex-col gap-3 md:flex-row md:items-center">
+        <div className="bg-gradient-to-r from-blue-50 to-purple-50 border-b border-slate-200">
+          <div className="container mx-auto px-4 py-6">
+            {/* Search Header */}
+            <div className="text-center mb-6">
+              <h1 className="text-2xl font-bold text-slate-900 mb-2">Find Your Perfect Home</h1>
+              <p className="text-slate-600">Discover amazing rental properties in Naga City</p>
+            </div>
+            
+            <div className="flex flex-col gap-4 md:flex-row md:items-center max-w-4xl mx-auto">
               <div className="relative flex-1">
                 <Search className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
                 <Input
-                  placeholder="Search properties in Naga City..."
+                  placeholder="Search by property name or location..."
                   value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-12 h-11 rounded-full border-slate-200 focus:border-purple-500 focus:ring-purple-500/20 bg-white"
+                  onChange={(e) => {
+                    setSearchTerm(e.target.value)
+                    setActiveFilter('all') // Reset filter when searching
+                  }}
+                  className="pl-12 h-12 rounded-xl border-slate-300 focus:border-purple-500 focus:ring-purple-500/20 bg-white shadow-sm text-base placeholder:text-slate-500"
                 />
+                {searchTerm && (
+                  <button
+                    onClick={() => {
+                      setSearchTerm("")
+                      setActiveFilter('all')
+                    }}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1"
+                  >
+                    <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                )}
               </div>
-              <button
-                onClick={() => setShowFilters(!showFilters)}
-                className="flex items-center gap-2 h-11 px-4 rounded-full border border-slate-200 text-slate-700 hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-purple-500/30"
-              >
-                <Filter className="h-4 w-4" />
-                Filters
-              </button>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setShowFilters(!showFilters)}
+                  className={`flex items-center gap-2 h-12 px-6 rounded-xl border-2 font-medium transition-all duration-300 ${
+                    showFilters 
+                      ? 'border-purple-500 bg-purple-50 text-purple-700' 
+                      : 'border-slate-300 text-slate-700 hover:bg-slate-50 hover:border-slate-400'
+                  }`}
+                >
+                  <Filter className="h-4 w-4" />
+                  <span className="hidden sm:inline">Price Filter</span>
+                  <span className="sm:hidden">Filter</span>
+                </button>
+              </div>
             </div>
+            
             {showFilters && (
-              <div className="mt-5 rounded-2xl border border-slate-200 bg-slate-50 p-6">
-                <div className="grid gap-6 md:grid-cols-2">
-                  <div>
-                    <label className="text-sm font-semibold text-slate-700 mb-3 block">Price Range</label>
-                    <div className="mt-2">
-                      <Slider
-                        value={priceRange}
-                        onValueChange={setPriceRange}
-                        max={50000000}
-                        min={0}
-                        step={100000}
-                        className="w-full"
-                      />
-                      <div className="mt-3 flex justify-between text-sm font-medium text-slate-600">
-                        <span>{formatPrice(priceRange[0])}</span>
-                        <span>{formatPrice(priceRange[1])}</span>
-                      </div>
+              <div className="mt-6 rounded-xl border border-slate-200 bg-white p-4 shadow-md max-w-2xl mx-auto">
+                <div className="text-center mb-4">
+                  <div className="flex items-center justify-center gap-2 mb-2">
+                    <svg className="h-5 w-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
+                    </svg>
+                    <h3 className="text-lg font-semibold text-slate-800">Price Range Filter</h3>
+                  </div>
+                  <p className="text-sm text-slate-600">Find properties within your budget</p>
+                </div>
+                
+                {/* Price Range Display */}
+                <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg p-4 mb-4">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="text-center">
+                      <span className="text-sm text-slate-600 block">From</span>
+                      <div className="text-xl font-bold text-blue-600">{formatPrice(priceRange[0])}</div>
+                    </div>
+                    <div className="text-slate-400 font-medium">to</div>
+                    <div className="text-center">
+                      <span className="text-sm text-slate-600 block">To</span>
+                      <div className="text-xl font-bold text-purple-600">{formatPrice(priceRange[1])}</div>
                     </div>
                   </div>
+                  
+                  {/* Simplified Slider */}
+                  <Slider
+                    value={priceRange}
+                    onValueChange={(value) => {
+                      setPriceRange(value)
+                      setActiveFilter('all') // Reset filter when price changes
+                    }}
+                    max={50000}
+                    min={0}
+                    step={1000}
+                    className="w-full"
+                  />
+                  
+                  {/* Quick Price Buttons */}
+                  <div className="flex gap-2 mt-4 flex-wrap justify-center">
+                    {[
+                      { label: "Under ₱10K", range: [0, 10000] },
+                      { label: "₱10K - ₱20K", range: [10000, 20000] },
+                      { label: "₱20K - ₱30K", range: [20000, 30000] },
+                      { label: "Above ₱30K", range: [30000, 50000] }
+                    ].map((preset) => (
+                      <button
+                        key={preset.label}
+                        onClick={() => setPriceRange(preset.range)}
+                        className="text-xs px-3 py-1.5 bg-white border border-slate-300 hover:border-blue-400 hover:bg-blue-50 rounded-full transition-all duration-200 text-slate-700 hover:text-blue-700 font-medium"
+                      >
+                        {preset.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                
+                {/* Reset Button */}
+                <div className="text-center">
+                  <button
+                    onClick={() => setPriceRange([0, 50000])}
+                    className="text-sm px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg transition-colors"
+                  >
+                    Reset to All Prices
+                  </button>
                 </div>
               </div>
             )}
@@ -1119,55 +1276,391 @@ export default function PropertyListingPage() {
       )}
 
       <main className="container mx-auto px-4 py-8">
-        {/* Recommendations Section */}
-        {currentPage === "home" && viewMode === "grid" && (nearbyProperties.length > 0 || budgetFriendly.length > 0) && (
+        {/* Search Results Section - Show at top when searching */}
+        {currentPage === "home" && viewMode === "grid" && (searchTerm || activeFilter !== 'all' || isPriceFiltered) && (
+          <div className="mb-8">
+            {/* Search Results Header */}
+            <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-2xl p-6 border-2 border-blue-200 mb-6">
+              <div className="flex items-center gap-4 mb-4">
+                <div className="w-12 h-12 bg-blue-600 rounded-xl flex items-center justify-center shadow-lg">
+                  <Search className="h-6 w-6 text-white" />
+                </div>
+                <div>
+                  <h2 className="text-2xl font-bold text-slate-900 mb-1">
+                    🔍 {searchTerm ? 'Search Results' : 
+                        activeFilter === 'nearby' ? 'Nearby Properties' : 
+                        activeFilter === 'budget' ? 'Budget-Friendly Options' :
+                        isPriceFiltered ? 'Filtered by Price' : 'Filtered Results'}
+                  </h2>
+                  <p className="text-slate-600">
+                    {searchTerm 
+                      ? `Found ${filteredProperties.length} properties matching "${searchTerm}"` 
+                      : activeFilter === 'nearby' 
+                      ? `Showing ${filteredProperties.length} nearby properties`
+                      : activeFilter === 'budget'
+                      ? `Showing ${filteredProperties.length} budget-friendly properties`
+                      : isPriceFiltered 
+                      ? `Found ${filteredProperties.length} properties in ${formatPrice(priceRange[0])} - ${formatPrice(priceRange[1])} range`
+                      : `Showing ${filteredProperties.length} filtered properties`
+                    }
+                  </p>
+                </div>
+              </div>
+              
+              {/* Active Filters Display */}
+              <div className="flex flex-wrap gap-3">
+                {searchTerm && (
+                  <div className="flex items-center gap-2 bg-blue-100 text-blue-800 border-2 border-blue-300 font-medium px-4 py-2 rounded-full">
+                    <Search className="h-4 w-4" />
+                    <span>"{searchTerm}"</span>
+                    <button
+                      onClick={() => {
+                        setSearchTerm("")
+                        setActiveFilter('all')
+                      }}
+                      className="ml-1 hover:bg-blue-200 rounded-full p-1 transition-colors"
+                    >
+                      <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  </div>
+                )}
+                
+                {activeFilter !== 'all' && (
+                  <div className={`flex items-center gap-2 font-medium px-4 py-2 rounded-full border-2 ${
+                    activeFilter === 'nearby' 
+                      ? 'bg-blue-100 text-blue-800 border-blue-300' 
+                      : 'bg-emerald-100 text-emerald-800 border-emerald-300'
+                  }`}>
+                    <span className="text-lg">
+                      {activeFilter === 'nearby' ? '📍' : '💰'}
+                    </span>
+                    <span>
+                      {activeFilter === 'nearby' ? 'Nearby Properties' : 'Budget-Friendly'}
+                    </span>
+                    <button
+                      onClick={() => setActiveFilter('all')}
+                      className={`ml-1 rounded-full p-1 transition-colors ${
+                        activeFilter === 'nearby' 
+                          ? 'hover:bg-blue-200' 
+                          : 'hover:bg-emerald-200'
+                      }`}
+                    >
+                      <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  </div>
+                )}
+                
+                {isPriceFiltered && (
+                  <div className="flex items-center gap-2 bg-purple-100 text-purple-800 border-2 border-purple-300 font-medium px-4 py-2 rounded-full">
+                    <span className="text-lg">💰</span>
+                    <span>{formatPrice(priceRange[0])} - {formatPrice(priceRange[1])}</span>
+                    <button
+                      onClick={() => setPriceRange([0, 50000])}
+                      className="ml-1 hover:bg-purple-200 rounded-full p-1 transition-colors"
+                    >
+                      <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  </div>
+                )}
+                
+                <button
+                  onClick={() => {
+                    setActiveFilter('all')
+                    setSearchTerm('')
+                    setPriceRange([0, 50000])
+                    setSortBy('newest')
+                  }}
+                  className="bg-white hover:bg-slate-50 text-slate-700 hover:text-slate-900 font-medium px-4 py-2 rounded-full border-2 border-slate-300 hover:border-slate-400 transition-all duration-300 flex items-center gap-2"
+                >
+                  <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 10h16M4 14h16M4 18h16" />
+                  </svg>
+                  Show All Properties
+                </button>
+              </div>
+            </div>
+
+            {/* Sort Options for Search Results */}
+            {filteredProperties.length > 0 && (
+              <div className="bg-white rounded-xl shadow-md border border-slate-200 p-4 mb-6">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div className="flex items-center gap-6">
+                    <span className="text-lg font-semibold text-slate-800">
+                      {filteredProperties.length} {filteredProperties.length === 1 ? 'Property' : 'Properties'} Found
+                    </span>
+                    <div className="flex items-center gap-4 text-sm">
+                      <div className="flex items-center gap-2">
+                        <div className="w-3 h-3 bg-emerald-500 rounded-full"></div>
+                        <span className="text-slate-600">{filteredProperties.filter(p => p.status === 'Available').length} Available</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <div className="w-3 h-3 bg-amber-500 rounded-full"></div>
+                        <span className="text-slate-600">{filteredProperties.filter(p => p.status === 'Rented').length} Rented</span>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-center gap-3">
+                    <span className="text-sm text-slate-600 font-medium">Sort:</span>
+                    <select 
+                      value={sortBy}
+                      onChange={(e) => setSortBy(e.target.value)}
+                      className="text-sm border-2 border-slate-200 rounded-lg px-3 py-2 bg-white text-slate-700 font-medium focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 min-w-[140px] cursor-pointer hover:border-slate-300 transition-colors"
+                    >
+                      <option value="newest">✨ Latest First</option>
+                      <option value="price-low">💸 Price: Low to High</option>
+                      <option value="price-high">💰 Price: High to Low</option>
+                      <option value="popular">🔥 Most Popular</option>
+                      <option value="rating">⭐ Highest Rated</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+            )}
+            
+            {/* Search Results Grid */}
+            {filteredProperties.length > 0 && (
+              <div className="grid gap-6 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 mb-8">
+                {filteredProperties.map((property) => (
+                  <Card
+                    key={property.id}
+                    className="group overflow-hidden hover:shadow-2xl hover:-translate-y-2 transition-all duration-500 border-0 shadow-lg bg-white rounded-2xl cursor-pointer"
+                    onClick={() => setSelectedProperty(property)}
+                  >
+                    {/* Enhanced Image Section */}
+                    <div className="relative h-48 overflow-hidden rounded-t-2xl">
+                      <ImageSlider property={property} className="h-48" />
+                      
+                      {/* Gradient Overlay */}
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-black/10 pointer-events-none" />
+                      
+                      {/* Status Badge */}
+                      <Badge className={`absolute top-3 right-3 border-0 shadow-lg font-bold text-xs z-10 ${
+                        property.status === 'Available' 
+                          ? 'bg-emerald-500 text-white' 
+                          : property.status === 'Rented' 
+                          ? 'bg-amber-500 text-white' 
+                          : 'bg-slate-500 text-white'
+                      }`}>
+                        {property.status}
+                      </Badge>
+                      
+                      {/* Rating Badge */}
+                      <div className="absolute top-3 left-3 flex items-center gap-1 bg-white/95 backdrop-blur-sm rounded-full px-2.5 py-1.5 shadow-lg z-10">
+                        <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
+                        <span className="text-xs font-bold text-slate-800">4.8</span>
+                      </div>
+
+                      {/* Property Type Badge */}
+                      <div className="absolute bottom-3 left-3 bg-white/95 backdrop-blur-sm rounded-full px-3 py-1 shadow-lg z-10">
+                        <span className="text-xs font-bold text-slate-800 capitalize">{property.propertyType}</span>
+                      </div>
+
+                      {/* Favorite Heart Icon */}
+                      <button className="absolute bottom-3 right-3 bg-white/95 backdrop-blur-sm rounded-full p-2 shadow-lg z-10 hover:bg-white hover:scale-110 transition-all duration-200">
+                        <svg className="h-4 w-4 text-slate-600 hover:text-red-500 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                        </svg>
+                      </button>
+                    </div>
+
+                    {/* Compact Content Section */}
+                    <CardContent className="p-4">
+                      {/* Property Name & Price */}
+                      <div className="mb-3">
+                        <h3 className="text-lg font-bold text-slate-900 leading-tight mb-1 line-clamp-1">{property.name}</h3>
+                        <div className="flex items-center justify-between">
+                          <p className="text-xl font-bold text-blue-600">{formatPrice(property.price)}</p>
+                          <span className="text-xs text-slate-500 font-medium">per month</span>
+                        </div>
+                      </div>
+
+                      {/* Location */}
+                      <div className="flex items-center gap-1.5 mb-3 text-slate-600">
+                        <MapPin className="h-3.5 w-3.5 flex-shrink-0" />
+                        <span className="text-xs font-medium line-clamp-1">{property.location.address}</span>
+                      </div>
+
+                      {/* Property Details - Compact Grid */}
+                      <div className="grid grid-cols-3 gap-2 mb-3">
+                        <div className="flex flex-col items-center bg-slate-50 rounded-lg py-2">
+                          <Bed className="h-3.5 w-3.5 text-slate-600 mb-1" />
+                          <span className="text-xs font-bold text-slate-900">{property.bedrooms}</span>
+                          <span className="text-xs text-slate-500">bed{property.bedrooms !== 1 ? 's' : ''}</span>
+                        </div>
+                        <div className="flex flex-col items-center bg-slate-50 rounded-lg py-2">
+                          <Bath className="h-3.5 w-3.5 text-slate-600 mb-1" />
+                          <span className="text-xs font-bold text-slate-900">{property.bathrooms}</span>
+                          <span className="text-xs text-slate-500">bath{property.bathrooms !== 1 ? 's' : ''}</span>
+                        </div>
+                        <div className="flex flex-col items-center bg-slate-50 rounded-lg py-2">
+                          <Car className="h-3.5 w-3.5 text-slate-600 mb-1" />
+                          <span className="text-xs font-bold text-slate-900">{property.parking || 0}</span>
+                          <span className="text-xs text-slate-500">parking</span>
+                        </div>
+                      </div>
+
+                      {/* Description */}
+                      <p className="text-xs text-slate-600 mb-3 line-clamp-2 leading-relaxed">{property.description}</p>
+
+                      {/* Amenities - Condensed */}
+                      <div className="flex flex-wrap gap-1 mb-3">
+                        {property.amenities.slice(0, 2).map((amenity) => (
+                          <Badge key={amenity} variant="outline" className="text-xs px-2 py-0.5 border-slate-300 text-slate-700 bg-slate-50">
+                            {amenity}
+                          </Badge>
+                        ))}
+                        {property.amenities.length > 2 && (
+                          <Badge variant="outline" className="text-xs px-2 py-0.5 border-blue-200 text-blue-700 bg-blue-50">
+                            +{property.amenities.length - 2} more
+                          </Badge>
+                        )}
+                      </div>
+
+                      {/* Action Buttons */}
+                      <div className="flex gap-2">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedProperty(property);
+                          }}
+                          className="flex-1 h-9 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold rounded-lg transition-all duration-200 text-sm shadow-md hover:shadow-lg"
+                        >
+                          View Details
+                        </button>
+                        <button
+                          onClick={(e) => e.stopPropagation()}
+                          className="h-9 w-9 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors duration-200 flex items-center justify-center"
+                        >
+                          <Phone className="h-4 w-4 text-slate-600" />
+                        </button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
+            
+            {/* Empty Search Results */}
+            {filteredProperties.length === 0 && (
+              <div className="text-center py-16 bg-white rounded-2xl border-2 border-slate-100">
+                <div className="w-20 h-20 mx-auto bg-slate-100 rounded-full flex items-center justify-center mb-6">
+                  <Search className="h-10 w-10 text-slate-400" />
+                </div>
+                <h3 className="text-2xl font-bold text-slate-900 mb-3">No Results Found</h3>
+                <p className="text-slate-600 mb-6 max-w-md mx-auto">
+                  {searchTerm 
+                    ? `We couldn't find any properties matching "${searchTerm}". Try adjusting your search terms.`
+                    : `No ${activeFilter === 'nearby' ? 'nearby' : 'budget-friendly'} properties available right now.`
+                  }
+                </p>
+                <div className="flex gap-3 justify-center">
+                  <Button
+                    onClick={() => {
+                      setSearchTerm("")
+                      setActiveFilter('all')
+                    }}
+                    className="bg-blue-600 hover:bg-blue-700 text-white"
+                  >
+                    Clear Search
+                  </Button>
+                  <Button
+                    onClick={() => {
+                      setPriceRange([0, 50000])
+                      setActiveFilter('all')
+                    }}
+                    variant="outline"
+                  >
+                    Reset Filters
+                  </Button>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Enhanced Recommendations Section - Only show when not searching */}
+        {currentPage === "home" && viewMode === "grid" && !searchTerm && activeFilter === 'all' && !isPriceFiltered && (nearbyProperties.length > 0 || budgetFriendly.length > 0) && (
           <div className="space-y-8 mb-8">
+            {/* Welcome Message */}
+            <div className="text-center py-6">
+              <h2 className="text-3xl font-bold text-slate-900 mb-3">✨ Personalized Just For You</h2>
+              <p className="text-lg text-slate-600 max-w-2xl mx-auto">
+                Based on your preferences and location, we've curated these special property collections
+              </p>
+            </div>
+
             {/* Nearby Properties */}
             {nearbyProperties.length > 0 && (
-              <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-2xl p-6 border border-blue-100">
-                <div className="flex items-center justify-between mb-6">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center">
-                      <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-3xl p-8 border-2 border-blue-100 shadow-lg">
+                <div className="flex flex-col md:flex-row md:items-center justify-between mb-8">
+                  <div className="flex items-center gap-4 mb-4 md:mb-0">
+                    <div className="w-16 h-16 bg-blue-600 rounded-2xl flex items-center justify-center shadow-lg">
+                      <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
                       </svg>
                     </div>
                     <div>
-                      <h3 className="text-xl font-bold text-slate-900">Properties Near You</h3>
-                      <p className="text-slate-600">Discover {nearbyProperties.length} rentals within walking distance</p>
+                      <h3 className="text-2xl font-bold text-slate-900 mb-1">🚶‍♀️ Close to You</h3>
+                      <p className="text-slate-600 text-lg">
+                        {nearbyProperties.length} properties within walking distance • Perfect for daily commute
+                      </p>
                     </div>
                   </div>
                   <button 
                     onClick={() => {
+                      setActiveFilter('nearby')
                       setSearchTerm("")
                       setSortBy("newest")
                     }}
-                    className="text-blue-600 hover:text-blue-700 font-semibold text-sm hover:underline transition-colors"
+                    className="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-6 py-3 rounded-xl transition-all duration-300 hover:scale-105 shadow-lg hover:shadow-xl flex items-center gap-2"
                   >
-                    View All →
+                    View All {nearbyProperties.length} Properties
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                    </svg>
                   </button>
                 </div>
-                <div className="grid gap-4 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+                <div className="grid gap-6 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
                   {nearbyProperties.slice(0, 3).map((property) => (
                     <Card
                       key={`nearby-${property.id}`}
-                      className="group overflow-hidden hover:shadow-xl hover:-translate-y-1 transition-all duration-300 border-0 shadow-md bg-white rounded-xl cursor-pointer"
+                      className="group overflow-hidden hover:shadow-2xl hover:-translate-y-2 transition-all duration-500 border-0 shadow-lg bg-white rounded-2xl cursor-pointer"
                       onClick={() => setSelectedProperty(property)}
                     >
-                      <div className="relative h-32 overflow-hidden rounded-t-xl">
-                        <ImageSlider property={property} className="h-32" />
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
-                        <Badge className="absolute top-2 right-2 bg-blue-600 text-white border-0 shadow-md text-xs font-bold">
-                          {(property as any).distance?.toFixed(1)}km away
+                      <div className="relative h-40 overflow-hidden rounded-t-2xl">
+                        <ImageSlider property={property} className="h-40" />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent" />
+                        <Badge className="absolute top-3 right-3 bg-blue-600 text-white border-0 shadow-lg text-sm font-bold px-3 py-1">
+                          📍 {(property as any).distance?.toFixed(1)}km away
                         </Badge>
+                        <div className="absolute bottom-3 left-3 bg-white/95 backdrop-blur-sm rounded-full px-3 py-1.5 shadow-lg">
+                          <span className="text-sm font-bold text-slate-800">Walking Distance</span>
+                        </div>
                       </div>
-                      <CardContent className="p-3">
-                        <h4 className="font-bold text-sm line-clamp-1 mb-1">{property.name}</h4>
-                        <p className="text-blue-600 font-bold text-lg">{formatPrice(property.price)}</p>
-                        <div className="flex items-center gap-1 mt-1">
-                          <MapPin className="h-3 w-3 text-slate-500" />
-                          <span className="text-xs text-slate-600 line-clamp-1">{property.location.address}</span>
+                      <CardContent className="p-4">
+                        <h4 className="font-bold text-lg line-clamp-1 mb-2">{property.name}</h4>
+                        <p className="text-blue-600 font-bold text-xl mb-2">{formatPrice(property.price)}</p>
+                        <div className="flex items-center gap-2 mb-3">
+                          <MapPin className="h-4 w-4 text-slate-500" />
+                          <span className="text-sm text-slate-600 line-clamp-1">{property.location.address}</span>
+                        </div>
+                        <div className="flex items-center gap-4 text-sm text-slate-600">
+                          <div className="flex items-center gap-1">
+                            <Bed className="h-4 w-4" />
+                            <span>{property.bedrooms} bed{property.bedrooms !== 1 ? 's' : ''}</span>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <Bath className="h-4 w-4" />
+                            <span>{property.bathrooms} bath{property.bathrooms !== 1 ? 's' : ''}</span>
+                          </div>
                         </div>
                       </CardContent>
                     </Card>
@@ -1178,54 +1671,73 @@ export default function PropertyListingPage() {
 
             {/* Budget-Friendly Properties */}
             {budgetFriendly.length > 0 && (
-              <div className="bg-gradient-to-br from-emerald-50 to-green-50 rounded-2xl p-6 border border-emerald-100">
-                <div className="flex items-center justify-between mb-6">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-emerald-600 rounded-full flex items-center justify-center">
-                      <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="bg-gradient-to-br from-emerald-50 to-green-50 rounded-3xl p-8 border-2 border-emerald-100 shadow-lg">
+                <div className="flex flex-col md:flex-row md:items-center justify-between mb-8">
+                  <div className="flex items-center gap-4 mb-4 md:mb-0">
+                    <div className="w-16 h-16 bg-emerald-600 rounded-2xl flex items-center justify-center shadow-lg">
+                      <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
                       </svg>
                     </div>
                     <div>
-                      <h3 className="text-xl font-bold text-slate-900">Budget-Friendly Options</h3>
-                      <p className="text-slate-600">Great value from {budgetFriendly.length} affordable properties</p>
+                      <h3 className="text-2xl font-bold text-slate-900 mb-1">💰 Great Value Deals</h3>
+                      <p className="text-slate-600 text-lg">
+                        {budgetFriendly.length} affordable properties • Best value for money options
+                      </p>
                     </div>
                   </div>
                   <button 
                     onClick={() => {
+                      setActiveFilter('budget')
                       setSortBy("price-low")
                       setSearchTerm("")
                     }}
-                    className="text-emerald-600 hover:text-emerald-700 font-semibold text-sm hover:underline transition-colors"
+                    className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold px-6 py-3 rounded-xl transition-all duration-300 hover:scale-105 shadow-lg hover:shadow-xl flex items-center gap-2"
                   >
-                    View All →
+                    View All {budgetFriendly.length} Deals
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                    </svg>
                   </button>
                 </div>
-                <div className="grid gap-4 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+                <div className="grid gap-6 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
                   {budgetFriendly.slice(0, 3).map((property) => (
                     <Card
                       key={`budget-${property.id}`}
-                      className="group overflow-hidden hover:shadow-xl hover:-translate-y-1 transition-all duration-300 border-0 shadow-md bg-white rounded-xl cursor-pointer"
+                      className="group overflow-hidden hover:shadow-2xl hover:-translate-y-2 transition-all duration-500 border-0 shadow-lg bg-white rounded-2xl cursor-pointer"
                       onClick={() => setSelectedProperty(property)}
                     >
-                      <div className="relative h-32 overflow-hidden rounded-t-xl">
-                        <ImageSlider property={property} className="h-32" />
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
-                        <Badge className="absolute top-2 right-2 bg-emerald-600 text-white border-0 shadow-md text-xs font-bold">
-                          Great Value
+                      <div className="relative h-40 overflow-hidden rounded-t-2xl">
+                        <ImageSlider property={property} className="h-40" />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent" />
+                        <Badge className="absolute top-3 right-3 bg-emerald-600 text-white border-0 shadow-lg text-sm font-bold px-3 py-1">
+                          💎 Great Value
                         </Badge>
+                        <div className="absolute bottom-3 left-3 bg-white/95 backdrop-blur-sm rounded-full px-3 py-1.5 shadow-lg">
+                          <span className="text-sm font-bold text-emerald-700">Budget Pick</span>
+                        </div>
                       </div>
-                      <CardContent className="p-3">
-                        <h4 className="font-bold text-sm line-clamp-1 mb-1">{property.name}</h4>
-                        <div className="flex items-center gap-2">
-                          <p className="text-emerald-600 font-bold text-lg">{formatPrice(property.price)}</p>
-                          <span className="text-xs text-emerald-700 bg-emerald-100 px-2 py-1 rounded-full font-medium">
-                            Budget Pick
+                      <CardContent className="p-4">
+                        <h4 className="font-bold text-lg line-clamp-1 mb-2">{property.name}</h4>
+                        <div className="flex items-center gap-3 mb-2">
+                          <p className="text-emerald-600 font-bold text-xl">{formatPrice(property.price)}</p>
+                          <span className="text-sm text-emerald-700 bg-emerald-100 px-3 py-1 rounded-full font-medium">
+                            Best Deal
                           </span>
                         </div>
-                        <div className="flex items-center gap-1 mt-1">
-                          <MapPin className="h-3 w-3 text-slate-500" />
-                          <span className="text-xs text-slate-600 line-clamp-1">{property.location.address}</span>
+                        <div className="flex items-center gap-2 mb-3">
+                          <MapPin className="h-4 w-4 text-slate-500" />
+                          <span className="text-sm text-slate-600 line-clamp-1">{property.location.address}</span>
+                        </div>
+                        <div className="flex items-center gap-4 text-sm text-slate-600">
+                          <div className="flex items-center gap-1">
+                            <Bed className="h-4 w-4" />
+                            <span>{property.bedrooms} bed{property.bedrooms !== 1 ? 's' : ''}</span>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <Bath className="h-4 w-4" />
+                            <span>{property.bathrooms} bath{property.bathrooms !== 1 ? 's' : ''}</span>
+                          </div>
                         </div>
                       </CardContent>
                     </Card>
@@ -1236,74 +1748,131 @@ export default function PropertyListingPage() {
           </div>
         )}
         
-        {/* Enhanced grid header with sorting options */}
+        {/* Enhanced and User-Friendly Grid Header */}
         {currentPage === "home" && viewMode === "grid" && filteredProperties.length > 0 && (
-          <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 mb-8">
-            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-              <div className="flex items-center gap-4">
-                <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full"></div>
-                  <h2 className="text-2xl font-bold text-slate-900">
+          <div className="bg-white rounded-2xl shadow-lg border-2 border-slate-100 p-8 mb-8">
+            {/* Main Header */}
+            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 mb-6">
+              <div className="flex items-center gap-6">
+                <div className="flex items-center gap-3">
+                  <div className="w-4 h-4 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full animate-pulse"></div>
+                  <h2 className="text-3xl font-bold text-slate-900">
                     {filteredProperties.length} {filteredProperties.length === 1 ? 'Property' : 'Properties'} Found
                   </h2>
                 </div>
-                <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 font-medium px-3 py-1">
-                  {searchTerm ? `"${searchTerm}"` : 'All Locations'}
-                </Badge>
-                {sortBy !== "newest" && (
-                  <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-200 font-medium px-3 py-1">
-                    Sorted by {sortBy === "price-low" ? "Price ↑" : sortBy === "price-high" ? "Price ↓" : sortBy === "popular" ? "Popular" : "Rating"}
-                  </Badge>
-                )}
+                
+                {/* Current Filters Display */}
+                <div className="flex flex-wrap gap-3">
+                  {searchTerm && (
+                    <div className="flex items-center gap-2 bg-blue-50 text-blue-700 border-2 border-blue-200 font-medium px-4 py-2 rounded-full">
+                      <Search className="h-4 w-4" />
+                      <span>"{searchTerm}"</span>
+                      <button
+                        onClick={() => {
+                          setSearchTerm("")
+                          setActiveFilter('all')
+                        }}
+                        className="ml-2 hover:bg-blue-200 rounded-full p-1"
+                      >
+                        <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                      </button>
+                    </div>
+                  )}
+                  
+                  {activeFilter !== 'all' && (
+                    <div className={`flex items-center gap-2 font-medium px-4 py-2 rounded-full border-2 ${
+                      activeFilter === 'nearby' 
+                        ? 'bg-blue-50 text-blue-700 border-blue-200' 
+                        : 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                    }`}>
+                      <span className="text-lg">
+                        {activeFilter === 'nearby' ? '📍' : '💰'}
+                      </span>
+                      <span>
+                        {activeFilter === 'nearby' ? 'Nearby Properties' : 'Budget-Friendly'}
+                      </span>
+                      <button
+                        onClick={() => setActiveFilter('all')}
+                        className={`ml-2 rounded-full p-1 ${
+                          activeFilter === 'nearby' 
+                            ? 'hover:bg-blue-200' 
+                            : 'hover:bg-emerald-200'
+                        }`}
+                      >
+                        <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                      </button>
+                    </div>
+                  )}
+                </div>
               </div>
               
-              {/* Enhanced Sort & View Options */}
+              {/* Sort Options with Better UX */}
               <div className="flex items-center gap-4">
-                {/* Sort Options */}
-                <div className="flex items-center gap-2">
-                  <span className="text-sm text-slate-600 font-medium">Sort:</span>
+                <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-2 text-slate-600">
+                    <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
+                    </svg>
+                    <span className="font-medium">Sort by:</span>
+                  </div>
                   <select 
                     value={sortBy}
                     onChange={(e) => setSortBy(e.target.value)}
-                    className="text-sm border border-slate-200 rounded-lg px-3 py-2 bg-white text-slate-700 font-medium focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 min-w-[140px]"
+                    className="text-base border-2 border-slate-200 rounded-xl px-4 py-2.5 bg-white text-slate-700 font-medium focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 min-w-[160px] cursor-pointer hover:border-slate-300 transition-colors"
                   >
-                    <option value="price-low">Price ↑</option>
-                    <option value="price-high">Price ↓</option>
-                    <option value="popular">Popular</option>
-                    <option value="rating">Rating</option>
-                    <option value="newest">Newest</option>
+                    <option value="newest">✨ Latest First</option>
+                    <option value="price-low">💸 Price: Low to High</option>
+                    <option value="price-high">💰 Price: High to Low</option>
+                    <option value="popular">🔥 Most Popular</option>
+                    <option value="rating">⭐ Highest Rated</option>
                   </select>
-                </div>
-                
-                {/* View Density */}
-                <div className="hidden md:flex items-center border border-slate-200 rounded-lg p-1 bg-slate-50">
-                  <button className="p-1.5 rounded text-slate-600 hover:bg-white hover:shadow-sm transition-all">
-                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                      <path d="M5 3a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2V5a2 2 0 00-2-2H5zM5 11a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2v-2a2 2 0 00-2-2H5zM11 5a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V5zM11 13a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
-                    </svg>
-                  </button>
-                  <button className="p-1.5 rounded text-slate-400 hover:bg-white hover:text-slate-600 hover:shadow-sm transition-all">
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 10h16M4 14h16M4 18h16" />
-                    </svg>
-                  </button>
                 </div>
               </div>
             </div>
             
-            {/* Quick Stats */}
-            <div className="flex items-center gap-6 mt-4 pt-4 border-t border-slate-100">
-              <div className="flex items-center gap-2 text-sm text-slate-600">
-                <div className="w-2 h-2 bg-emerald-500 rounded-full"></div>
-                <span>{filteredProperties.filter(p => p.status === 'Available').length} Available</span>
+            {/* Property Stats with Visual Enhancement */}
+            <div className="flex items-center gap-8 pt-6 border-t border-slate-200">
+              <div className="flex items-center gap-3">
+                <div className="w-3 h-3 bg-emerald-500 rounded-full shadow-sm"></div>
+                <span className="text-lg font-semibold text-slate-700">
+                  {filteredProperties.filter(p => p.status === 'Available').length} Available Now
+                </span>
               </div>
-              <div className="flex items-center gap-2 text-sm text-slate-600">
-                <div className="w-2 h-2 bg-amber-500 rounded-full"></div>
-                <span>{filteredProperties.filter(p => p.status === 'Rented').length} Rented</span>
+              <div className="flex items-center gap-3">
+                <div className="w-3 h-3 bg-amber-500 rounded-full shadow-sm"></div>
+                <span className="text-lg text-slate-600">
+                  {filteredProperties.filter(p => p.status === 'Rented').length} Already Rented
+                </span>
               </div>
-              <div className="flex items-center gap-2 text-sm text-slate-600">
-                <span>Avg: {formatPrice(Math.round(filteredProperties.reduce((sum, p) => sum + p.price, 0) / filteredProperties.length))}</span>
+              <div className="flex items-center gap-3">
+                <svg className="h-5 w-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
+                </svg>
+                <span className="text-lg font-medium text-slate-700">
+                  Average: {filteredProperties.length > 0 ? formatPrice(Math.round(filteredProperties.reduce((sum, p) => sum + p.price, 0) / filteredProperties.length)) : '₱0'}
+                </span>
               </div>
+              
+              {/* Show All Properties Button */}
+              {(activeFilter !== 'all' || searchTerm) && (
+                <button
+                  onClick={() => {
+                    setActiveFilter('all')
+                    setSearchTerm('')
+                    setSortBy('newest')
+                  }}
+                  className="ml-auto bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white font-semibold px-6 py-2.5 rounded-xl transition-all duration-300 hover:scale-105 shadow-lg hover:shadow-xl flex items-center gap-2"
+                >
+                  <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 10h16M4 14h16M4 18h16" />
+                  </svg>
+                  Show All Properties
+                </button>
+              )}
             </div>
           </div>
         )}
