@@ -65,9 +65,10 @@ const getImageUri = (property: Property | APIProperty, imageIndex: number = 0) =
 interface ImageSliderProps {
   property: Property
   className?: string
+  onImageClick?: (images: string[], currentIndex: number, propertyName: string) => void
 }
 
-function ImageSlider({ property, className = "h-56" }: ImageSliderProps) {
+function ImageSlider({ property, className = "h-56", onImageClick }: ImageSliderProps) {
   const [currentImageIndex, setCurrentImageIndex] = useState(0)
   const totalImages = property.images?.length || 0
 
@@ -89,6 +90,14 @@ function ImageSlider({ property, className = "h-56" }: ImageSliderProps) {
     setCurrentImageIndex(index)
   }
 
+  const handleImageClick = (e: React.MouseEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    if (onImageClick && property.images.length > 0) {
+      onImageClick(property.images, currentImageIndex, property.name)
+    }
+  }
+
   if (totalImages === 0) {
     return (
       <div className={`${className} bg-slate-200 flex items-center justify-center rounded-t-lg`}>
@@ -98,15 +107,24 @@ function ImageSlider({ property, className = "h-56" }: ImageSliderProps) {
   }
 
   return (
-    <div className={`relative ${className} overflow-hidden group`}>
+    <div className={`relative ${className} overflow-hidden group cursor-pointer`}>
       <img
         src={getImageUri(property, currentImageIndex)}
         alt={`${property.name} - Image ${currentImageIndex + 1}`}
         className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-300"
+        onClick={handleImageClick}
         onError={(e) => {
           (e.target as HTMLImageElement).src = 'https://via.placeholder.com/400x300?text=Image+Error'
         }}
       />
+      
+      {/* Zoom indicator */}
+      <div className="absolute top-2 left-2 bg-black/50 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+        <svg className="h-3 w-3 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7" />
+        </svg>
+        Click to zoom
+      </div>
       
       {/* Navigation Arrows */}
       {totalImages > 1 && (
@@ -147,6 +165,252 @@ function ImageSlider({ property, className = "h-56" }: ImageSliderProps) {
           {currentImageIndex + 1} / {totalImages}
         </div>
       )}
+    </div>
+  )
+}
+
+// Image Viewer/Lightbox Component
+interface ImageViewerProps {
+  images: string[]
+  initialIndex: number
+  isOpen: boolean
+  onClose: () => void
+  propertyName: string
+}
+
+function ImageViewer({ images, initialIndex, isOpen, onClose, propertyName }: ImageViewerProps) {
+  const [currentIndex, setCurrentIndex] = useState(initialIndex)
+  const [isZoomed, setIsZoomed] = useState(false)
+  const [imagePosition, setImagePosition] = useState({ x: 0, y: 0 })
+  const [isDragging, setIsDragging] = useState(false)
+  const [dragStart, setDragStart] = useState({ x: 0, y: 0 })
+
+  useEffect(() => {
+    setCurrentIndex(initialIndex)
+    setIsZoomed(false)
+    setImagePosition({ x: 0, y: 0 })
+  }, [initialIndex, isOpen])
+
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = 'hidden'
+    } else {
+      document.body.style.overflow = 'unset'
+    }
+    
+    return () => {
+      document.body.style.overflow = 'unset'
+    }
+  }, [isOpen])
+
+  const nextImage = () => {
+    setCurrentIndex((prev) => (prev + 1) % images.length)
+    setIsZoomed(false)
+    setImagePosition({ x: 0, y: 0 })
+  }
+
+  const prevImage = () => {
+    setCurrentIndex((prev) => (prev - 1 + images.length) % images.length)
+    setIsZoomed(false)
+    setImagePosition({ x: 0, y: 0 })
+  }
+
+  const handleImageClick = (e: React.MouseEvent) => {
+    e.stopPropagation()
+    if (isZoomed) {
+      setIsZoomed(false)
+      setImagePosition({ x: 0, y: 0 })
+    } else {
+      setIsZoomed(true)
+    }
+  }
+
+  const handleMouseDown = (e: React.MouseEvent) => {
+    if (isZoomed) {
+      setIsDragging(true)
+      setDragStart({
+        x: e.clientX - imagePosition.x,
+        y: e.clientY - imagePosition.y
+      })
+    }
+  }
+
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (isDragging && isZoomed) {
+      setImagePosition({
+        x: e.clientX - dragStart.x,
+        y: e.clientY - dragStart.y
+      })
+    }
+  }
+
+  const handleMouseUp = () => {
+    setIsDragging(false)
+  }
+
+  const handleKeyDown = (e: KeyboardEvent) => {
+    if (!isOpen) return
+    
+    switch (e.key) {
+      case 'Escape':
+        onClose()
+        break
+      case 'ArrowLeft':
+        prevImage()
+        break
+      case 'ArrowRight':
+        nextImage()
+        break
+    }
+  }
+
+  useEffect(() => {
+    if (isOpen) {
+      document.addEventListener('keydown', handleKeyDown)
+      return () => document.removeEventListener('keydown', handleKeyDown)
+    }
+  }, [isOpen, currentIndex])
+
+  if (!isOpen) return null
+
+  return (
+    <div 
+      className="fixed inset-0 z-[9999] bg-black/95 backdrop-blur-sm flex items-center justify-center"
+      style={{ zIndex: 99999 }}
+      onClick={onClose}
+    >
+      {/* Header */}
+      <div className="absolute top-0 left-0 right-0 z-10 bg-gradient-to-b from-black/50 to-transparent p-4">
+        <div className="flex items-center justify-between text-white">
+          <div>
+            <h3 className="text-lg font-semibold">{propertyName}</h3>
+            <p className="text-sm text-white/80">Image {currentIndex + 1} of {images.length}</p>
+          </div>
+          <button
+            onClick={onClose}
+            className="bg-black/30 hover:bg-black/50 rounded-full p-2 transition-colors"
+          >
+            <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      {/* Navigation Arrows */}
+      {images.length > 1 && (
+        <>
+          <button
+            onClick={(e) => {
+              e.stopPropagation()
+              prevImage()
+            }}
+            className="absolute left-4 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white rounded-full p-3 transition-colors z-10"
+          >
+            <ChevronLeft className="h-6 w-6" />
+          </button>
+          <button
+            onClick={(e) => {
+              e.stopPropagation()
+              nextImage()
+            }}
+            className="absolute right-4 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white rounded-full p-3 transition-colors z-10"
+          >
+            <ChevronRight className="h-6 w-6" />
+          </button>
+        </>
+      )}
+
+      {/* Main Image */}
+      <div className="relative max-w-full max-h-full p-8">
+        <img
+          src={getImageUri({ images } as Property, currentIndex)}
+          alt={`${propertyName} - Image ${currentIndex + 1}`}
+          className={`max-w-full max-h-full object-contain transition-transform duration-300 cursor-${isZoomed ? 'grab' : 'zoom-in'} ${isDragging ? 'cursor-grabbing' : ''}`}
+          style={{
+            transform: `translate(${imagePosition.x}px, ${imagePosition.y}px) scale(${isZoomed ? 2 : 1})`,
+          }}
+          onClick={handleImageClick}
+          onMouseDown={handleMouseDown}
+          onMouseMove={handleMouseMove}
+          onMouseUp={handleMouseUp}
+          onMouseLeave={handleMouseUp}
+          draggable={false}
+          onError={(e) => {
+            (e.target as HTMLImageElement).src = 'https://via.placeholder.com/800x600?text=Image+Error'
+          }}
+        />
+      </div>
+
+      {/* Bottom Controls */}
+      <div className="absolute bottom-0 left-0 right-0 z-10 bg-gradient-to-t from-black/50 to-transparent p-4">
+        <div className="flex items-center justify-center gap-4">
+          {/* Zoom Controls */}
+          <div className="flex items-center gap-2 bg-black/30 rounded-full px-4 py-2">
+            <button
+              onClick={(e) => {
+                e.stopPropagation()
+                setIsZoomed(false)
+                setImagePosition({ x: 0, y: 0 })
+              }}
+              className="text-white hover:text-blue-400 transition-colors"
+              disabled={!isZoomed}
+            >
+              <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM13 10h-6" />
+              </svg>
+            </button>
+            <button
+              onClick={(e) => {
+                e.stopPropagation()
+                setIsZoomed(true)
+              }}
+              className="text-white hover:text-blue-400 transition-colors"
+              disabled={isZoomed}
+            >
+              <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7" />
+              </svg>
+            </button>
+          </div>
+
+          {/* Image Thumbnails */}
+          {images.length > 1 && (
+            <div className="flex gap-2 bg-black/30 rounded-full px-4 py-2 max-w-md overflow-x-auto">
+              {images.map((_, index) => (
+                <button
+                  key={index}
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    setCurrentIndex(index)
+                    setIsZoomed(false)
+                    setImagePosition({ x: 0, y: 0 })
+                  }}
+                  className={`w-12 h-12 rounded-lg overflow-hidden border-2 transition-colors ${
+                    index === currentIndex ? 'border-white' : 'border-transparent hover:border-white/50'
+                  }`}
+                >
+                  <img
+                    src={getImageUri({ images } as Property, index)}
+                    alt={`Thumbnail ${index + 1}`}
+                    className="w-full h-full object-cover"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).src = 'https://via.placeholder.com/48x48?text=?'
+                    }}
+                  />
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Instructions */}
+        <div className="text-center mt-4">
+          <p className="text-white/60 text-sm">
+            {isZoomed ? 'Click to zoom out • Drag to pan' : 'Click to zoom in'} • Use arrow keys to navigate • Press ESC to close
+          </p>
+        </div>
+      </div>
     </div>
   )
 }
@@ -581,6 +845,23 @@ export default function PropertyListingPage() {
   
   // View All filtering state
   const [activeFilter, setActiveFilter] = useState<'all' | 'nearby' | 'budget'>('all')
+
+  // Image viewer state
+  const [imageViewerOpen, setImageViewerOpen] = useState(false)
+  const [viewerImages, setViewerImages] = useState<string[]>([])
+  const [viewerInitialIndex, setViewerInitialIndex] = useState(0)
+  const [viewerPropertyName, setViewerPropertyName] = useState('')
+
+  const openImageViewer = (images: string[], initialIndex: number, propertyName: string) => {
+    setViewerImages(images)
+    setViewerInitialIndex(initialIndex)
+    setViewerPropertyName(propertyName)
+    setImageViewerOpen(true)
+  }
+
+  const closeImageViewer = () => {
+    setImageViewerOpen(false)
+  }
 
   // Function to convert API property to Property interface
   const convertAPIProperty = (apiProperty: APIProperty): Property => ({
@@ -1435,7 +1716,11 @@ export default function PropertyListingPage() {
                   >
                     {/* Enhanced Image Section */}
                     <div className="relative h-48 overflow-hidden rounded-t-2xl">
-                      <ImageSlider property={property} className="h-48" />
+                      <ImageSlider 
+                        property={property} 
+                        className="h-48" 
+                        onImageClick={openImageViewer}
+                      />
                       
                       {/* Gradient Overlay */}
                       <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-black/10 pointer-events-none" />
@@ -1636,7 +1921,11 @@ export default function PropertyListingPage() {
                       onClick={() => setSelectedProperty(property)}
                     >
                       <div className="relative h-40 overflow-hidden rounded-t-2xl">
-                        <ImageSlider property={property} className="h-40" />
+                        <ImageSlider 
+                          property={property} 
+                          className="h-40" 
+                          onImageClick={openImageViewer}
+                        />
                         <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent" />
                         <Badge className="absolute top-3 right-3 bg-blue-600 text-white border-0 shadow-lg text-sm font-bold px-3 py-1">
                           📍 {(property as any).distance?.toFixed(1)}km away
@@ -1708,7 +1997,11 @@ export default function PropertyListingPage() {
                       onClick={() => setSelectedProperty(property)}
                     >
                       <div className="relative h-40 overflow-hidden rounded-t-2xl">
-                        <ImageSlider property={property} className="h-40" />
+                        <ImageSlider 
+                          property={property} 
+                          className="h-40" 
+                          onImageClick={openImageViewer}
+                        />
                         <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent" />
                         <Badge className="absolute top-3 right-3 bg-emerald-600 text-white border-0 shadow-lg text-sm font-bold px-3 py-1">
                           💎 Great Value
@@ -1911,7 +2204,11 @@ export default function PropertyListingPage() {
               <div className="grid gap-6 md:grid-cols-2">
                 <div>
                   <div className="relative h-64 rounded-lg overflow-hidden">
-                    <ImageSlider property={selectedProperty} className="h-64 rounded-lg" />
+                    <ImageSlider 
+                      property={selectedProperty} 
+                      className="h-64 rounded-lg" 
+                      onImageClick={openImageViewer}
+                    />
                   </div>
                   <div className="mt-4 h-48 rounded-lg overflow-hidden">
                     <PropertyMap
@@ -1989,6 +2286,15 @@ export default function PropertyListingPage() {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Image Viewer Component */}
+      <ImageViewer
+        images={viewerImages}
+        initialIndex={viewerInitialIndex}
+        isOpen={imageViewerOpen}
+        onClose={closeImageViewer}
+        propertyName={viewerPropertyName}
+      />
     </div>
   )
 }
