@@ -946,6 +946,9 @@ export default function PropertyMap({
                   {currentStep + 1}
                 </div>
                 <div className="flex-1">
+                  <div className="mb-2">
+                    <span className="text-xs font-medium text-blue-600 uppercase tracking-wide">Current Direction</span>
+                  </div>
                   <p className="text-lg font-semibold text-gray-900 leading-relaxed mb-3">
                     {routeSteps[currentStep]?.instruction}
                   </p>
@@ -977,22 +980,115 @@ export default function PropertyMap({
               </div>
             </div>
 
-            {/* Navigation Controls */}
-            <div className="flex gap-3">
-              <button
-                onClick={() => setCurrentStep(Math.max(0, currentStep - 1))}
-                disabled={currentStep === 0}
-                className="modern-button flex-1 px-4 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-sm font-semibold transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                ← Previous
-              </button>
-              <button
-                onClick={() => setCurrentStep(Math.min(routeSteps.length - 1, currentStep + 1))}
-                disabled={currentStep === routeSteps.length - 1}
-                className="modern-button flex-1 px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-semibold transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                Next →
-              </button>
+            {/* Next Destination Preview */}
+            {currentStep < routeSteps.length - 1 && (
+              <div className="section-card mb-6 bg-gray-50 border-gray-100">
+                <div className="flex items-start gap-4">
+                  <div className="flex-shrink-0">
+                    <div className="w-8 h-8 bg-gray-300 rounded-full flex items-center justify-center">
+                      <span className="text-sm font-semibold text-gray-600">{currentStep + 2}</span>
+                    </div>
+                  </div>
+                  <div className="flex-1">
+                    <div className="mb-2">
+                      <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">Next Up</span>
+                    </div>
+                    <p className="text-base font-medium text-gray-700 leading-relaxed mb-2">
+                      {routeSteps[currentStep + 1]?.instruction}
+                    </p>
+                    <div className="flex items-center gap-3">
+                      <span className="text-xs text-gray-500">
+                        {Math.round(routeSteps[currentStep + 1]?.distance || 0)}m
+                      </span>
+                      <span className="text-xs text-gray-400">•</span>
+                      <span className="text-xs text-gray-500">
+                        {Math.round((routeSteps[currentStep + 1]?.duration || 0) / 60)} min
+                      </span>
+                    </div>
+                  </div>
+                  <div className="flex-shrink-0">
+                    <span className="text-lg">
+                      {getDirectionIcon(routeSteps[currentStep + 1]?.type, routeSteps[currentStep + 1]?.modifier)}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Final Destination Info */}
+            {currentStep === routeSteps.length - 1 && (
+              <div className="section-card mb-6 bg-green-50 border-green-200">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-green-500 rounded-full flex items-center justify-center">
+                    <span className="text-white text-sm">🏁</span>
+                  </div>
+                  <div>
+                    <p className="text-base font-semibold text-green-900">You have arrived!</p>
+                    <p className="text-sm text-green-700">Final destination reached</p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Navigation Controls with Destination Info */}
+            <div className="space-y-4">
+              {/* Destination Summary */}
+              <div className="section-card bg-blue-50 border-blue-200">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center">
+                      <span className="text-white text-sm">🏠</span>
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-blue-900">Destination</p>
+                      <p className="text-xs text-blue-700">
+                        {selectedProperty?.name || 'Selected Property'}
+                      </p>
+                    </div>
+                  </div>
+                  {routeInfo && (
+                    <div className="text-right">
+                      <p className="text-sm font-semibold text-blue-900">
+                        {routeInfo.distanceKm.toFixed(1)} km
+                      </p>
+                      <p className="text-xs text-blue-700">
+                        {Math.round(routeInfo.durationMin)} min total
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Control Buttons */}
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setCurrentStep(Math.max(0, currentStep - 1))}
+                  disabled={currentStep === 0}
+                  className="modern-button flex-1 px-4 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-sm font-semibold transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                >
+                  <span>←</span>
+                  <span>Previous</span>
+                </button>
+                <button
+                  onClick={() => setCurrentStep(Math.min(routeSteps.length - 1, currentStep + 1))}
+                  disabled={currentStep === routeSteps.length - 1}
+                  className="modern-button flex-1 px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-semibold transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                >
+                  <span>{currentStep === routeSteps.length - 1 ? 'Arrived' : 'Next'}</span>
+                  {currentStep < routeSteps.length - 1 && <span>→</span>}
+                </button>
+              </div>
+
+              {/* Quick Jump to Destination */}
+              {currentStep < routeSteps.length - 1 && (
+                <button
+                  onClick={() => setCurrentStep(routeSteps.length - 1)}
+                  className="modern-button w-full px-4 py-2 bg-green-100 hover:bg-green-200 text-green-700 rounded-lg text-sm font-medium transition-all duration-300 flex items-center justify-center gap-2"
+                >
+                  <span>🏁</span>
+                  <span>Jump to Final Step</span>
+                </button>
+              )}
             </div>
           </div>
         </div>
