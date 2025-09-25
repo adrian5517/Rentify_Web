@@ -677,8 +677,19 @@ export default function PropertyListingPage() {
       return (
         <div className="flex items-center justify-center min-h-[400px]">
           <div className="text-center">
-            <div className="w-16 h-16 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-            <p className="text-slate-600 text-lg">Loading properties...</p>
+            {/* Enhanced loading animation */}
+            <div className="relative mx-auto mb-6">
+              <div className="w-16 h-16 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin"></div>
+              <div className="absolute inset-0 w-16 h-16 border-4 border-transparent border-r-purple-600 rounded-full animate-spin opacity-50" style={{ animationDuration: '1.5s', animationDirection: 'reverse' }}></div>
+            </div>
+            <div className="space-y-2">
+              <p className="text-slate-900 text-lg font-semibold">Loading Properties</p>
+              <p className="text-slate-600">Finding the perfect rentals for you...</p>
+              {/* Loading progress bar */}
+              <div className="w-48 h-1 bg-slate-200 rounded-full mx-auto overflow-hidden">
+                <div className="h-full bg-gradient-to-r from-blue-600 to-purple-600 rounded-full animate-pulse"></div>
+              </div>
+            </div>
           </div>
         </div>
       )
@@ -720,82 +731,122 @@ export default function PropertyListingPage() {
         return (
           <>
             {viewMode === "grid" ? (
-              <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
+              <div className="grid gap-6 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                 {filteredProperties.map((property) => (
                   <Card
                     key={property.id}
-                    className="group overflow-hidden hover:shadow-2xl transition-all duration-300 border-0 shadow-lg bg-white"
+                    className="group overflow-hidden hover:shadow-2xl hover:-translate-y-2 transition-all duration-500 border-0 shadow-lg bg-white rounded-2xl cursor-pointer"
+                    onClick={() => setSelectedProperty(property)}
                   >
-                    <div className="relative h-56 overflow-hidden">
-                      <ImageSlider property={property} className="h-56" />
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent pointer-events-none" />
-                      <Badge className="absolute top-3 right-3 bg-white/90 text-slate-700 border-0 shadow-md font-semibold z-10">
+                    {/* Enhanced Image Section */}
+                    <div className="relative h-48 overflow-hidden rounded-t-2xl">
+                      <ImageSlider property={property} className="h-48" />
+                      
+                      {/* Gradient Overlay */}
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-black/10 pointer-events-none" />
+                      
+                      {/* Status Badge */}
+                      <Badge className={`absolute top-3 right-3 border-0 shadow-lg font-bold text-xs z-10 ${
+                        property.status === 'Available' 
+                          ? 'bg-emerald-500 text-white' 
+                          : property.status === 'Rented' 
+                          ? 'bg-amber-500 text-white' 
+                          : 'bg-slate-500 text-white'
+                      }`}>
                         {property.status}
                       </Badge>
-                      <div className="absolute top-3 left-3 flex items-center gap-1 bg-white/90 rounded-full px-2 py-1 z-10">
+                      
+                      {/* Rating Badge */}
+                      <div className="absolute top-3 left-3 flex items-center gap-1 bg-white/95 backdrop-blur-sm rounded-full px-2.5 py-1.5 shadow-lg z-10">
                         <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
-                        <span className="text-xs font-semibold text-slate-700">4.8</span>
+                        <span className="text-xs font-bold text-slate-800">4.8</span>
                       </div>
+
+                      {/* Property Type Badge */}
+                      <div className="absolute bottom-3 left-3 bg-white/95 backdrop-blur-sm rounded-full px-3 py-1 shadow-lg z-10">
+                        <span className="text-xs font-bold text-slate-800 capitalize">{property.propertyType}</span>
+                      </div>
+
+                      {/* Favorite Heart Icon */}
+                      <button className="absolute bottom-3 right-3 bg-white/95 backdrop-blur-sm rounded-full p-2 shadow-lg z-10 hover:bg-white hover:scale-110 transition-all duration-200">
+                        <svg className="h-4 w-4 text-slate-600 hover:text-red-500 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                        </svg>
+                      </button>
                     </div>
-                    <CardContent className="p-6">
-                      <h3 className="text-xl font-bold text-slate-900 text-balance mb-2">{property.name}</h3>
-                      <p className="text-2xl font-bold text-blue-600 mb-3">{formatPrice(property.price)}</p>
-                      <div className="flex items-center gap-2 mb-3 text-slate-600">
-                        <MapPin className="h-4 w-4" />
-                        <span className="text-sm font-medium">{property.location.address}</span>
-                      </div>
-                      <div className="flex items-center gap-4 mb-4 text-slate-600">
-                        <div className="flex items-center gap-1">
-                          <Bed className="h-4 w-4" />
-                          <span className="text-sm font-medium">{property.bedrooms} bed{property.bedrooms !== 1 ? 's' : ''}</span>
-                        </div>
-                        <div className="flex items-center gap-1">
-                          <Bath className="h-4 w-4" />
-                          <span className="text-sm font-medium">{property.bathrooms} bath{property.bathrooms !== 1 ? 's' : ''}</span>
-                        </div>
-                        {property.parking > 0 && (
-                          <div className="flex items-center gap-1">
-                            <Car className="h-4 w-4" />
-                            <span className="text-sm font-medium">{property.parking} parking</span>
-                          </div>
-                        )}
-                        <div className="flex items-center gap-1">
-                          <Home className="h-4 w-4" />
-                          <span className="text-sm font-medium capitalize">{property.propertyType}</span>
+
+                    {/* Compact Content Section */}
+                    <CardContent className="p-4">
+                      {/* Property Name & Price */}
+                      <div className="mb-3">
+                        <h3 className="text-lg font-bold text-slate-900 leading-tight mb-1 line-clamp-1">{property.name}</h3>
+                        <div className="flex items-center justify-between">
+                          <p className="text-xl font-bold text-blue-600">{formatPrice(property.price)}</p>
+                          <span className="text-xs text-slate-500 font-medium">per month</span>
                         </div>
                       </div>
-                      <p className="text-sm text-slate-600 mb-4 line-clamp-2">{property.description}</p>
-                      <div className="flex flex-wrap gap-2">
+
+                      {/* Location */}
+                      <div className="flex items-center gap-1.5 mb-3 text-slate-600">
+                        <MapPin className="h-3.5 w-3.5 flex-shrink-0" />
+                        <span className="text-xs font-medium line-clamp-1">{property.location.address}</span>
+                      </div>
+
+                      {/* Property Details - Compact Grid */}
+                      <div className="grid grid-cols-3 gap-2 mb-3">
+                        <div className="flex flex-col items-center bg-slate-50 rounded-lg py-2">
+                          <Bed className="h-3.5 w-3.5 text-slate-600 mb-1" />
+                          <span className="text-xs font-bold text-slate-900">{property.bedrooms}</span>
+                          <span className="text-xs text-slate-500">bed{property.bedrooms !== 1 ? 's' : ''}</span>
+                        </div>
+                        <div className="flex flex-col items-center bg-slate-50 rounded-lg py-2">
+                          <Bath className="h-3.5 w-3.5 text-slate-600 mb-1" />
+                          <span className="text-xs font-bold text-slate-900">{property.bathrooms}</span>
+                          <span className="text-xs text-slate-500">bath{property.bathrooms !== 1 ? 's' : ''}</span>
+                        </div>
+                        <div className="flex flex-col items-center bg-slate-50 rounded-lg py-2">
+                          <Car className="h-3.5 w-3.5 text-slate-600 mb-1" />
+                          <span className="text-xs font-bold text-slate-900">{property.parking || 0}</span>
+                          <span className="text-xs text-slate-500">parking</span>
+                        </div>
+                      </div>
+
+                      {/* Description */}
+                      <p className="text-xs text-slate-600 mb-3 line-clamp-2 leading-relaxed">{property.description}</p>
+
+                      {/* Amenities - Condensed */}
+                      <div className="flex flex-wrap gap-1 mb-3">
                         {property.amenities.slice(0, 2).map((amenity) => (
-                          <Badge key={amenity} variant="outline" className="text-xs border-slate-200 text-slate-600">
+                          <Badge key={amenity} variant="outline" className="text-xs px-2 py-0.5 border-slate-300 text-slate-700 bg-slate-50">
                             {amenity}
                           </Badge>
                         ))}
                         {property.amenities.length > 2 && (
-                          <Badge variant="outline" className="text-xs border-slate-200 text-slate-600">
+                          <Badge variant="outline" className="text-xs px-2 py-0.5 border-blue-200 text-blue-700 bg-blue-50">
                             +{property.amenities.length - 2} more
                           </Badge>
                         )}
                       </div>
+
+                      {/* Action Buttons */}
+                      <div className="flex gap-2">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedProperty(property);
+                          }}
+                          className="flex-1 h-9 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold rounded-lg transition-all duration-200 text-sm shadow-md hover:shadow-lg"
+                        >
+                          View Details
+                        </button>
+                        <button
+                          onClick={(e) => e.stopPropagation()}
+                          className="h-9 w-9 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors duration-200 flex items-center justify-center"
+                        >
+                          <Phone className="h-4 w-4 text-slate-600" />
+                        </button>
+                      </div>
                     </CardContent>
-                    <CardFooter className="p-6 pt-0">
-                      <button
-                        onClick={() => setSelectedProperty(property)}
-                        className="w-full h-11 font-semibold rounded-lg shadow-md hover:shadow-lg transition-all duration-200"
-                        style={{
-                          background: "linear-gradient(to right, #2563eb, #4f46e5)",
-                          color: "white !important",
-                        }}
-                        onMouseEnter={(e) => {
-                          (e.target as HTMLElement).style.background = "linear-gradient(to right, #1d4ed8, #4338ca)"
-                        }}
-                        onMouseLeave={(e) => {
-                          (e.target as HTMLElement).style.background = "linear-gradient(to right, #2563eb, #4f46e5)"
-                        }}
-                      >
-                        View Details
-                      </button>
-                    </CardFooter>
                   </Card>
                 ))}
               </div>
@@ -970,7 +1021,34 @@ export default function PropertyListingPage() {
         </div>
       )}
 
-      <main className="container mx-auto px-4 py-8">{renderCurrentPage()}</main>
+      <main className="container mx-auto px-4 py-8">
+        {/* Enhanced grid header with sorting options */}
+        {currentPage === "home" && viewMode === "grid" && filteredProperties.length > 0 && (
+          <div className="flex items-center justify-between mb-8">
+            <div className="flex items-center gap-4">
+              <h2 className="text-2xl font-bold text-slate-900">
+                {filteredProperties.length} {filteredProperties.length === 1 ? 'Property' : 'Properties'} Found
+              </h2>
+              <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 font-medium">
+                {searchTerm ? `Matching "${searchTerm}"` : 'All Properties'}
+              </Badge>
+            </div>
+            
+            {/* Sort Options */}
+            <div className="hidden md:flex items-center gap-2">
+              <span className="text-sm text-slate-600 font-medium">Sort by:</span>
+              <select className="text-sm border border-slate-200 rounded-lg px-3 py-2 bg-white text-slate-700 font-medium focus:outline-none focus:ring-2 focus:ring-blue-500/30">
+                <option value="price-low">Price: Low to High</option>
+                <option value="price-high">Price: High to Low</option>
+                <option value="newest">Newest First</option>
+                <option value="popular">Most Popular</option>
+              </select>
+            </div>
+          </div>
+        )}
+        
+        {renderCurrentPage()}
+      </main>
 
       <div className="fixed bottom-6 right-6 z-50">
         <div className="relative group">
