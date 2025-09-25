@@ -2,10 +2,186 @@
 
 import { useEffect, useRef, useState, useCallback } from "react"
 import mapboxgl from "mapbox-gl"
-import "mapbox-gl/dist/mapbox-gl.css"
 import type { Property } from "@/lib/property-data"
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
+
+// Modern Design System with Professional Icons
+const modernStyles = `
+  :root {
+    --primary: #2563eb;
+    --primary-hover: #1d4ed8;
+    --secondary: #64748b;
+    --success: #10b981;
+    --warning: #f59e0b;
+    --error: #ef4444;
+    --surface: #ffffff;
+    --surface-secondary: #f8fafc;
+    --text-primary: #1e293b;
+    --text-secondary: #64748b;
+    --border: #e2e8f0;
+    --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    --radius: 12px;
+  }
+  
+  .modern-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(203, 213, 225, 0.6) transparent;
+  }
+  
+  .modern-scrollbar::-webkit-scrollbar {
+    width: 4px;
+    height: 4px;
+  }
+  
+  .modern-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  
+  .modern-scrollbar::-webkit-scrollbar-thumb {
+    background: rgba(203, 213, 225, 0.6);
+    border-radius: 8px;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  
+  .modern-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: rgba(148, 163, 184, 0.8);
+  }
+  
+  .glass-panel {
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+  }
+  
+  .modern-button {
+    position: relative;
+    overflow: hidden;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  
+  .modern-button:hover {
+    transform: translateY(-1px);
+  }
+  
+  .icon-nav::before { content: '→'; }
+  .icon-location::before { content: '📍'; }
+  .icon-home::before { content: '🏠'; }
+  .icon-bed::before { content: '🛏'; }
+  .icon-bath::before { content: '🚿'; }
+  .icon-car::before { content: '🚗'; }
+  .icon-phone::before { content: '📞'; }
+  .icon-close::before { content: '✕'; }
+  .icon-refresh::before { content: '↻'; }
+  .icon-gps::before { content: '⊙'; }
+  
+  .progress-bar {
+    width: 100%;
+    height: 4px;
+    background: var(--border);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+  
+  .progress-fill {
+    height: 100%;
+    background: var(--primary);
+    border-radius: 2px;
+    transition: width 0.3s ease;
+  }
+  
+  .step-indicator {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: var(--primary);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    font-weight: 600;
+  }
+  
+  .section-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px;
+    box-shadow: var(--shadow);
+  }
+  
+  .info-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 0;
+  }
+  
+  .info-icon {
+    width: 40px;
+    height: 40px;
+    background: var(--surface-secondary);
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    color: var(--primary);
+  }
+  
+  .animate-fade-in {
+    animation: fadeIn 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  
+  .animate-slide-up {
+    animation: slideUp 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  
+  .animate-scale-in {
+    animation: scaleIn 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+  
+  @keyframes slideUp {
+    from {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  
+  @keyframes scaleIn {
+    from {
+      opacity: 0;
+      transform: scale(0.95);
+    }
+    to {
+      opacity: 1;
+      transform: scale(1);
+    }
+    }
+  }
+  
+  .gradient-bg {
+    background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 25%, #e2e8f0 50%, #f8fafc 75%, #ffffff 100%);
+  }
+  
+  .text-gradient {
+    background: linear-gradient(135deg, #1e293b 0%, #475569 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+`;
 
 // Set your Mapbox access token from environment variable (required)
 mapboxgl.accessToken = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN || 'pk.eyJ1IjoiYWRyaWFuNTUxNyIsImEiOiJjbWZkdTg4dmIwMThpMnFyNG10cWJwZjRhIn0.JLRzE6qmyDfePYgSs11ALg'
@@ -42,6 +218,27 @@ interface ClusterStats {
   avg: number
   count: number
 }
+
+// Modern Skeleton Loader Component
+const PropertySkeleton = () => (
+  <div className="animate-pulse p-4 space-y-3">
+    <div className="flex items-center space-x-3">
+      <div className="h-16 w-16 bg-gradient-to-br from-slate-200 to-slate-300 rounded-xl"></div>
+      <div className="flex-1 space-y-2">
+        <div className="h-4 bg-gradient-to-r from-slate-200 to-slate-300 rounded-lg w-3/4"></div>
+        <div className="h-3 bg-gradient-to-r from-slate-200 to-slate-300 rounded-lg w-1/2"></div>
+      </div>
+    </div>
+    <div className="space-y-2">
+      <div className="h-3 bg-gradient-to-r from-slate-200 to-slate-300 rounded-lg"></div>
+      <div className="h-3 bg-gradient-to-r from-slate-200 to-slate-300 rounded-lg w-4/5"></div>
+    </div>
+    <div className="flex space-x-2">
+      <div className="h-6 bg-gradient-to-r from-slate-200 to-slate-300 rounded-full w-16"></div>
+      <div className="h-6 bg-gradient-to-r from-slate-200 to-slate-300 rounded-full w-20"></div>
+    </div>
+  </div>
+);
 
 // Haversine distance in KM
 function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
@@ -701,99 +898,102 @@ export default function PropertyMap({
   }, [properties.length, mlProperties.length, selectedCluster, enableClustering, isLoading, error]) // Simplified dependencies
 
   return (
-    <div className="relative w-full h-full rounded-lg flex" style={{ minHeight: "300px" }}>
-      {/* Navigation Panel - moved to left sidebar */}
+    <>
+      <style dangerouslySetInnerHTML={{ __html: modernStyles }} />
+      <div className="relative w-full h-full rounded-3xl flex overflow-hidden gradient-bg shadow-2xl border border-white/30 backdrop-blur-sm animate-fade-in" style={{ minHeight: "300px" }}>
+      {/* Clean Navigation Panel */}
       {navigationMode && routeSteps.length > 0 && (
-        <div className="w-96 bg-gray-50 border-r border-gray-200 overflow-y-auto">
-          <div className="p-4">
-            {/* Close button */}
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-bold text-gray-900">Turn-by-turn Navigation</h2>
+        <div className="w-96 section-card border-r border-gray-200 overflow-y-auto modern-scrollbar animate-slide-up">
+          <div className="p-6">
+            {/* Header */}
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center gap-3">
+                <div className="step-indicator">
+                  <span className="icon-nav"></span>
+                </div>
+                <div>
+                  <h2 className="text-xl font-bold text-gray-900">Navigation</h2>
+                  <p className="text-sm text-gray-500">{routeSteps.length} steps remaining</p>
+                </div>
+              </div>
               <button
                 onClick={() => onNavigationToggle && onNavigationToggle(false)}
-                className="text-gray-400 hover:text-gray-600 text-xl p-1 hover:bg-gray-200 rounded-full transition-colors"
+                className="modern-button w-10 h-10 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg flex items-center justify-center"
                 aria-label="Close navigation"
               >
-                ✕
+                <span className="icon-close text-lg"></span>
               </button>
             </div>
 
-            <Card className="shadow-lg">
-              <CardHeader>
-                <CardTitle className="text-lg flex items-center gap-2">
-                  <span className="text-2xl">{getDirectionIcon(routeSteps[currentStep]?.type, routeSteps[currentStep]?.modifier)}</span>
-                  Current Step
-                </CardTitle>
-              </CardHeader>
+            {/* Progress Bar */}
+            <div className="mb-6">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm font-medium text-gray-700">Step {currentStep + 1} of {routeSteps.length}</span>
+                <span className="text-sm text-gray-500">{Math.round(((currentStep + 1) / routeSteps.length) * 100)}%</span>
+              </div>
+              <div className="progress-bar">
+                <div 
+                  className="progress-fill" 
+                  style={{ width: `${((currentStep + 1) / routeSteps.length) * 100}%` }}
+                ></div>
+              </div>
+            </div>
 
-              <CardContent className="space-y-4">
-                {/* Current Step Display */}
-                <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
-                  <p className="font-medium text-blue-900 mb-2">{routeSteps[currentStep]?.instruction}</p>
-                  <div className="flex items-center gap-4 text-sm text-blue-700">
-                    <div className="flex items-center gap-1">
-                      <span>📏</span>
-                      <span>{Math.round(routeSteps[currentStep]?.distance || 0)}m</span>
+            {/* Current Step */}
+            <div className="section-card mb-6">
+              <div className="flex items-start gap-4 mb-4">
+                <div className="step-indicator">
+                  {currentStep + 1}
+                </div>
+                <div className="flex-1">
+                  <p className="text-lg font-semibold text-gray-900 leading-relaxed mb-3">
+                    {routeSteps[currentStep]?.instruction}
+                  </p>
+                  <div className="flex items-center gap-4">
+                    <div className="info-item py-2">
+                      <div className="info-icon">
+                        <span>📏</span>
+                      </div>
+                      <div>
+                        <span className="text-sm font-semibold text-gray-900">
+                          {Math.round(routeSteps[currentStep]?.distance || 0)}m
+                        </span>
+                        <p className="text-xs text-gray-500">Distance</p>
+                      </div>
                     </div>
-                    <div className="flex items-center gap-1">
-                      <span>⏱️</span>
-                      <span>{Math.round((routeSteps[currentStep]?.duration || 0) / 60)} min</span>
+                    <div className="info-item py-2">
+                      <div className="info-icon">
+                        <span>⏱</span>
+                      </div>
+                      <div>
+                        <span className="text-sm font-semibold text-gray-900">
+                          {Math.round((routeSteps[currentStep]?.duration || 0) / 60)} min
+                        </span>
+                        <p className="text-xs text-gray-500">Time</p>
+                      </div>
                     </div>
                   </div>
                 </div>
+              </div>
+            </div>
 
-                {/* Step Navigation Controls */}
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => setCurrentStep(Math.max(0, currentStep - 1))}
-                    disabled={currentStep === 0}
-                    className="flex-1 px-3 py-2 bg-gray-100 text-gray-700 rounded text-sm font-medium hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                  >
-                    ⬅ Previous
-                  </button>
-                  <button
-                    onClick={() => setCurrentStep(Math.min(routeSteps.length - 1, currentStep + 1))}
-                    disabled={currentStep === routeSteps.length - 1}
-                    className="flex-1 px-3 py-2 bg-blue-600 text-white rounded text-sm font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                  >
-                    Next ➡
-                  </button>
-                </div>
-
-                {/* All Steps List */}
-                <div>
-                  <h4 className="font-semibold text-gray-900 mb-3">All Navigation Steps</h4>
-                  <div className="max-h-64 overflow-y-auto space-y-2">
-                    {routeSteps.map((step, index) => (
-                      <button
-                        key={index}
-                        onClick={() => setCurrentStep(index)}
-                        className={`w-full text-left p-3 rounded-lg border transition-all ${
-                          index === currentStep 
-                            ? 'bg-blue-100 border-blue-300 text-blue-900' 
-                            : 'bg-white border-gray-200 text-gray-700 hover:bg-gray-50 hover:border-gray-300'
-                        }`}
-                      >
-                        <div className="flex items-center gap-3">
-                          <span className="text-lg">{getDirectionIcon(step.type, step.modifier)}</span>
-                          <div className="flex-1">
-                            <p className={`text-sm ${index === currentStep ? 'font-medium' : ''}`}>
-                              {step.instruction}
-                            </p>
-                            <p className="text-xs text-gray-500 mt-1">
-                              {Math.round(step.distance)}m • {Math.round(step.duration / 60)} min
-                            </p>
-                          </div>
-                          {index === currentStep && (
-                            <Badge className="bg-blue-600 text-white">Current</Badge>
-                          )}
-                        </div>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+            {/* Navigation Controls */}
+            <div className="flex gap-3">
+              <button
+                onClick={() => setCurrentStep(Math.max(0, currentStep - 1))}
+                disabled={currentStep === 0}
+                className="modern-button flex-1 px-4 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-sm font-semibold transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                ← Previous
+              </button>
+              <button
+                onClick={() => setCurrentStep(Math.min(routeSteps.length - 1, currentStep + 1))}
+                disabled={currentStep === routeSteps.length - 1}
+                className="modern-button flex-1 px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-semibold transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Next →
+              </button>
+            </div>
           </div>
         </div>
       )}
@@ -804,56 +1004,63 @@ export default function PropertyMap({
         (selectedProperty || (navigationMode && routeSteps.length > 0)) ? 'flex-1' : // One panel open
         'w-full' // No panels open
       }`} style={{ minHeight: "300px" }}>
-        {/* Cluster Filter Buttons - only show when clustering is enabled */}
-        {enableClustering && !focusOnProperty && mlProperties.length > 0 && (
-          <div className="absolute top-4 left-4 z-20 flex gap-2">
+        
+        {/* Cluster Controls */}
+        {enableClustering && staticLabels.length > 0 && (
+          <div className="absolute top-6 left-6 z-20 flex gap-3">
             {staticLabels.map((name, idx) => (
               <button
                 key={name}
                 onClick={() => onClusterChange && onClusterChange(idx)}
                 className={`
-                  px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 transform
+                  modern-button px-5 py-3 rounded-2xl text-sm font-semibold transition-all duration-300 transform backdrop-blur-md shadow-lg border
                   ${selectedCluster === idx 
-                    ? `bg-${staticColors[idx]?.toLowerCase()}-500 text-white shadow-md scale-105` 
-                    : 'bg-white/90 text-gray-700 hover:bg-white shadow-sm hover:shadow-md'
+                    ? 'text-white shadow-xl scale-105 border-white/30' 
+                    : 'glass-panel text-slate-700 hover:bg-white hover:shadow-xl hover:scale-105 border-white/50'
                   }
                 `}
                 style={{
                   backgroundColor: selectedCluster === idx ? staticColors[idx] : undefined
                 }}
               >
-              <span className="mr-1">
-                {idx === 0 ? '💰' : idx === 1 ? '🏠' : '💎'}
-              </span>
-              {name}
+              <div className="flex items-center gap-2">
+                <span className="text-lg">
+                  {idx === 0 ? '💰' : idx === 1 ? '🏠' : '💎'}
+                </span>
+                <span>{name}</span>
+              </div>
             </button>
           ))}
         </div>
       )}
 
-      {/* Loading indicator for ML clusters */}
+      {/* Modern Loading indicator for ML clusters */}
       {loadingML && enableClustering && (
-        <div className="absolute top-4 right-4 z-20 bg-white/90 backdrop-blur px-3 py-2 rounded-md shadow border border-slate-200 text-sm text-slate-700 flex items-center gap-2">
-          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-500"></div>
-          <span>Loading clusters...</span>
+        <div className="absolute top-6 right-6 z-20 glass-panel px-5 py-3 rounded-2xl shadow-xl border border-white/50 text-sm text-slate-700 flex items-center gap-3 animate-slide-up">
+          <div className="animate-spin rounded-full h-5 w-5 border-2 border-blue-200 border-t-blue-500"></div>
+          <span className="font-medium">Loading clusters...</span>
         </div>
       )}
 
-      {/* Route info overlay - moved to left side */}
+      {/* Modern Route info overlay */}
       {routeInfo && (
-        <div className="absolute bottom-4 left-4 z-10 bg-white/90 backdrop-blur px-4 py-3 rounded-lg shadow-lg border border-slate-200 text-sm text-slate-700">
+        <div className="absolute bottom-6 left-6 z-10 glass-panel px-5 py-4 rounded-2xl shadow-xl border border-white/50 text-sm text-slate-700 animate-scale-in">
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-2">
-              <span className="text-blue-600">🧭</span>
-              <span className="font-medium">{routeInfo.distanceKm.toFixed(1)} km</span>
+              <div className="w-10 h-10 bg-gradient-to-br from-blue-100 to-blue-200 rounded-xl flex items-center justify-center">
+                <span className="text-blue-600 text-sm">🧭</span>
+              </div>
+              <span className="font-semibold text-slate-800">{routeInfo.distanceKm.toFixed(1)} km</span>
             </div>
             <div className="flex items-center gap-2">
-              <span className="text-green-600">⏱</span>
-              <span className="font-medium">{Math.round(routeInfo.durationMin)} min</span>
+              <div className="w-10 h-10 bg-gradient-to-br from-green-100 to-green-200 rounded-xl flex items-center justify-center">
+                <span className="text-green-600 text-sm">⏱</span>
+              </div>
+              <span className="font-semibold text-slate-800">{Math.round(routeInfo.durationMin)} min</span>
             </div>
             <button
               onClick={() => { setRouteInfo(null); if (mapInstanceRef.current) clearRoute(mapInstanceRef.current) }}
-              className="ml-2 text-slate-500 hover:text-slate-700 hover:bg-slate-100 rounded p-1 transition-colors"
+              className="modern-button ml-2 w-10 h-10 text-slate-500 hover:text-slate-700 hover:bg-white/50 rounded-xl flex items-center justify-center transition-all duration-300"
               aria-label="Clear route"
               title="Clear route"
             >✖</button>
@@ -861,22 +1068,24 @@ export default function PropertyMap({
         </div>
       )}
 
-      <div ref={mapRef} className="absolute inset-0 rounded-lg" style={{ backgroundColor: "#eef2ff", outline: "1px solid rgba(99,102,241,0.25)" }} />
+      <div ref={mapRef} className="absolute inset-0 rounded-3xl overflow-hidden" style={{ backgroundColor: "#f8fafc" }} />
 
-      {/* Enhanced controls section */}
-      <div className="absolute bottom-4 right-4 z-10 flex flex-col gap-2">
-        {/* My Location button with refresh capability - only show when not focusing on a single property */}
+      {/* Modern Enhanced controls section */}
+      <div className="absolute bottom-6 right-6 z-10 flex flex-col gap-3 animate-slide-up">
+        {/* Modern My Location buttons - only show when not focusing on a single property */}
         {!focusOnProperty && (
-          <div className="flex flex-col gap-1">
+          <div className="flex flex-col gap-2">
             <button
               aria-label="My location"
               title="Go to my location"
               onClick={() => { if (mapInstanceRef.current && userLocation) mapInstanceRef.current.flyTo({ center: [userLocation.lng, userLocation.lat], zoom: 15, speed: 1.2 }) }}
-              className="inline-flex items-center gap-2 px-3 py-2 rounded-md shadow-md bg-white/90 hover:bg-white text-slate-700 border border-slate-200"
+              className="modern-button inline-flex items-center gap-3 px-4 py-3 rounded-2xl shadow-xl glass-panel hover:bg-white text-slate-700 border border-white/50 transition-all duration-300 hover:scale-105 hover:shadow-2xl"
               disabled={!userLocation}
             >
-              <span>📍</span>
-              <span className="text-sm font-medium">My location</span>
+              <div className="w-8 h-8 bg-gradient-to-br from-blue-100 to-blue-200 rounded-xl flex items-center justify-center">
+                <span className="text-sm">📍</span>
+              </div>
+              <span className="text-sm font-semibold">My location</span>
             </button>
             
             <button
@@ -916,52 +1125,58 @@ export default function PropertyMap({
                   )
                 }
               }}
-              className="inline-flex items-center gap-2 px-2 py-1 rounded-md shadow-sm bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 text-xs"
+              className="modern-button inline-flex items-center gap-3 px-3 py-2 rounded-2xl shadow-lg glass-panel hover:bg-white text-slate-700 border border-white/50 text-sm transition-all duration-300 hover:scale-105 hover:shadow-xl"
             >
-              <span>🔄</span>
-              <span>Refresh GPS</span>
+              <div className="w-6 h-6 bg-gradient-to-br from-blue-100 to-blue-200 rounded-xl flex items-center justify-center">
+                <span className="text-xs">🔄</span>
+              </div>
+              <span className="font-semibold">Refresh GPS</span>
             </button>
           </div>
         )}
 
-        {/* Navigation toggle button - always visible */}
+        {/* Modern Navigation toggle button */}
         <button
           onClick={() => onNavigationToggle && onNavigationToggle(!navigationMode)}
-          className={`inline-flex items-center gap-2 px-3 py-2 rounded-md shadow-md border border-slate-200 text-sm font-medium ${
+          className={`modern-button inline-flex items-center gap-3 px-4 py-3 rounded-2xl shadow-xl border transition-all duration-300 text-sm font-semibold backdrop-blur-md hover:scale-105 hover:shadow-2xl ${
             navigationMode 
-              ? 'bg-blue-600 text-white hover:bg-blue-700' 
-              : 'bg-white/90 hover:bg-white text-slate-700'
+              ? 'bg-gradient-to-r from-blue-500 to-indigo-600 text-white border-white/30 hover:from-blue-600 hover:to-indigo-700' 
+              : 'glass-panel hover:bg-white text-slate-700 border-white/50'
           }`}
           disabled={!selectedProperty || !routeInfo}
         >
-          <span>🧭</span>
+          <div className="w-8 h-8 bg-gradient-to-br from-indigo-100 to-indigo-200 rounded-xl flex items-center justify-center">
+            <span className="text-indigo-600 text-sm">🧭</span>
+          </div>
           <span>{navigationMode ? 'Stop Navigation' : 'Start Navigation'}</span>
         </button>
 
-        {/* Refresh ML clusters button - always visible */}
+        {/* Modern Refresh ML clusters button */}
         <button
           onClick={fetchMLClusters}
           disabled={loadingML}
-          className="inline-flex items-center gap-2 px-3 py-2 rounded-md shadow-md bg-white/90 hover:bg-white text-slate-700 border border-slate-200 disabled:opacity-50"
+          className="modern-button inline-flex items-center gap-3 px-4 py-3 rounded-2xl shadow-xl glass-panel hover:bg-white text-slate-700 border border-white/50 disabled:opacity-50 transition-all duration-300 hover:scale-105 hover:shadow-2xl"
         >
-          <span className={loadingML ? 'animate-spin' : ''}>🔄</span>
-          <span className="text-sm font-medium">Refresh ML</span>
+          <div className={`w-8 h-8 bg-gradient-to-br from-purple-100 to-purple-200 rounded-xl flex items-center justify-center ${loadingML ? 'animate-spin' : ''}`}>
+            <span className="text-purple-600 text-sm">🔄</span>
+          </div>
+          <span className="text-sm font-semibold">Refresh ML</span>
         </button>
       </div>
 
-      {/* Location accuracy indicator */}
+      {/* Modern Location accuracy indicator */}
       {userLocation && locationAccuracy && !focusOnProperty && !routeInfo && (
-        <div className="absolute bottom-16 left-4 z-10 bg-white/90 backdrop-blur px-3 py-2 rounded-md shadow border border-slate-200 text-sm text-slate-700">
-          <div className="flex items-center gap-2">
-            <span className={`w-2 h-2 rounded-full ${
+        <div className="absolute bottom-20 left-6 z-10 glass-panel px-4 py-3 rounded-2xl shadow-xl border border-white/50 text-sm text-slate-700 animate-scale-in">
+          <div className="flex items-center gap-3">
+            <div className={`w-4 h-4 rounded-full shadow-sm ${
               locationAccuracy <= 20 ? 'bg-green-500' : 
               locationAccuracy <= 50 ? 'bg-yellow-500' : 
               locationAccuracy <= 100 ? 'bg-orange-500' : 'bg-red-500'
-            }`}></span>
-            <span className="font-medium">
+            }`}></div>
+            <span className="font-semibold">
               GPS: {locationAccuracy.toFixed(0)}m accuracy
             </span>
-            <span className="text-xs text-slate-500">
+            <span className="text-xs text-slate-500 px-3 py-1 glass-panel rounded-xl">
               {locationAccuracy <= 20 ? '(Excellent)' : 
                locationAccuracy <= 50 ? '(Good)' : 
                locationAccuracy <= 100 ? '(Fair)' : '(Poor)'}
@@ -972,184 +1187,268 @@ export default function PropertyMap({
 
       {/* Cluster stats overlay */}
       {enableClustering && mlProperties.length > 0 && !focusOnProperty && !routeInfo && (
-        <div className="absolute bottom-4 left-4 z-10 bg-white/90 backdrop-blur px-3 py-2 rounded-md shadow border border-slate-200 text-sm text-slate-700">
+        <div className="absolute bottom-6 left-6 z-10 glass-panel px-4 py-3 rounded-2xl shadow border border-white/30 text-sm text-slate-700 animate-scale-in">
           <div className="flex items-center gap-2">
             <span className="font-medium">{staticLabels[selectedCluster]} Properties:</span>
-            <span className="font-bold">{mlProperties.filter(p => p.cluster === getClusterMapping(mlProperties)[selectedCluster]).length}</span>
+            <span className="font-bold text-gradient">{mlProperties.filter(p => p.cluster === getClusterMapping(mlProperties)[selectedCluster]).length}</span>
           </div>
         </div>
       )}
 
       {isLoading && (
-        <div className="absolute inset-0 flex items-center justify-center bg-gray-50/80 backdrop-blur-sm rounded-lg">
-          <div className="text-center p-6">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto mb-4"></div>
-            <p className="text-gray-600">Loading Mapbox...</p>
-            <p className="text-xs text-gray-500 mt-1">
-              Initializing map with {enableClustering ? `${mlProperties.length} clustered` : properties.length} properties
+        <div className="absolute inset-0 flex items-center justify-center gradient-bg backdrop-blur-lg rounded-3xl animate-fade-in">
+          <div className="text-center p-8 glass-panel rounded-3xl shadow-2xl border border-white/50 animate-scale-in">
+            <div className="relative mb-6">
+              <div className="animate-spin rounded-full h-12 w-12 border-4 border-blue-200 border-t-blue-600 mx-auto"></div>
+              <div className="absolute inset-0 rounded-full bg-gradient-to-r from-blue-400/20 to-indigo-400/20 animate-pulse"></div>
+            </div>
+            <h3 className="text-xl font-bold text-gradient mb-2">Loading Map</h3>
+            <p className="text-slate-600 mb-1">Initializing interactive experience...</p>
+            <p className="text-sm text-slate-500 mb-6">
+              Preparing {enableClustering ? `${mlProperties.length} clustered` : properties.length} properties
             </p>
-            <div className="mt-4">
-              <button onClick={() => { setIsLoading(false); setError("Loading cancelled by user") }} className="text-xs text-gray-400 hover:text-gray-600 underline">Cancel and show fallback</button>
+            <div className="flex justify-center">
+              <button 
+                onClick={() => { setIsLoading(false); setError("Loading cancelled by user") }} 
+                className="modern-button text-sm text-slate-400 hover:text-slate-600 hover:bg-white/50 px-4 py-2 rounded-xl transition-all duration-300"
+              >
+                Cancel and show fallback
+              </button>
             </div>
           </div>
         </div>
       )}
 
       {error && (
-        <div className="absolute inset-0 flex items-center justify-center bg-gray-100/90 rounded-lg">
-          <div className="text-center p-6">
-            <div className="text-red-500 mb-2">🗺️ Map Error</div>
-            <p className="text-gray-600 mb-2">{error}</p>
-            <p className="text-sm text-gray-500 mb-4">
+        <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-red-50/95 to-white/95 backdrop-blur-lg rounded-3xl animate-fade-in">
+          <div className="text-center p-8 glass-panel rounded-3xl shadow-2xl border border-red-200/50 max-w-md animate-scale-in">
+            <div className="w-16 h-16 bg-gradient-to-br from-red-100 to-red-200 rounded-2xl flex items-center justify-center mx-auto mb-6">
+              <span className="text-2xl">🗺️</span>
+            </div>
+            <h3 className="text-xl font-bold text-red-900 mb-2">Map Error</h3>
+            <p className="text-slate-600 mb-4 leading-relaxed">{error}</p>
+            <p className="text-sm text-slate-500 mb-6 glass-panel px-4 py-2 rounded-xl">
               Showing {enableClustering ? mlProperties.length : properties.length} properties
             </p>
-            <div className="space-y-2">
-              <button onClick={() => { setError(null); setIsLoading(true) }} className="px-4 py-2 bg-blue-500 text-white rounded text-sm hover:bg-blue-600 mr-2">Retry Map</button>
-              <button onClick={() => window.location.reload()} className="px-4 py-2 bg-gray-500 text-white rounded text-sm hover:bg-gray-600">Reload Page</button>
+            <div className="flex gap-3">
+              <button 
+                onClick={() => { setError(null); setIsLoading(true) }} 
+                className="modern-button flex-1 px-6 py-3 bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white rounded-2xl text-sm font-semibold shadow-lg transition-all duration-300 hover:shadow-xl"
+              >
+                Retry Map
+              </button>
+              <button 
+                onClick={() => window.location.reload()} 
+                className="modern-button flex-1 px-6 py-3 glass-panel hover:bg-white text-slate-700 rounded-2xl text-sm font-semibold transition-all duration-300 border border-white/50"
+              >
+                Reload Page
+              </button>
             </div>
           </div>
         </div>
       )}
       </div>
 
-      {/* Property Details Panel */}
+      {/* Clean Property Details Panel */}
       {selectedProperty && (
-        <div className="w-96 bg-gray-50 border-l border-gray-200 overflow-y-auto">
-          <div className="p-4">
-            {/* Close button */}
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-bold text-gray-900">Property Details</h2>
+        <div className="w-96 section-card border-l border-gray-200 overflow-y-auto modern-scrollbar animate-slide-up">
+          <div className="p-6">
+            {/* Header */}
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center gap-3">
+                <div className="info-icon">
+                  <span className="icon-home"></span>
+                </div>
+                <div>
+                  <h2 className="text-xl font-bold text-gray-900">Property Details</h2>
+                  <p className="text-sm text-gray-500">Complete information</p>
+                </div>
+              </div>
               <button
                 onClick={() => setSelectedProperty(null)}
-                className="text-gray-400 hover:text-gray-600 text-xl p-1 hover:bg-gray-200 rounded-full transition-colors"
+                className="modern-button w-10 h-10 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg flex items-center justify-center"
                 aria-label="Close property details"
               >
-                ✕
+                <span className="icon-close text-lg"></span>
               </button>
             </div>
 
-            <Card className="shadow-lg">
-              {/* Property Image */}
-              {selectedProperty.images && selectedProperty.images.length > 0 && (
-                <div className="relative">
-                  <img
-                    src={selectedProperty.images[0]}
-                    alt={selectedProperty.name}
-                    className="w-full h-48 object-cover rounded-t-xl"
-                    onError={(e) => {
-                      const target = e.target as HTMLImageElement;
-                      target.src = '/placeholder.jpg';
-                    }}
-                  />
-                  <Badge 
-                    className={`absolute top-3 right-3 ${
-                      selectedProperty.status === 'Available' ? 'bg-green-600 hover:bg-green-700' :
-                      selectedProperty.status === 'Rented' ? 'bg-yellow-600 hover:bg-yellow-700' :
-                      'bg-red-600 hover:bg-red-700'
-                    }`}
-                  >
-                    {selectedProperty.status}
-                  </Badge>
-                </div>
-              )}
+            {/* Property Image */}
+            {selectedProperty.images && selectedProperty.images.length > 0 && (
+              <div className="relative mb-6 rounded-xl overflow-hidden">
+                <img
+                  src={selectedProperty.images[0]}
+                  alt={selectedProperty.name}
+                  className="w-full h-48 object-cover"
+                  onError={(e) => {
+                    const target = e.target as HTMLImageElement;
+                    target.src = '/placeholder.jpg';
+                  }}
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent"></div>
+                <Badge 
+                  className={`absolute top-3 right-3 px-3 py-1 text-sm font-medium rounded-lg ${
+                    selectedProperty.status === 'Available' ? 'bg-green-500 text-white' :
+                    selectedProperty.status === 'Rented' ? 'bg-orange-500 text-white' :
+                    'bg-red-500 text-white'
+                  }`}
+                >
+                  {selectedProperty.status}
+                </Badge>
+              </div>
+            )}
 
-              <CardHeader>
-                <CardTitle className="text-lg">{selectedProperty.name}</CardTitle>
-                <div className="flex items-center gap-2">
-                  <span className="text-2xl font-bold text-green-600">
-                    ₱{selectedProperty.price.toLocaleString()}
-                  </span>
-                  <span className="text-sm text-gray-500">/month</span>
-                </div>
-              </CardHeader>
+            {/* Property Title & Price */}
+            <div className="mb-6">
+              <h1 className="text-2xl font-bold text-gray-900 mb-2">{selectedProperty.name}</h1>
+              <div className="flex items-baseline gap-2">
+                <span className="text-3xl font-bold text-blue-600">₱{selectedProperty.price.toLocaleString()}</span>
+                <span className="text-gray-500">/month</span>
+              </div>
+            </div>
 
-              <CardContent className="space-y-4">
-                {/* Property Description */}
-                <div>
-                  <h4 className="font-semibold text-gray-900 mb-2">Description</h4>
-                  <p className="text-gray-600 text-sm leading-relaxed">
-                    {selectedProperty.description}
-                  </p>
-                </div>
-
-                {/* Property Specs */}
-                <div>
-                  <h4 className="font-semibold text-gray-900 mb-3">Specifications</h4>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="flex items-center gap-2 p-2 bg-gray-50 rounded-lg">
-                      <span className="text-gray-500">🛏️</span>
-                      <span className="text-sm font-medium">{selectedProperty.bedrooms} Bedrooms</span>
-                    </div>
-                    <div className="flex items-center gap-2 p-2 bg-gray-50 rounded-lg">
-                      <span className="text-gray-500">🚿</span>
-                      <span className="text-sm font-medium">{selectedProperty.bathrooms} Bathrooms</span>
-                    </div>
-                    <div className="flex items-center gap-2 p-2 bg-gray-50 rounded-lg">
-                      <span className="text-gray-500">🚗</span>
-                      <span className="text-sm font-medium">{selectedProperty.parking} Parking</span>
-                    </div>
-                    <div className="flex items-center gap-2 p-2 bg-gray-50 rounded-lg">
-                      <span className="text-gray-500">🏠</span>
-                      <span className="text-sm font-medium">{selectedProperty.propertyType}</span>
-                    </div>
+            {/* Property Specifications */}
+            <div className="section-card mb-6">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">Specifications</h3>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="info-item">
+                  <div className="info-icon">
+                    <span className="icon-bed"></span>
                   </div>
-                </div>
-
-                {/* Location */}
-                <div>
-                  <h4 className="font-semibold text-gray-900 mb-2">Location</h4>
-                  <div className="flex items-start gap-2 p-3 bg-blue-50 rounded-lg border border-blue-100">
-                    <span className="text-blue-500 mt-0.5">📍</span>
-                    <span className="text-blue-800 text-sm font-medium">
-                      {selectedProperty.location.address}
-                    </span>
-                  </div>
-                </div>
-
-                {/* Amenities */}
-                {selectedProperty.amenities && selectedProperty.amenities.length > 0 && (
                   <div>
-                    <h4 className="font-semibold text-gray-900 mb-2">Amenities</h4>
-                    <div className="flex flex-wrap gap-2">
-                      {selectedProperty.amenities.map((amenity, index) => (
-                        <Badge key={index} variant="secondary" className="text-xs">
-                          {amenity}
-                        </Badge>
-                      ))}
-                    </div>
+                    <span className="font-semibold text-gray-900">{selectedProperty.bedrooms}</span>
+                    <p className="text-sm text-gray-500">Bedrooms</p>
                   </div>
-                )}
+                </div>
+                <div className="info-item">
+                  <div className="info-icon">
+                    <span className="icon-bath"></span>
+                  </div>
+                  <div>
+                    <span className="font-semibold text-gray-900">{selectedProperty.bathrooms}</span>
+                    <p className="text-sm text-gray-500">Bathrooms</p>
+                  </div>
+                </div>
+                <div className="info-item">
+                  <div className="info-icon">
+                    <span className="icon-car"></span>
+                  </div>
+                  <div>
+                    <span className="font-semibold text-gray-900">{selectedProperty.parking}</span>
+                    <p className="text-sm text-gray-500">Parking</p>
+                  </div>
+                </div>
+                <div className="info-item">
+                  <div className="info-icon">
+                    <span className="icon-home"></span>
+                  </div>
+                  <div>
+                    <span className="font-semibold text-gray-900 capitalize">{selectedProperty.propertyType}</span>
+                    <p className="text-sm text-gray-500">Property Type</p>
+                  </div>
+                </div>
+              </div>
+            </div>
 
-                {/* Route Information */}
-                {routeInfo && (
-                  <div className="p-4 bg-gradient-to-r from-green-50 to-blue-50 rounded-lg border border-green-200">
-                    <h4 className="font-semibold text-green-900 mb-3 flex items-center gap-2">
-                      <span>🗺️</span>
-                      Distance from your location
-                    </h4>
-                    <div className="grid grid-cols-2 gap-3">
-                      <div className="flex items-center gap-2 p-2 bg-white/70 rounded-lg">
-                        <span className="text-green-600">🛣️</span>
-                        <div>
-                          <div className="text-sm font-medium text-green-800">{routeInfo.distanceKm.toFixed(1)} km</div>
-                          <div className="text-xs text-green-600">Distance</div>
-                        </div>
+            {/* Location */}
+            <div className="section-card mb-6">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">Location</h3>
+              <div className="info-item">
+                <div className="info-icon">
+                  <span className="icon-location"></span>
+                </div>
+                <div>
+                  <span className="font-medium text-gray-900">{selectedProperty.location.address}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Description */}
+            <div className="section-card mb-6">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">Description</h3>
+              <p className="text-gray-700 leading-relaxed">{selectedProperty.description}</p>
+            </div>
+
+            {/* Amenities */}
+            {selectedProperty.amenities && selectedProperty.amenities.length > 0 && (
+              <div className="section-card mb-6">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">Amenities</h3>
+                <div className="grid grid-cols-2 gap-3">
+                  {selectedProperty.amenities.map((amenity: string, index: number) => (
+                    <div key={index} className="info-item">
+                      <div className="info-icon">
+                        <span className="icon-check"></span>
                       </div>
-                      <div className="flex items-center gap-2 p-2 bg-white/70 rounded-lg">
-                        <span className="text-blue-600">⏱️</span>
-                        <div>
-                          <div className="text-sm font-medium text-blue-800">{Math.round(routeInfo.durationMin)} min</div>
-                          <div className="text-xs text-blue-600">Drive time</div>
-                        </div>
-                      </div>
+                      <span className="text-sm text-gray-700 capitalize">{amenity}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Route Information */}
+            {routeInfo && (
+              <div className="section-card mb-6">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">Distance Information</h3>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="info-item">
+                    <div className="info-icon">
+                      <span className="icon-location"></span>
+                    </div>
+                    <div>
+                      <span className="font-semibold text-gray-900">{routeInfo.distanceKm.toFixed(1)} km</span>
+                      <p className="text-sm text-gray-500">Distance</p>
                     </div>
                   </div>
-                )}
-              </CardContent>
-            </Card>
+                  <div className="info-item">
+                    <div className="info-icon">
+                      <span className="icon-clock"></span>
+                    </div>
+                    <div>
+                      <span className="font-semibold text-gray-900">{Math.round(routeInfo.durationMin)} min</span>
+                      <p className="text-sm text-gray-500">Drive time</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Action Buttons */}
+            <div className="flex gap-3 pt-4 border-t border-gray-200">
+              <button 
+                onClick={() => {
+                  console.log(`Contact owner for property: ${selectedProperty.name}`)
+                  alert(`Contact Owner\n\nProperty: ${selectedProperty.name}\nPhone: +63 912 345 6789\nEmail: owner@rentify.com`)
+                }}
+                className="modern-button flex-1 bg-blue-600 hover:bg-blue-700 text-white rounded-lg px-4 py-3 font-medium transition-all duration-300 hover:scale-105 hover:shadow-lg flex items-center justify-center gap-2"
+              >
+                <span className="icon-phone"></span>
+                Contact Owner
+              </button>
+              <button 
+                onClick={() => {
+                  if (selectedProperty.status === 'Available') {
+                    console.log(`Rent now for property: ${selectedProperty.name}`)
+                    alert(`Rent Now\n\nProperty: ${selectedProperty.name}\nMonthly Rent: ₱${selectedProperty.price.toLocaleString()}\n\nRedirecting to booking form...`)
+                  } else {
+                    alert('This property is not currently available for rent.')
+                  }
+                }}
+                className={`modern-button flex-1 rounded-lg px-4 py-3 font-medium transition-all duration-300 hover:scale-105 hover:shadow-lg flex items-center justify-center gap-2 ${
+                  selectedProperty.status === 'Available' 
+                    ? 'bg-green-600 hover:bg-green-700 text-white' 
+                    : 'bg-gray-200 text-gray-500 cursor-not-allowed'
+                }`}
+                disabled={selectedProperty.status !== 'Available'}
+              >
+                <span className="icon-heart"></span>
+                {selectedProperty.status === 'Available' ? 'Rent Now' : 'Not Available'}
+              </button>
+            </div>
           </div>
         </div>
       )}
     </div>
+    </>
   )
 }
