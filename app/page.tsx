@@ -251,6 +251,10 @@ function ImageViewer({ images, initialIndex, isOpen, onClose, propertyName }: Im
   const handleKeyDown = (e: KeyboardEvent) => {
     if (!isOpen) return
     
+    // Prevent the event from bubbling up to other components (like modals)
+    e.preventDefault()
+    e.stopPropagation()
+    
     switch (e.key) {
       case 'Escape':
         onClose()
@@ -266,8 +270,9 @@ function ImageViewer({ images, initialIndex, isOpen, onClose, propertyName }: Im
 
   useEffect(() => {
     if (isOpen) {
-      document.addEventListener('keydown', handleKeyDown)
-      return () => document.removeEventListener('keydown', handleKeyDown)
+      // Use capture: true to intercept events before they reach other components
+      document.addEventListener('keydown', handleKeyDown, { capture: true })
+      return () => document.removeEventListener('keydown', handleKeyDown, { capture: true })
     }
   }, [isOpen, currentIndex])
 

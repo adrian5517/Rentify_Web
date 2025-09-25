@@ -756,8 +756,18 @@ export default function PropertyMap({
           }, 500)
 
           // Resize and recenter
-          map.resize()
-          requestAnimationFrame(() => map.resize())
+          try {
+            if (map && typeof map.resize === 'function') {
+              map.resize()
+              requestAnimationFrame(() => {
+                if (map && typeof map.resize === 'function') {
+                  map.resize()
+                }
+              })
+            }
+          } catch (error) {
+            console.warn("⚠️ Map resize failed:", error)
+          }
           
           const el = map.getContainer() as HTMLElement
           console.log("📐 Container size (after load):", el.clientWidth, "x", el.clientHeight)
@@ -779,8 +789,14 @@ export default function PropertyMap({
             const w = c.clientWidth; const h = c.clientHeight
             if (w > 0 && h > 0) {
               console.log("✅ Container ready:", w, "x", h)
-              map.resize()
-              map.easeTo({ center, zoom, duration: 0 })
+              try {
+                if (map && typeof map.resize === 'function') {
+                  map.resize()
+                  map.easeTo({ center, zoom, duration: 0 })
+                }
+              } catch (error) {
+                console.warn("⚠️ Map resize/easeTo failed:", error)
+              }
               
               // Only fly to user location if not focusing on a specific property
               if (userLocation && !focusOnProperty) {
@@ -812,7 +828,13 @@ export default function PropertyMap({
             initializedRef.current = true; 
             loadedRef.current = true 
           }
-          map.resize()
+          try {
+            if (map && typeof map.resize === 'function') {
+              map.resize()
+            }
+          } catch (error) {
+            console.warn("⚠️ Map resize failed on idle:", error)
+          }
           const el2 = map.getContainer() as HTMLElement
           console.log("📐 Container size (idle):", el2.clientWidth, "x", el2.clientHeight)
         })
@@ -842,20 +864,53 @@ export default function PropertyMap({
 
         // Observers
         if (mapRef.current && typeof ResizeObserver !== 'undefined') {
-          resizeObserverRef.current = new ResizeObserver(() => { if (mapInstanceRef.current) mapInstanceRef.current.resize() })
+          resizeObserverRef.current = new ResizeObserver(() => { 
+            try {
+              if (mapInstanceRef.current && typeof mapInstanceRef.current.resize === 'function') {
+                mapInstanceRef.current.resize()
+              }
+            } catch (error) {
+              console.warn("⚠️ Map resize failed in ResizeObserver:", error)
+            }
+          })
           resizeObserverRef.current.observe(mapRef.current)
         }
         if (mapRef.current && typeof IntersectionObserver !== 'undefined') {
           intersectionObserverRef.current = new IntersectionObserver((entries) => {
             const entry = entries[0]
-            if (entry && entry.isIntersecting && mapInstanceRef.current) { console.log("👀 Map container became visible - resizing map"); mapInstanceRef.current.resize() }
+            if (entry && entry.isIntersecting && mapInstanceRef.current) { 
+              console.log("👀 Map container became visible - resizing map")
+              try {
+                if (typeof mapInstanceRef.current.resize === 'function') {
+                  mapInstanceRef.current.resize()
+                }
+              } catch (error) {
+                console.warn("⚠️ Map resize failed in IntersectionObserver:", error)
+              }
+            }
           }, { threshold: 0.1 })
           intersectionObserverRef.current.observe(mapRef.current)
         }
 
         // Window events
-        const onWindowResize = () => map.resize()
-        const onVisibility = () => map.resize()
+        const onWindowResize = () => {
+          try {
+            if (map && typeof map.resize === 'function') {
+              map.resize()
+            }
+          } catch (error) {
+            console.warn("⚠️ Map resize failed on window resize:", error)
+          }
+        }
+        const onVisibility = () => {
+          try {
+            if (map && typeof map.resize === 'function') {
+              map.resize()
+            }
+          } catch (error) {
+            console.warn("⚠️ Map resize failed on visibility change:", error)
+          }
+        }
         window.addEventListener('resize', onWindowResize)
         document.addEventListener('visibilitychange', onVisibility)
         document.addEventListener('fullscreenchange', onVisibility)
