@@ -2217,13 +2217,7 @@ export default function PropertyListingPage() {
         {/* Enhanced Recommendations Section - Only show when not searching */}
         {currentPage === "home" && viewMode === "grid" && !searchTerm && activeFilter === 'all' && !isPriceFiltered && (nearbyProperties.length > 0 || budgetFriendly.length > 0) && (
           <div className="space-y-8 mb-8">
-            {/* Welcome Message */}
-            <div className="text-center py-6">
-              <h2 className="text-3xl font-bold text-slate-900 mb-3">✨ Personalized Just For You</h2>
-              <p className="text-lg text-slate-600 max-w-2xl mx-auto">
-                Based on your preferences and location, we've curated these special property collections
-              </p>
-            </div>
+            
 
             {/* Nearby Properties */}
             {nearbyProperties.length > 0 && (
