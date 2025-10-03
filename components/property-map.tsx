@@ -360,15 +360,15 @@ export default function PropertyMap({
 
             if (!response.ok) {
               console.warn(`⚠️ ML API failed for property ${property._id}, using price fallback`)
-              // Price-based fallback
+              // Price-based fallback based on actual data (₱2,000 - ₱12,000)
               const price = property.price || 0
               let cluster
-              if (price <= 7000) {
-                cluster = 0 // Low Budget (≤ ₱7,000)
-              } else if (price <= 14000) {
-                cluster = 1 // Mid Range (₱7,001 - ₱14,000)
+              if (price <= 4000) {
+                cluster = 0 // Low Budget (₱2,000 - ₱4,000)
+              } else if (price <= 7000) {
+                cluster = 1 // Mid Range (₱4,001 - ₱7,000)
               } else {
-                cluster = 2 // High End (> ₱14,000)
+                cluster = 2 // High End (₱7,001 - ₱12,000)
               }
               return { ...property, cluster }
             }
@@ -384,15 +384,15 @@ export default function PropertyMap({
             return { ...property, cluster }
           } catch (error) {
             console.warn(`⚠️ Error classifying property ${property._id}:`, error)
-            // Price-based fallback on error
+            // Price-based fallback based on actual data (₱2,000 - ₱12,000)
             const price = property.price || 0
             let cluster
-            if (price <= 2000) {
-              cluster = 0 // Low Budget
-            } else if (price <= 5000) {
-              cluster = 1 // Mid Range
+            if (price <= 4000) {
+              cluster = 0 // Low Budget (₱2,000 - ₱4,000)
+            } else if (price <= 7000) {
+              cluster = 1 // Mid Range (₱4,001 - ₱7,000)
             } else {
-              cluster = 2 // High End
+              cluster = 2 // High End (₱7,001 - ₱12,000)
             }
             return { ...property, cluster }
           }
@@ -407,16 +407,16 @@ export default function PropertyMap({
       setMlProperties(classifiedProperties)
     } catch (error) {
       console.error('❌ Error fetching properties from database:', error)
-      // Final fallback: Use props with price-based clustering
+      // Final fallback: Use props with price-based clustering (₱2,000 - ₱12,000)
       const clusteredProperties = properties.map((prop) => {
         const price = prop.price || 0
         let cluster
-        if (price <= 2000) {
-          cluster = 0 // Low Budget (≤ ₱2,000)
-        } else if (price <= 5000) {
-          cluster = 1 // Mid Range (₱2,001 - ₱5,000)
+        if (price <= 4000) {
+          cluster = 0 // Low Budget (₱2,000 - ₱4,000)
+        } else if (price <= 7000) {
+          cluster = 1 // Mid Range (₱4,001 - ₱7,000)
         } else {
-          cluster = 2 // High End (> ₱5,000)
+          cluster = 2 // High End (₱7,001 - ₱12,000)
         }
         return { ...prop, cluster }
       })
