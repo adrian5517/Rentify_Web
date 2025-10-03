@@ -1,5 +1,5 @@
-﻿"use client"
-import { useState, useEffect, useMemo } from "react"
+﻿﻿"use client"
+import { useState, useEffect, useRef, useMemo } from "react"
 import Image from "next/image"
 import {
   Search,
@@ -20,6 +20,14 @@ import {
   List,
   ChevronLeft,
   ChevronRight,
+  Send,
+  ImageIcon,
+  Smile,
+  MoreVertical,
+  Paperclip,
+  Heart,
+  ThumbsUp,
+  X,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -634,43 +642,374 @@ function ImageViewer({ images, initialIndex, isOpen, onClose, propertyName }: Im
 // }
 
 function MessagesPage() {
-  const messages = [
-    { id: 1, name: "John Santos", message: "Is the apartment still available?", time: "2 hours ago", unread: true },
-    { id: 2, name: "Maria Cruz", message: "Can we schedule a viewing?", time: "5 hours ago", unread: true },
-    { id: 3, name: "Robert Kim", message: "Thank you for the tour!", time: "1 day ago", unread: false },
-    { id: 4, name: "Lisa Wong", message: "What's included in the rent?", time: "2 days ago", unread: false },
+  // Enhanced message type with more features
+  type Message = {
+    id: string
+    fromMe: boolean
+    text?: string
+    image?: string
+    time: string
+    reactions?: { emoji: string; count: number }[]
+    type: 'text' | 'image'
+  }
+
+  type Contact = {
+    id: number
+    name: string
+    avatar: string
+    unread: number
+    online: boolean
+    lastSeen?: string
+    typing?: boolean
+  }
+
+  // Enhanced contacts with online status
+  const contacts: Contact[] = [
+    { id: 1, name: "John Santos", avatar: "J", unread: 2, online: true, typing: false },
+    { id: 2, name: "Maria Cruz", avatar: "M", unread: 0, online: true, typing: true },
+    { id: 3, name: "Robert Kim", avatar: "R", unread: 0, online: false, lastSeen: "2 hours ago" },
+    { id: 4, name: "Lisa Wong", avatar: "L", unread: 1, online: false, lastSeen: "1 day ago" },
   ]
 
+  // Enhanced chat history with different message types
+  const chatHistory: { [key: number]: Message[] } = {
+    1: [
+      { id: '1', fromMe: false, text: "Is the apartment still available?", time: "2 hours ago", type: 'text' },
+      { id: '2', fromMe: true, text: "Yes, it's available! Would you like to schedule a viewing?", time: "2 hours ago", type: 'text' },
+      { id: '3', fromMe: false, text: "Sure, how about tomorrow?", time: "1 hour ago", type: 'text', reactions: [{ emoji: '👍', count: 1 }] },
+      { id: '4', fromMe: false, image: "https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=300&h=200&fit=crop", time: "30 min ago", type: 'image' },
+    ],
+    2: [
+      { id: '5', fromMe: false, text: "Can we schedule a viewing?", time: "5 hours ago", type: 'text' },
+      { id: '6', fromMe: true, text: "Absolutely! What time works for you?", time: "5 hours ago", type: 'text' },
+    ],
+    3: [
+      { id: '7', fromMe: false, text: "Thank you for the tour!", time: "1 day ago", type: 'text' },
+      { id: '8', fromMe: true, text: "You're welcome! Let me know if you have more questions.", time: "1 day ago", type: 'text' },
+    ],
+    4: [
+      { id: '9', fromMe: false, text: "What's included in the rent?", time: "2 days ago", type: 'text' },
+      { id: '10', fromMe: true, text: "Water, internet, and parking are included.", time: "2 days ago", type: 'text' },
+    ],
+  }
+
+  const [selectedContact, setSelectedContact] = useState(contacts[0].id)
+  const [input, setInput] = useState("")
+  const [messages, setMessages] = useState<Message[]>(chatHistory[selectedContact])
+  const [searchQuery, setSearchQuery] = useState("")
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false)
+  const [imagePreview, setImagePreview] = useState<string | null>(null)
+
+  const fileInputRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    setMessages(chatHistory[selectedContact] || [])
+  }, [selectedContact])
+
+  const handleSend = () => {
+    if (!input.trim() && !imagePreview) return
+    
+    const newMessage: Message = {
+      id: Date.now().toString(),
+      fromMe: true,
+      text: input || undefined,
+      image: imagePreview || undefined,
+      time: "now",
+      type: imagePreview ? 'image' : 'text'
+    }
+    
+    setMessages(prev => [...prev, newMessage])
+    setInput("")
+    setImagePreview(null)
+  }
+
+  const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (file) {
+      const reader = new FileReader()
+      reader.onload = (e) => {
+        setImagePreview(e.target?.result as string)
+      }
+      reader.readAsDataURL(file)
+    }
+  }
+
+  const addReaction = (messageId: string, emoji: string) => {
+    setMessages(prev => prev.map(msg => {
+      if (msg.id === messageId) {
+        const reactions = msg.reactions || []
+        const existingReaction = reactions.find(r => r.emoji === emoji)
+        if (existingReaction) {
+          existingReaction.count += 1
+        } else {
+          reactions.push({ emoji, count: 1 })
+        }
+        return { ...msg, reactions }
+      }
+      return msg
+    }))
+  }
+
+  const filteredContacts = contacts.filter(contact => 
+    contact.name.toLowerCase().includes(searchQuery.toLowerCase())
+  )
+
+  const selectedContactData = contacts.find(c => c.id === selectedContact)
+
   return (
-    <div className="space-y-6">
-      <div className="text-center py-8">
-        <MessageCircle className="h-16 w-16 mx-auto text-blue-600 mb-4" />
-        <h2 className="text-2xl font-bold text-slate-900 mb-2">Messages</h2>
-        <p className="text-slate-600">Stay connected with potential tenants</p>
-      </div>
-      <div className="space-y-4">
-        {messages.map((message) => (
-          <Card
-            key={message.id}
-            className={`hover:shadow-lg transition-shadow ${message.unread ? "border-blue-200 bg-blue-50/50" : ""}`}
-          >
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between mb-2">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-full flex items-center justify-center">
-                    <span className="text-white font-semibold text-sm">{message.name.charAt(0)}</span>
+    <div className="max-w-6xl mx-auto py-6">
+      <div className="flex rounded-3xl shadow-2xl bg-white border border-slate-200 overflow-hidden" style={{ height: 'calc(100vh - 200px)' }}>
+        {/* Enhanced Contacts Sidebar */}
+        <aside className="w-1/3 bg-gradient-to-br from-slate-50 to-purple-50 flex flex-col">
+          {/* Sidebar Header */}
+          <div className="p-6 border-b border-slate-200">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-2xl font-bold text-slate-900">Messages</h2>
+              <button className="p-2 hover:bg-slate-200 rounded-full transition-colors">
+                <MoreVertical className="h-5 w-5 text-slate-600" />
+              </button>
+            </div>
+            {/* Search Bar */}
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
+              <Input
+                placeholder="Search conversations..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-10 h-10 rounded-full border-slate-300 bg-white/80 focus:bg-white"
+              />
+            </div>
+          </div>
+          
+          {/* Contacts List */}
+          <div className="flex-1 overflow-y-auto p-3">
+            <div className="space-y-2">
+              {filteredContacts.map((contact) => (
+                <button
+                  key={contact.id}
+                  onClick={() => setSelectedContact(contact.id)}
+                  className={`w-full flex items-center gap-3 p-3 rounded-2xl transition-all duration-200 text-left hover:bg-white/70 ${
+                    selectedContact === contact.id
+                      ? "bg-white shadow-md ring-2 ring-purple-200"
+                      : "hover:shadow-sm"
+                  }`}
+                >
+                  <div className="relative">
+                    <div className="w-12 h-12 rounded-full bg-gradient-to-br from-purple-500 to-fuchsia-400 flex items-center justify-center font-bold text-white text-lg shadow-md">
+                      {contact.avatar}
+                    </div>
+                    {/* Online Status */}
+                    {contact.online && (
+                      <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-green-500 border-2 border-white rounded-full"></div>
+                    )}
+                    {/* Unread Badge */}
+                    {contact.unread > 0 && (
+                      <div className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-xs font-bold rounded-full flex items-center justify-center animate-pulse">
+                        {contact.unread}
+                      </div>
+                    )}
                   </div>
-                  <div>
-                    <h3 className="font-semibold text-slate-900">{message.name}</h3>
-                    <p className="text-sm text-slate-600">{message.time}</p>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between">
+                      <h3 className="font-semibold text-slate-900 truncate">{contact.name}</h3>
+                      {contact.typing && (
+                        <div className="flex space-x-1">
+                          <div className="w-1 h-1 bg-purple-500 rounded-full animate-bounce"></div>
+                          <div className="w-1 h-1 bg-purple-500 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
+                          <div className="w-1 h-1 bg-purple-500 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                        </div>
+                      )}
+                    </div>
+                    <p className="text-sm text-slate-500 truncate">
+                      {contact.online ? "Online" : contact.typing ? "Typing..." : `Last seen ${contact.lastSeen}`}
+                    </p>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+        </aside>
+
+        {/* Enhanced Chat Panel */}
+        <section className="flex-1 flex flex-col bg-gradient-to-br from-white to-slate-50">
+          {/* Chat Header */}
+          <div className="flex items-center justify-between p-6 border-b border-slate-200 bg-white/80 backdrop-blur-sm">
+            <div className="flex items-center gap-3">
+              <div className="relative">
+                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-fuchsia-400 flex items-center justify-center font-bold text-white shadow-md">
+                  {selectedContactData?.avatar}
+                </div>
+                {selectedContactData?.online && (
+                  <div className="absolute -bottom-1 -right-1 w-3 h-3 bg-green-500 border-2 border-white rounded-full"></div>
+                )}
+              </div>
+              <div>
+                <h3 className="font-bold text-slate-900 text-lg">{selectedContactData?.name}</h3>
+                <p className="text-sm text-slate-500">
+                  {selectedContactData?.online ? "Online" : selectedContactData?.typing ? "Typing..." : `Last seen ${selectedContactData?.lastSeen}`}
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <button className="p-2 hover:bg-slate-100 rounded-full transition-colors">
+                <Phone className="h-5 w-5 text-slate-600" />
+              </button>
+              <button className="p-2 hover:bg-slate-100 rounded-full transition-colors">
+                <MoreVertical className="h-5 w-5 text-slate-600" />
+              </button>
+            </div>
+          </div>
+
+          {/* Messages Container */}
+          <div className="flex-1 overflow-y-auto p-6 space-y-4">
+            {messages.map((message) => (
+              <div key={message.id} className={`flex ${message.fromMe ? "justify-end" : "justify-start"}`}>
+                <div className={`group max-w-[70%] relative`}>
+                  {/* Message Bubble */}
+                  <div className={`px-4 py-3 rounded-2xl shadow-sm transition-all duration-200 hover:shadow-md ${
+                    message.fromMe
+                      ? "bg-gradient-to-r from-purple-600 to-fuchsia-500 text-white ml-auto"
+                      : "bg-white text-slate-800 border border-slate-100"
+                  }`}>
+                    {message.type === 'text' && message.text && (
+                      <p className="text-sm leading-relaxed">{message.text}</p>
+                    )}
+                    {message.type === 'image' && message.image && (
+                      <div className="rounded-lg overflow-hidden">
+                        <img src={message.image} alt="Shared image" className="max-w-full h-auto" />
+                      </div>
+                    )}
+                    <div className={`text-xs mt-2 ${
+                      message.fromMe ? "text-purple-100" : "text-slate-400"
+                    }`}>
+                      {message.time}
+                    </div>
+                  </div>
+
+                  {/* Reactions */}
+                  {message.reactions && message.reactions.length > 0 && (
+                    <div className="flex gap-1 mt-1">
+                      {message.reactions.map((reaction, idx) => (
+                        <div key={idx} className="bg-white border border-slate-200 rounded-full px-2 py-1 text-xs flex items-center gap-1 shadow-sm">
+                          <span>{reaction.emoji}</span>
+                          <span className="text-slate-600">{reaction.count}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Reaction Buttons (appear on hover) */}
+                  <div className="absolute -top-8 right-0 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                    <div className="flex gap-1 bg-white border border-slate-200 rounded-full p-1 shadow-lg">
+                      {['❤️', '👍', '😊', '😂'].map((emoji) => (
+                        <button
+                          key={emoji}
+                          onClick={() => addReaction(message.id, emoji)}
+                          className="p-1 hover:bg-slate-100 rounded-full transition-colors"
+                          title={`React with ${emoji}`}
+                        >
+                          <span className="text-sm">{emoji}</span>
+                        </button>
+                      ))}
+                    </div>
                   </div>
                 </div>
-                {message.unread && <div className="w-3 h-3 bg-blue-600 rounded-full"></div>}
               </div>
-              <p className="text-slate-700 ml-13">{message.message}</p>
-            </CardContent>
-          </Card>
-        ))}
+            ))}
+          </div>
+
+          {/* Image Preview */}
+          {imagePreview && (
+            <div className="px-6 py-3 border-t border-slate-200 bg-slate-50">
+              <div className="flex items-center gap-3">
+                <div className="relative">
+                  <img src={imagePreview} alt="Preview" className="w-16 h-16 object-cover rounded-lg" />
+                  <button
+                    onClick={() => setImagePreview(null)}
+                    className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                </div>
+                <p className="text-sm text-slate-600">Ready to send image</p>
+              </div>
+            </div>
+          )}
+
+          {/* Input Area */}
+          <div className="p-6 border-t border-slate-200 bg-white">
+            <div className="flex items-end gap-3">
+              {/* Attachment Button */}
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                className="p-3 hover:bg-slate-100 rounded-full transition-colors"
+                title="Attach image"
+              >
+                <Paperclip className="h-5 w-5 text-slate-600" />
+              </button>
+              
+              {/* Message Input */}
+              <div className="flex-1 relative">
+                <Input
+                  value={input}
+                  onChange={(e) => setInput(e.target.value)}
+                  placeholder="Type a message..."
+                  className="h-12 rounded-2xl border-slate-300 focus:border-purple-500 focus:ring-purple-500/20 bg-slate-50 focus:bg-white shadow-sm text-base pr-12"
+                  onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSend(); }}}
+                />
+                {/* Emoji Button */}
+                <button
+                  onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 p-1 hover:bg-slate-200 rounded-full transition-colors"
+                >
+                  <Smile className="h-5 w-5 text-slate-600" />
+                </button>
+              </div>
+              
+              {/* Send Button */}
+              <Button
+                onClick={handleSend}
+                disabled={!input.trim() && !imagePreview}
+                className={`h-12 w-12 rounded-full shadow-lg transition-all duration-200 ${
+                  input.trim() || imagePreview
+                    ? "bg-gradient-to-r from-purple-600 to-fuchsia-500 hover:from-purple-700 hover:to-fuchsia-600 hover:scale-105"
+                    : "bg-slate-300 cursor-not-allowed"
+                }`}
+              >
+                <Send className="h-5 w-5 text-white" />
+              </Button>
+            </div>
+
+            {/* Quick Emoji Picker */}
+            {showEmojiPicker && (
+              <div className="absolute bottom-20 right-6 bg-white border border-slate-200 rounded-2xl p-4 shadow-xl z-50">
+                <div className="grid grid-cols-6 gap-2">
+                  {['😊', '😂', '❤️', '👍', '👎', '😮', '😢', '😡', '🎉', '🔥', '💯', '✨'].map((emoji) => (
+                    <button
+                      key={emoji}
+                      onClick={() => {
+                        setInput(prev => prev + emoji)
+                        setShowEmojiPicker(false)
+                      }}
+                      className="p-2 hover:bg-slate-100 rounded-lg transition-colors text-lg"
+                    >
+                      {emoji}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Hidden File Input */}
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            onChange={handleImageUpload}
+            className="hidden"
+          />
+        </section>
       </div>
     </div>
   )
@@ -1339,7 +1678,7 @@ export default function PropertyListingPage() {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
               <Image
-                src="/title-logo (1).png"
+                src="/icon.png"
                 alt="Rentify - Find Your Perfect Home"
                 width={140}
                 height={36}
