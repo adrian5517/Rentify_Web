@@ -311,22 +311,18 @@ export default function PropertyMap({
   // Keep latest properties reference
   useEffect(() => { propertiesRef.current = properties }, [properties])
 
-  // Static cluster labels and colors for consistent UI
-  const staticLabels = ['Low Budget', 'Mid Range', 'High End']
-  const staticColors = ['#4CAF50', '#FFC107', '#E91E63']
+  // Static cluster labels and colors for consistent UI - Added "All Properties" as default
+  const staticLabels = ['Low Budget', 'Mid Range', 'High End', 'All Properties']
+  const staticColors = ['#4CAF50', '#FFC107', '#E91E63', '#2563eb']
 
-  // Compute dynamic cluster mapping based on average prices
+  // Direct cluster mapping - no need for dynamic remapping since we assign by price
+  // Button index 0 = Low Budget (cluster 0)
+  // Button index 1 = Mid Range (cluster 1)
+  // Button index 2 = High End (cluster 2)
+  // Button index 3 = All Properties (show all)
   const getClusterMapping = useCallback((mlProps: MLProperty[]) => {
-    const clusterStats: ClusterStats[] = []
-    for (let i = 0; i < 3; i++) {
-      const props = mlProps.filter(p => p.cluster === i)
-      const avg = props.length ? props.reduce((sum, p) => sum + (p.price || 0), 0) / props.length : 0
-      clusterStats.push({ idx: i, avg, count: props.length })
-    }
-    // Sort clusters by average price ascending
-    const sorted = [...clusterStats].sort((a, b) => a.avg - b.avg)
-    // Map: clusterMap[buttonIdx] = clusterIndex
-    return sorted.map(x => x.idx)
+    // Simple 1:1 mapping - button index matches cluster index
+    return [0, 1, 2]
   }, [])
 
   // Fetch ML clustered properties from API
@@ -334,60 +330,100 @@ export default function PropertyMap({
     if (!enableClustering || !userLocation) return
 
     setLoadingML(true)
-    const price = 2000 // Default price for clustering
     
     try {
-      // First fetch all properties to ensure we have complete data
+      // Fetch all properties from the database
       const fullPropertyRes = await fetch('https://rentify-server-ge0f.onrender.com/api/properties')
-      const allProperties = await fullPropertyRes.json()
-
-      // Then get ML recommendations
-      const res = await fetch('https://ml-rentify.onrender.com/ml', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          mode: 'kmeans', 
-          price, 
-          latitude: userLocation.lat,
-          longitude: userLocation.lng
-        }),
-      })
-      const mlData = await res.json()
       
-      if (Array.isArray(mlData)) {
-        // Merge ML recommendations with full property data
-        const enrichedData = mlData.map(mlItem => {
-          const fullProperty = allProperties.find((p: any) => p._id === mlItem._id)
-          if (fullProperty) {
-            return {
-              ...fullProperty,
-              cluster: mlItem.cluster,
-              location: fullProperty.location || mlItem.location
-            }
-          }
-          return mlItem
-        })
-        
-        // Fallback: If enrichment failed, use all properties with artificial clusters
-        const hasImages = enrichedData.some(item => item.images && item.images.length > 0)
-        
-        if (!hasImages && allProperties.length > 0) {
-          const fallbackData = allProperties.slice(0, 10).map((property: any, index: number) => ({
-            ...property,
-            cluster: index % 3, // Distribute across 3 clusters
-          }))
-          setMlProperties(fallbackData)
-        } else {
-          setMlProperties(enrichedData)
-        }
+      if (!fullPropertyRes.ok) {
+        throw new Error(`Failed to fetch properties: ${fullPropertyRes.status}`)
       }
+      
+      const allProperties = await fullPropertyRes.json()
+      console.log(`📊 Total properties from database: ${allProperties.length}`)
+
+      // Use new ML API to classify each property
+      console.log('🤖 Classifying properties using KMeans ML API...')
+      const classifiedProperties = await Promise.all(
+        allProperties.map(async (property: any) => {
+          try {
+            // Call the KMeans ML API for each property
+            const response = await fetch('https://new-train-ml.onrender.com/predict_kmeans', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                price: property.price || 0,
+                latitude: property.location.latitude,
+                longitude: property.location.longitude
+              })
+            })
+
+            if (!response.ok) {
+              console.warn(`⚠️ ML API failed for property ${property._id}, using price fallback`)
+              // Price-based fallback
+              const price = property.price || 0
+              let cluster
+              if (price <= 7000) {
+                cluster = 0 // Low Budget (≤ ₱7,000)
+              } else if (price <= 14000) {
+                cluster = 1 // Mid Range (₱7,001 - ₱14,000)
+              } else {
+                cluster = 2 // High End (> ₱14,000)
+              }
+              return { ...property, cluster }
+            }
+
+            const result = await response.json()
+            
+            // Use cluster_id directly from KMeans API (already 0, 1, or 2)
+            // cluster_label will be "Low Budget", "Mid Range", or "High End"
+            const cluster = result.cluster_id
+            
+            console.log(`  ✓ ${property.name}: ${result.cluster_label} (cluster ${cluster})`)
+
+            return { ...property, cluster }
+          } catch (error) {
+            console.warn(`⚠️ Error classifying property ${property._id}:`, error)
+            // Price-based fallback on error
+            const price = property.price || 0
+            let cluster
+            if (price <= 2000) {
+              cluster = 0 // Low Budget
+            } else if (price <= 5000) {
+              cluster = 1 // Mid Range
+            } else {
+              cluster = 2 // High End
+            }
+            return { ...property, cluster }
+          }
+        })
+      )
+
+      console.log(`✅ Classified all ${classifiedProperties.length} properties`)
+      console.log(`   - Low Budget (0): ${classifiedProperties.filter((p: any) => p.cluster === 0).length}`)
+      console.log(`   - Mid Range (1): ${classifiedProperties.filter((p: any) => p.cluster === 1).length}`)
+      console.log(`   - High End (2): ${classifiedProperties.filter((p: any) => p.cluster === 2).length}`)
+      
+      setMlProperties(classifiedProperties)
     } catch (error) {
-      console.error('Error fetching ML clusters:', error)
-      // Fallback to regular properties with artificial clustering
-      setMlProperties(properties.map((prop, index) => ({ ...prop, cluster: index % 3 })))
+      console.error('❌ Error fetching properties from database:', error)
+      // Final fallback: Use props with price-based clustering
+      const clusteredProperties = properties.map((prop) => {
+        const price = prop.price || 0
+        let cluster
+        if (price <= 2000) {
+          cluster = 0 // Low Budget (≤ ₱2,000)
+        } else if (price <= 5000) {
+          cluster = 1 // Mid Range (₱2,001 - ₱5,000)
+        } else {
+          cluster = 2 // High End (> ₱5,000)
+        }
+        return { ...prop, cluster }
+      })
+      setMlProperties(clusteredProperties)
     }
     setLoadingML(false)
-  }, [enableClustering, userLocation?.lat, userLocation?.lng]) // Fixed dependency array
+  }, [enableClustering, userLocation?.lat, userLocation?.lng, properties])
 
   // Get turn-by-turn directions
   const getTurnByTurnDirections = useCallback(async (start: [number, number], end: [number, number]) => {
@@ -605,12 +641,20 @@ export default function PropertyMap({
     const activeProperties = enableClustering && mlProperties.length > 0 ? mlProperties : props
     
     // Filter by selected cluster if clustering is enabled
+    // Index 3 = "All Properties" - show all properties without filtering
     const filteredProperties = enableClustering && mlProperties.length > 0 
       ? (() => {
+          if (selectedCluster === 3) {
+            // Show all properties when "All Properties" is selected
+            return mlProperties
+          }
+          // Filter by specific cluster (0=Low Budget, 1=Mid Range, 2=High End)
           const clusterMap = getClusterMapping(mlProperties)
           return mlProperties.filter(p => p.cluster === clusterMap[selectedCluster])
         })()
       : activeProperties
+
+    console.log(`🗺️ Displaying ${filteredProperties.length} properties for cluster: ${staticLabels[selectedCluster] || selectedCluster}`)
 
     // Only add user marker if not focusing on a single property
     if (!focusOnProperty) {
@@ -634,9 +678,11 @@ export default function PropertyMap({
 
         // Dynamic marker color based on cluster or status
         let markerColor = "#10b981" // Default green
-        if (enableClustering && property.cluster !== undefined) {
+        if (enableClustering && property.cluster !== undefined && selectedCluster !== 3) {
+          // Use cluster color only if not in "All Properties" view
           markerColor = staticColors[selectedCluster]
         } else {
+          // In "All Properties" view or when clustering is disabled, use status colors
           markerColor = property.status === "Available" ? "#10b981" : property.status === "Rented" ? "#f59e0b" : "#ef4444"
         }
 

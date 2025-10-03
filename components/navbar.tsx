@@ -26,7 +26,7 @@ export default function Navbar({ currentPage, onPageChange }: NavbarProps) {
     // { id: "list", label: "List", icon: List },
     { id: "messages", label: "Messages", icon: MessageCircle, badge: 3 },
     { id: "analytics", label: "Analytics", icon: TrendingUp },
-    { id: "profile", label: "Profile", icon: User },
+    // Profile removed - now accessed via profile picture
   ]
 
   const handleNavigation = (page: string) => {
@@ -72,12 +72,44 @@ export default function Navbar({ currentPage, onPageChange }: NavbarProps) {
         <div className="ml-auto flex items-center gap-2">
           {user ? (
             <>
-              <div className="flex items-center gap-2 px-3 py-2 bg-gradient-to-r from-purple-50 to-indigo-50 rounded-full border border-purple-200">
-                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-600 to-indigo-600 flex items-center justify-center text-white font-semibold text-sm">
-                  {user.username?.charAt(0).toUpperCase() || 'U'}
+              {/* Profile Picture and Name - Click to go to profile */}
+              <button
+                onClick={() => onPageChange("profile")}
+                className={`flex items-center gap-2 px-3 py-2 rounded-full border transition-all duration-300 ${
+                  currentPage === "profile"
+                    ? "bg-gradient-to-r from-purple-600 to-indigo-600 border-purple-600 shadow-lg"
+                    : "bg-gradient-to-r from-purple-50 to-indigo-50 border-purple-200 hover:border-purple-300 hover:shadow-md"
+                }`}
+              >
+                <div className={`w-8 h-8 rounded-full flex items-center justify-center font-semibold text-sm overflow-hidden ${
+                  currentPage === "profile"
+                    ? "bg-white text-purple-600"
+                    : "bg-gradient-to-br from-purple-600 to-indigo-600 text-white"
+                }`}>
+                  {user.profilePicture ? (
+                    <img 
+                      src={user.profilePicture} 
+                      alt={user.username || user.name || 'User'} 
+                      className="w-full h-full object-cover"
+                      onError={(e) => {
+                        // Fallback to initials if image fails to load
+                        (e.target as HTMLImageElement).style.display = 'none';
+                        (e.target as HTMLImageElement).parentElement!.textContent = 
+                          (user.username || user.name || 'U').charAt(0).toUpperCase();
+                      }}
+                    />
+                  ) : (
+                    (user.username || user.name || 'U').charAt(0).toUpperCase()
+                  )}
                 </div>
-                <span className="text-sm font-semibold text-slate-700">{user.username}</span>
-              </div>
+                <span className={`text-sm font-semibold ${
+                  currentPage === "profile" ? "text-white" : "text-slate-700"
+                }`}>
+                  {user.name || user.username}
+                </span>
+              </button>
+              
+              {/* Logout Button */}
               <Button
                 variant="ghost"
                 size="sm"
@@ -150,12 +182,43 @@ export default function Navbar({ currentPage, onPageChange }: NavbarProps) {
               <div className="border-t border-slate-200 mt-2 pt-2 px-4 pb-2 space-y-2">
                 {user ? (
                   <>
-                    <div className="flex items-center gap-2 px-3 py-2 bg-gradient-to-r from-purple-50 to-indigo-50 rounded-lg border border-purple-200">
-                      <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-600 to-indigo-600 flex items-center justify-center text-white font-semibold text-sm">
-                        {user.username?.charAt(0).toUpperCase() || 'U'}
+                    {/* Mobile Profile Button - Click to go to profile */}
+                    <button
+                      onClick={() => handleNavigation("profile")}
+                      className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg border transition-all ${
+                        currentPage === "profile"
+                          ? "bg-gradient-to-r from-purple-600 to-indigo-600 border-purple-600 text-white"
+                          : "bg-gradient-to-r from-purple-50 to-indigo-50 border-purple-200"
+                      }`}
+                    >
+                      <div className={`w-8 h-8 rounded-full flex items-center justify-center font-semibold text-sm overflow-hidden ${
+                        currentPage === "profile"
+                          ? "bg-white text-purple-600"
+                          : "bg-gradient-to-br from-purple-600 to-indigo-600 text-white"
+                      }`}>
+                        {user.profilePicture ? (
+                          <img 
+                            src={user.profilePicture} 
+                            alt={user.username || user.name || 'User'} 
+                            className="w-full h-full object-cover"
+                            onError={(e) => {
+                              (e.target as HTMLImageElement).style.display = 'none';
+                              (e.target as HTMLImageElement).parentElement!.textContent = 
+                                (user.username || user.name || 'U').charAt(0).toUpperCase();
+                            }}
+                          />
+                        ) : (
+                          (user.username || user.name || 'U').charAt(0).toUpperCase()
+                        )}
                       </div>
-                      <span className="text-sm font-semibold text-slate-700">{user.username}</span>
-                    </div>
+                      <span className={`text-sm font-semibold flex-1 text-left ${
+                        currentPage === "profile" ? "text-white" : "text-slate-700"
+                      }`}>
+                        {user.name || user.username}
+                      </span>
+                    </button>
+                    
+                    {/* Logout Button */}
                     <Button
                       variant="ghost"
                       size="sm"

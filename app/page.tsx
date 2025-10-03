@@ -1183,10 +1183,10 @@ export default function PropertyListingPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   
-  // New clustering state
-  const [selectedCluster, setSelectedCluster] = useState(0)
-  const [enableClustering, setEnableClustering] = useState(false)
-  const [navigationMode, setNavigationMode] = useState(false)
+  // New clustering state - Always enabled with "All Properties" as default
+  const [selectedCluster, setSelectedCluster] = useState(3) // 3 = All Properties (new default)
+  const [enableClustering, setEnableClustering] = useState(true) // Always ON
+  const [navigationMode, setNavigationMode] = useState(true) // Always ON
   
   // View All filtering state
   const [activeFilter, setActiveFilter] = useState<'all' | 'nearby' | 'budget'>('all')
@@ -1749,37 +1749,7 @@ export default function PropertyListingPage() {
                     </button>
                   </div>
                   
-                  {/* Clustering Toggle - only show in map view */}
-                  {viewMode === "map" && (
-                    <div className="hidden md:flex items-center rounded-full border border-slate-200 p-1 bg-white shadow-sm">
-                      <button
-                        onClick={() => setEnableClustering(!enableClustering)}
-                        className={`flex items-center gap-2 px-3 h-9 rounded-full text-sm transition-colors ${
-                          enableClustering
-                            ? "bg-blue-600 text-white shadow-sm"
-                            : "text-slate-700 hover:bg-slate-100"
-                        }`}
-                        title={enableClustering ? "Disable ML Clustering" : "Enable ML Clustering"}
-                      >
-                        <span className="text-xs">🧠</span>
-                        {enableClustering ? "ML On" : "ML Off"}
-                      </button>
-                      
-                      {/* Navigation Toggle */}
-                      <button
-                        onClick={() => setNavigationMode(!navigationMode)}
-                        className={`flex items-center gap-2 px-3 h-9 rounded-full text-sm transition-colors ${
-                          navigationMode
-                            ? "bg-green-600 text-white shadow-sm"
-                            : "text-slate-700 hover:bg-slate-100"
-                        }`}
-                        title={navigationMode ? "Disable Navigation" : "Enable Navigation"}
-                      >
-                        <span className="text-xs">🧭</span>
-                        {navigationMode ? "Nav On" : "Nav Off"}
-                      </button>
-                    </div>
-                  )}
+                  {/* Removed ML and Navigation toggles - now always enabled */}
                 </>
               )}
             </div>
