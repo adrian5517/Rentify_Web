@@ -41,6 +41,7 @@ import { type Property } from "@/lib/property-data"
 import { getRecommendations, clusterProperties } from "@/lib/ml-utils"
 import AnalyticsDashboard from "@/components/analytics-dashboard"
 import AddPropertyModal from "@/components/add-property-modal"
+import AuthProtected from "@/components/auth-protected"
 
 // API Property interface matching the API response
 interface APIProperty {
@@ -1415,11 +1416,23 @@ export default function PropertyListingPage() {
       // case "list":
       //   return <ListPage onOpenModal={handleOpenModal} properties={properties} />
       case "messages":
-        return <MessagesPage />
+        return (
+          <AuthProtected>
+            <MessagesPage />
+          </AuthProtected>
+        )
       case "profile":
-        return <ProfilePage />
+        return (
+          <AuthProtected>
+            <ProfilePage />
+          </AuthProtected>
+        )
       case "analytics":
-        return <AnalyticsPage />
+        return (
+          <AuthProtected>
+            <AnalyticsPage />
+          </AuthProtected>
+        )
       default:
         return (
           <>

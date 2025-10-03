@@ -192,7 +192,6 @@ const modernStyles = `
 
 // Set your Mapbox access token from environment variable (required)
 mapboxgl.accessToken = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN || 'pk.eyJ1IjoiYWRyaWFuNTUxNyIsImEiOiJjbWZkdTg4dmIwMThpMnFyNG10cWJwZjRhIn0.JLRzE6qmyDfePYgSs11ALg'
-
 interface PropertyMapProps {
   properties: Property[]
   clusters?: any[]
@@ -1184,7 +1183,7 @@ export default function PropertyMap({
         </div>
       )}
 
-      <div ref={mapRef} className="absolute inset-0 rounded-3xl overflow-hidden" style={{ backgroundColor: "#f8fafc" }} />
+      <div ref={mapRef} className="absolute inset-0 rounded-3xl overflow-hidden" style={{ backgroundColor: "#f8fafc", minHeight: "600px" }} />
 
       {/* Modern Enhanced controls section */}
       <div className="absolute bottom-6 right-6 z-10 flex flex-col gap-3 animate-slide-up">

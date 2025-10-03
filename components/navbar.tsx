@@ -1,9 +1,12 @@
 "use client"
 
-import { Navigation, List, MessageCircle, User, Home, TrendingUp, Menu, X } from "lucide-react"
+import { Navigation, List, MessageCircle, User, Home, TrendingUp, Menu, X, LogOut } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { useState } from "react"
+import { useAuthStore } from "@/lib/auth-store"
+import LoginModal from "./login-modal"
+import SignupModal from "./signup-modal"
 
 interface NavbarProps {
   currentPage: string
@@ -12,6 +15,10 @@ interface NavbarProps {
 
 export default function Navbar({ currentPage, onPageChange }: NavbarProps) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+  const [isLoginOpen, setIsLoginOpen] = useState(false)
+  const [isSignupOpen, setIsSignupOpen] = useState(false)
+  
+  const { user, logout } = useAuthStore()
 
   const navItems = [
     { id: "home", label: "Home", icon: Home },
@@ -24,6 +31,12 @@ export default function Navbar({ currentPage, onPageChange }: NavbarProps) {
 
   const handleNavigation = (page: string) => {
     onPageChange(page)
+    setIsMobileMenuOpen(false)
+  }
+
+  const handleLogout = () => {
+    logout()
+    onPageChange("home")
     setIsMobileMenuOpen(false)
   }
 
@@ -54,6 +67,47 @@ export default function Navbar({ currentPage, onPageChange }: NavbarProps) {
             </Button>
           )
         })}
+        
+        {/* Auth buttons on the right */}
+        <div className="ml-auto flex items-center gap-2">
+          {user ? (
+            <>
+              <div className="flex items-center gap-2 px-3 py-2 bg-gradient-to-r from-purple-50 to-indigo-50 rounded-full border border-purple-200">
+                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-600 to-indigo-600 flex items-center justify-center text-white font-semibold text-sm">
+                  {user.username?.charAt(0).toUpperCase() || 'U'}
+                </div>
+                <span className="text-sm font-semibold text-slate-700">{user.username}</span>
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleLogout}
+                className="rounded-full px-3 py-2 text-sm font-medium text-red-600 hover:text-red-700 hover:bg-red-50"
+              >
+                <LogOut className="h-4 w-4 mr-2" />
+                Logout
+              </Button>
+            </>
+          ) : (
+            <>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setIsLoginOpen(true)}
+                className="rounded-full px-4 py-2 text-sm font-medium text-slate-600 hover:text-slate-900 hover:bg-slate-100"
+              >
+                Login
+              </Button>
+              <Button
+                size="sm"
+                onClick={() => setIsSignupOpen(true)}
+                className="rounded-full px-4 py-2 text-sm font-semibold bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white shadow-md hover:shadow-lg transition-all"
+              >
+                Sign Up
+              </Button>
+            </>
+          )}
+        </div>
       </div>
 
       {/* Mobile: hamburger button and dropdown aligned to right */}
@@ -91,10 +145,75 @@ export default function Navbar({ currentPage, onPageChange }: NavbarProps) {
                   </button>
                 )
               })}
+              
+              {/* Mobile auth buttons */}
+              <div className="border-t border-slate-200 mt-2 pt-2 px-4 pb-2 space-y-2">
+                {user ? (
+                  <>
+                    <div className="flex items-center gap-2 px-3 py-2 bg-gradient-to-r from-purple-50 to-indigo-50 rounded-lg border border-purple-200">
+                      <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-600 to-indigo-600 flex items-center justify-center text-white font-semibold text-sm">
+                        {user.username?.charAt(0).toUpperCase() || 'U'}
+                      </div>
+                      <span className="text-sm font-semibold text-slate-700">{user.username}</span>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={handleLogout}
+                      className="w-full rounded-lg px-3 py-2 text-sm font-medium text-red-600 hover:text-red-700 hover:bg-red-50"
+                    >
+                      <LogOut className="h-4 w-4 mr-2" />
+                      Logout
+                    </Button>
+                  </>
+                ) : (
+                  <>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        setIsLoginOpen(true)
+                        setIsMobileMenuOpen(false)
+                      }}
+                      className="w-full rounded-lg px-3 py-2 text-sm font-medium text-slate-600 hover:text-slate-900 hover:bg-slate-100"
+                    >
+                      Login
+                    </Button>
+                    <Button
+                      size="sm"
+                      onClick={() => {
+                        setIsSignupOpen(true)
+                        setIsMobileMenuOpen(false)
+                      }}
+                      className="w-full rounded-lg px-3 py-2 text-sm font-semibold bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white shadow-md hover:shadow-lg transition-all"
+                    >
+                      Sign Up
+                    </Button>
+                  </>
+                )}
+              </div>
             </div>
           </div>
         )}
       </div>
+      
+      {/* Auth Modals */}
+      <LoginModal 
+        isOpen={isLoginOpen} 
+        onClose={() => setIsLoginOpen(false)}
+        onSwitchToSignup={() => {
+          setIsLoginOpen(false)
+          setIsSignupOpen(true)
+        }}
+      />
+      <SignupModal 
+        isOpen={isSignupOpen} 
+        onClose={() => setIsSignupOpen(false)}
+        onSwitchToLogin={() => {
+          setIsSignupOpen(false)
+          setIsLoginOpen(true)
+        }}
+      />
     </div>
   )
 }
