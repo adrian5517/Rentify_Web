@@ -1372,16 +1372,20 @@ export default function PropertyListingPage() {
         <div className="flex items-center justify-center min-h-[400px]">
           <div className="text-center">
             {/* Enhanced loading animation */}
-            <div className="relative mx-auto mb-6">
+            <div className="relative w-16 h-16 mx-auto mb-6">
               <div className="w-16 h-16 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin"></div>
               <div className="absolute inset-0 w-16 h-16 border-4 border-transparent border-r-purple-600 rounded-full animate-spin opacity-50" style={{ animationDuration: '1.5s', animationDirection: 'reverse' }}></div>
             </div>
-            <div className="space-y-2">
+            <div className="space-y-3">
               <p className="text-slate-900 text-lg font-semibold">Loading Properties</p>
               <p className="text-slate-600">Finding the perfect rentals for you...</p>
               {/* Loading progress bar */}
-              <div className="w-48 h-1 bg-slate-200 rounded-full mx-auto overflow-hidden">
-                <div className="h-full bg-gradient-to-r from-blue-600 to-purple-600 rounded-full animate-pulse"></div>
+              <div className="w-64 h-2 bg-slate-200 rounded-full mx-auto overflow-hidden shadow-inner">
+                <div className="h-full bg-gradient-to-r from-blue-600 via-purple-600 to-blue-600 rounded-full" style={{ 
+                  width: '200%',
+                  animation: 'shimmer 2s ease-in-out infinite',
+                  backgroundSize: '50% 100%'
+                }}></div>
               </div>
             </div>
           </div>
