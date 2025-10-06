@@ -657,6 +657,7 @@ function MessagesPage() {
     id: string
     name: string
     avatar: string
+    profilePicture?: string // URL to profile picture
     unread: number
     online: boolean
     lastSeen?: string
@@ -734,6 +735,7 @@ function MessagesPage() {
                     id: sender._id,
                     name: displayName,
                     avatar: displayName.charAt(0).toUpperCase(),
+                    profilePicture: sender.profilePicture, // Add profile picture
                     unread: selectedContact !== senderId ? 1 : 0,
                     online: false,
                     lastSeen: "Recently",
@@ -833,6 +835,7 @@ function MessagesPage() {
                     id: user._id,
                     name: displayName,
                     avatar: displayName.charAt(0).toUpperCase(),
+                    profilePicture: user.profilePicture, // Add profile picture from user data
                     unread: 0,
                     online: false,
                     lastSeen: "Recently",
@@ -1120,7 +1123,23 @@ function MessagesPage() {
                   }`}
                 >
                   <div className="relative">
-                    <div className="w-12 h-12 rounded-full bg-gradient-to-br from-purple-500 to-fuchsia-400 flex items-center justify-center font-bold text-white text-lg shadow-md">
+                    {contact.profilePicture ? (
+                      <img 
+                        src={contact.profilePicture.startsWith('http') ? contact.profilePicture : `https://rentify-server-ge0f.onrender.com${contact.profilePicture}`}
+                        alt={contact.name}
+                        className="w-12 h-12 rounded-full object-cover shadow-md"
+                        onError={(e) => {
+                          // Fallback to avatar letter if image fails to load
+                          (e.target as HTMLImageElement).style.display = 'none'
+                          const fallback = (e.target as HTMLImageElement).nextElementSibling as HTMLElement
+                          if (fallback) fallback.style.display = 'flex'
+                        }}
+                      />
+                    ) : null}
+                    <div 
+                      className="w-12 h-12 rounded-full bg-gradient-to-br from-purple-500 to-fuchsia-400 flex items-center justify-center font-bold text-white text-lg shadow-md"
+                      style={{ display: contact.profilePicture ? 'none' : 'flex' }}
+                    >
                       {contact.avatar}
                     </div>
                     {/* Online Status */}
@@ -1161,7 +1180,23 @@ function MessagesPage() {
           <div className="flex items-center justify-between p-6 border-b border-slate-200 bg-white/80 backdrop-blur-sm">
             <div className="flex items-center gap-3">
               <div className="relative">
-                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-fuchsia-400 flex items-center justify-center font-bold text-white shadow-md">
+                {selectedContactData?.profilePicture ? (
+                  <img 
+                    src={selectedContactData.profilePicture.startsWith('http') ? selectedContactData.profilePicture : `https://rentify-server-ge0f.onrender.com${selectedContactData.profilePicture}`}
+                    alt={selectedContactData.name}
+                    className="w-10 h-10 rounded-full object-cover shadow-md"
+                    onError={(e) => {
+                      // Fallback to avatar letter if image fails to load
+                      (e.target as HTMLImageElement).style.display = 'none'
+                      const fallback = (e.target as HTMLImageElement).nextElementSibling as HTMLElement
+                      if (fallback) fallback.style.display = 'flex'
+                    }}
+                  />
+                ) : null}
+                <div 
+                  className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-fuchsia-400 flex items-center justify-center font-bold text-white shadow-md"
+                  style={{ display: selectedContactData?.profilePicture ? 'none' : 'flex' }}
+                >
                   {selectedContactData?.avatar}
                 </div>
                 {selectedContactData?.online && (
