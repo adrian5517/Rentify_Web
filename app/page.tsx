@@ -39,7 +39,6 @@ import PropertyMap from "@/components/property-map"
 import Navbar from "@/components/navbar"
 import { type Property } from "@/lib/property-data"
 import { getRecommendations, clusterProperties } from "@/lib/ml-utils"
-import AnalyticsDashboard from "@/components/analytics-dashboard"
 import AddPropertyModal from "@/components/add-property-modal"
 import AuthProtected from "@/components/auth-protected"
 
@@ -1074,96 +1073,7 @@ function ProfilePage() {
   )
 }
 
-function AnalyticsPage() {
-  return <AnalyticsDashboard />
-}
 
-function AuthPage({ onAuth }: { onAuth: () => void }) {
-  const [isLogin, setIsLogin] = useState(true)
-  const [email, setEmail] = useState("")
-  const [password, setPassword] = useState("")
-  const [name, setName] = useState("")
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    localStorage.setItem("rentify_auth", JSON.stringify({ email, name: name || email }))
-    onAuth()
-  }
-
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 flex items-center justify-center p-4">
-      <Card className="w-full max-w-md backdrop-blur-sm bg-white/90 border-0 shadow-2xl">
-        <CardContent className="p-8">
-          <div className="text-center mb-8">
-            <div className="flex items-center justify-center gap-3 mb-6">
-              <Image
-                src="/titke-logo (1).png"
-                alt="Rentify"
-                width={200}
-                height={52}
-                className="h-12 w-auto"
-                priority
-              />
-            </div>
-            <p className="text-slate-600 text-lg font-medium">Find your perfect rental in Naga City</p>
-          </div>
-          <form onSubmit={handleSubmit} className="space-y-6">
-            {!isLogin && (
-              <div className="space-y-2">
-                <label className="text-sm font-semibold text-slate-700">Full Name</label>
-                <Input
-                  type="text"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  placeholder="Enter your full name"
-                  required={!isLogin}
-                  className="h-12 border-slate-200 focus:border-blue-500 focus:ring-blue-500/20"
-                />
-              </div>
-            )}
-            <div className="space-y-2">
-              <label className="text-sm font-semibold text-slate-700">Email</label>
-              <Input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="Enter your email"
-                required
-                className="h-12 border-slate-200 focus:border-blue-500 focus:ring-blue-500/20"
-              />
-            </div>
-            <div className="space-y-2">
-              <label className="text-sm font-semibold text-slate-700">Password</label>
-              <Input
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="Enter your password"
-                required
-                className="h-12 border-slate-200 focus:border-blue-500 focus:ring-blue-500/20"
-              />
-            </div>
-            <Button
-              type="submit"
-              className="w-full h-12 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all duration-200"
-            >
-              {isLogin ? "Sign In" : "Sign Up"}
-            </Button>
-          </form>
-          <div className="mt-8 text-center">
-            <button
-              type="button"
-              onClick={() => setIsLogin(!isLogin)}
-              className="text-blue-600 hover:text-blue-700 font-medium hover:underline transition-colors"
-            >
-              {isLogin ? "Don't have an account? Sign up" : "Already have an account? Sign in"}
-            </button>
-          </div>
-        </CardContent>
-      </Card>
-    </div>
-  )
-}
 
 export default function PropertyListingPage() {
   const [searchTerm, setSearchTerm] = useState("")
@@ -1431,12 +1341,7 @@ export default function PropertyListingPage() {
             <ProfilePage />
           </AuthProtected>
         )
-      case "analytics":
-        return (
-          <AuthProtected>
-            <AnalyticsPage />
-          </AuthProtected>
-        )
+      
       default:
         return (
           <>

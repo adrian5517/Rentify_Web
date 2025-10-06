@@ -1,7 +1,7 @@
 import type { Metadata } from 'next'
 import { GeistMono } from 'geist/font/mono'
 import { Poppins } from 'next/font/google'
-import { Analytics } from '@vercel/analytics/next'
+
 import './globals.css'
 
 
@@ -22,7 +22,7 @@ export default function RootLayout({
     <html lang="en">
       <body className={`${poppins.className} ${GeistMono.variable}`}>
         {children}
-        <Analytics />
+        
       </body>
     </html>
   )

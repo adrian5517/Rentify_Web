@@ -1,6 +1,6 @@
 "use client"
 
-import { Navigation, List, MessageCircle, User, Home, TrendingUp, Menu, X, LogOut } from "lucide-react"
+import { Navigation, List, MessageCircle, User, Home, Menu, X, LogOut } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { useState } from "react"
@@ -25,7 +25,7 @@ export default function Navbar({ currentPage, onPageChange }: NavbarProps) {
     // { id: "nearby", label: "Nearby", icon: Navigation },
     // { id: "list", label: "List", icon: List },
     { id: "messages", label: "Messages", icon: MessageCircle, badge: 3 },
-    { id: "analytics", label: "Analytics", icon: TrendingUp },
+    
     // Profile removed - now accessed via profile picture
   ]
 

@@ -658,9 +658,56 @@ export default function PropertyMap({
 
     // Only add user marker if not focusing on a single property
     if (!focusOnProperty) {
-      // User marker
+      // User marker with custom person icon
       if (userLocation) {
-        const userMarker = new mapboxgl.Marker({ color: "#3B82F6", scale: 1.0 })
+        // Create custom person icon marker matching property style
+        const userEl = document.createElement('div')
+        userEl.className = 'custom-user-marker'
+        userEl.style.cssText = `
+          width: 50px;
+          height: 50px;
+          cursor: pointer;
+          position: absolute;
+          transform: translate(-50%, -50%);
+          pointer-events: auto;
+        `
+        
+        // Create inner circle with person icon
+        const userInner = document.createElement('div')
+        userInner.style.cssText = `
+          width: 100%;
+          height: 100%;
+          background-color: #3B82F6;
+          border-radius: 50%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+          box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+          border: 3px solid white;
+        `
+        
+        // Add person icon SVG
+        userInner.innerHTML = `
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="pointer-events: none;">
+            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+            <circle cx="12" cy="7" r="4"></circle>
+          </svg>
+        `
+        
+        userEl.appendChild(userInner)
+        
+        // Add hover effect
+        userEl.addEventListener('mouseenter', () => {
+          userInner.style.transform = 'scale(1.15)'
+          userInner.style.boxShadow = '0 8px 20px rgba(59, 130, 246, 0.5)'
+        })
+        userEl.addEventListener('mouseleave', () => {
+          userInner.style.transform = 'scale(1)'
+          userInner.style.boxShadow = '0 4px 12px rgba(59, 130, 246, 0.4)'
+        })
+
+        const userMarker = new mapboxgl.Marker({ element: userEl })
           .setLngLat([userLocation.lng, userLocation.lat])
           .addTo(map)
         markersRef.current.push(userMarker)
@@ -686,7 +733,54 @@ export default function PropertyMap({
           markerColor = property.status === "Available" ? "#10b981" : property.status === "Rented" ? "#f59e0b" : "#ef4444"
         }
 
-        const marker = new mapboxgl.Marker({ color: markerColor, scale: 0.9 })
+        // Create custom home icon marker
+        const el = document.createElement('div')
+        el.className = 'custom-home-marker'
+        el.style.cssText = `
+          width: 50px;
+          height: 50px;
+          cursor: pointer;
+          position: absolute;
+          transform: translate(-50%, -50%);
+          pointer-events: auto;
+        `
+        
+        // Create inner circle that will have the hover effect
+        const inner = document.createElement('div')
+        inner.style.cssText = `
+          width: 100%;
+          height: 100%;
+          background-color: ${markerColor};
+          border-radius: 50%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+          border: 3px solid white;
+        `
+        
+        // Add home icon SVG to inner element
+        inner.innerHTML = `
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="pointer-events: none;">
+            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+            <polyline points="9 22 9 12 15 12 15 22"></polyline>
+          </svg>
+        `
+        
+        el.appendChild(inner)
+        
+        // Add hover effect to inner element
+        el.addEventListener('mouseenter', () => {
+          inner.style.transform = 'scale(1.15)'
+          inner.style.boxShadow = '0 8px 20px rgba(0, 0, 0, 0.3)'
+        })
+        el.addEventListener('mouseleave', () => {
+          inner.style.transform = 'scale(1)'
+          inner.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.2)'
+        })
+
+        const marker = new mapboxgl.Marker({ element: el })
           .setLngLat([property.location.longitude, property.location.latitude])
           .addTo(map)
 
