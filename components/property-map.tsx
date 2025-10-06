@@ -717,10 +717,11 @@ export default function PropertyMap({
     // Property markers
     filteredProperties.forEach((property: MLProperty) => {
       try {
-        let distance = ""
+        let distanceText = ""
+        let distanceKm = 0
         if (userLocation) {
-          const dist = calculateDistance(userLocation.lat, userLocation.lng, property.location.latitude, property.location.longitude)
-          distance = ` • ${dist.toFixed(1)}km away`
+          distanceKm = calculateDistance(userLocation.lat, userLocation.lng, property.location.latitude, property.location.longitude)
+          distanceText = `${distanceKm.toFixed(1)}km away`
         }
 
         // Dynamic marker color based on cluster or status
@@ -744,6 +745,43 @@ export default function PropertyMap({
           transform: translate(-50%, -50%);
           pointer-events: auto;
         `
+        
+        // Create tooltip element
+        const tooltip = document.createElement('div')
+        tooltip.className = 'property-tooltip'
+        tooltip.style.cssText = `
+          position: absolute;
+          bottom: 100%;
+          left: 50%;
+          transform: translateX(-50%) translateY(-8px);
+          background: rgba(255, 255, 255, 0.98);
+          backdrop-filter: blur(20px);
+          border: 1px solid rgba(0, 0, 0, 0.1);
+          border-radius: 12px;
+          padding: 12px 16px;
+          box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+          pointer-events: none;
+          opacity: 0;
+          transition: opacity 0.3s ease, transform 0.3s ease;
+          z-index: 1000;
+          min-width: 220px;
+          white-space: nowrap;
+        `
+        
+        tooltip.innerHTML = `
+          <div style="font-weight: 700; color: #1e293b; font-size: 14px; margin-bottom: 6px; line-height: 1.3;">${property.name}</div>
+          <div style="color: #2563eb; font-weight: 600; font-size: 13px; margin-bottom: 4px;">₱${property.price?.toLocaleString()}/month</div>
+          <div style="color: #64748b; font-size: 12px; margin-bottom: 2px; display: flex; align-items: center; gap: 4px;">
+            <span style="font-size: 10px;">📍</span>
+            <span>${property.location.address}</span>
+          </div>
+          ${distanceText ? `<div style="color: #10b981; font-size: 12px; font-weight: 600; margin-top: 4px; display: flex; align-items: center; gap: 4px;">
+            <span style="font-size: 10px;">🧭</span>
+            <span>${distanceText}</span>
+          </div>` : ''}
+        `
+        
+        el.appendChild(tooltip)
         
         // Create inner circle that will have the hover effect
         const inner = document.createElement('div')
@@ -770,14 +808,18 @@ export default function PropertyMap({
         
         el.appendChild(inner)
         
-        // Add hover effect to inner element
+        // Add hover effect to inner element and show tooltip
         el.addEventListener('mouseenter', () => {
           inner.style.transform = 'scale(1.15)'
           inner.style.boxShadow = '0 8px 20px rgba(0, 0, 0, 0.3)'
+          tooltip.style.opacity = '1'
+          tooltip.style.transform = 'translateX(-50%) translateY(-12px)'
         })
         el.addEventListener('mouseleave', () => {
           inner.style.transform = 'scale(1)'
           inner.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.2)'
+          tooltip.style.opacity = '0'
+          tooltip.style.transform = 'translateX(-50%) translateY(-8px)'
         })
 
         const marker = new mapboxgl.Marker({ element: el })
