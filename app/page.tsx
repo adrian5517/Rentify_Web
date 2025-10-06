@@ -677,6 +677,7 @@ function MessagesPage() {
   const [selectedFiles, setSelectedFiles] = useState<File[]>([])
   const [isConnected, setIsConnected] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
+  const [isInitialLoading, setIsInitialLoading] = useState(true) // For initial page load
 
   const fileInputRef = useRef<HTMLInputElement>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
@@ -806,6 +807,7 @@ function MessagesPage() {
   useEffect(() => {
     if (currentUser) {
       console.log('🔍 Fetching contacts/users...')
+      setIsInitialLoading(true) // Start loading
       
       // Try to fetch real users from backend
       fetchUsers()
@@ -868,6 +870,9 @@ function MessagesPage() {
           console.error('❌ Error fetching users:', error)
           console.log('⚠️ Using empty contacts due to error')
           setContacts([])
+        })
+        .finally(() => {
+          setIsInitialLoading(false) // End loading
         })
     }
   }, [currentUser])
@@ -1069,6 +1074,46 @@ function MessagesPage() {
 
   const selectedContactData = contacts.find(c => c.id === selectedContact)
 
+  // Show loading screen while initial data is being fetched
+  if (isInitialLoading) {
+    return (
+      <div className="max-w-6xl mx-auto py-6">
+        <div className="flex rounded-3xl shadow-2xl bg-white border border-slate-200 overflow-hidden" style={{ height: 'calc(100vh - 200px)' }}>
+          <div className="w-full flex flex-col items-center justify-center">
+            {/* Animated Loader */}
+            <div className="relative">
+              {/* Outer spinning ring */}
+              <div className="w-20 h-20 rounded-full border-4 border-slate-200 border-t-purple-600 animate-spin"></div>
+              
+              {/* Inner pulsing circle */}
+              <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
+                <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-fuchsia-400 rounded-full animate-pulse"></div>
+              </div>
+              
+              {/* Message icon in center */}
+              <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
+                <MessageCircle className="h-6 w-6 text-white" />
+              </div>
+            </div>
+            
+            {/* Loading text */}
+            <div className="mt-6 text-center">
+              <h3 className="text-xl font-bold text-slate-900 mb-2">Loading Messages</h3>
+              <p className="text-slate-600 animate-pulse">Fetching your conversations...</p>
+            </div>
+            
+            {/* Loading dots animation */}
+            <div className="flex gap-2 mt-4">
+              <div className="w-2 h-2 bg-purple-600 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
+              <div className="w-2 h-2 bg-purple-600 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
+              <div className="w-2 h-2 bg-purple-600 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="max-w-6xl mx-auto py-6">
       {/* Connection Status Indicator */}
@@ -1111,8 +1156,21 @@ function MessagesPage() {
           
           {/* Contacts List */}
           <div className="flex-1 overflow-y-auto p-3">
-            <div className="space-y-2">
-              {filteredContacts.map((contact) => (
+            {filteredContacts.length === 0 ? (
+              <div className="flex flex-col items-center justify-center h-full text-center p-6">
+                <div className="w-16 h-16 bg-gradient-to-br from-purple-100 to-fuchsia-100 rounded-full flex items-center justify-center mb-4">
+                  <MessageCircle className="h-8 w-8 text-purple-600" />
+                </div>
+                <h3 className="text-lg font-semibold text-slate-900 mb-2">No Conversations Yet</h3>
+                <p className="text-sm text-slate-500 max-w-xs">
+                  {searchQuery 
+                    ? `No contacts found matching "${searchQuery}"`
+                    : "Start a conversation by sending a message to a user"}
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {filteredContacts.map((contact) => (
                 <button
                   key={contact.id}
                   onClick={() => setSelectedContact(contact.id)}
@@ -1170,7 +1228,8 @@ function MessagesPage() {
                   </div>
                 </button>
               ))}
-            </div>
+              </div>
+            )}
           </div>
         </aside>
 
