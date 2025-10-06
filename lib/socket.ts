@@ -59,3 +59,26 @@ export const disconnectSocket = () => {
     console.log('Socket manually disconnected');
   }
 };
+
+// Typing indicator functions
+export const emitTyping = (senderId: string, receiverId: string) => {
+  if (socket && socket.connected) {
+    socket.emit('typing-start', { senderId, receiverId });
+    console.log('⌨️ Typing indicator sent to:', receiverId);
+  }
+};
+
+export const emitStopTyping = (senderId: string, receiverId: string) => {
+  if (socket && socket.connected) {
+    socket.emit('typing-stop', { senderId, receiverId });
+    console.log('✋ Stop typing indicator sent to:', receiverId);
+  }
+};
+
+// Read receipts functions
+export const markMessagesAsRead = (userId: string, otherUserId: string) => {
+  if (socket && socket.connected) {
+    socket.emit('mark-as-read', { userId, otherUserId });
+    console.log('✓✓ Marking messages as read from:', otherUserId);
+  }
+};

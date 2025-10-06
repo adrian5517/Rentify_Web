@@ -28,6 +28,7 @@ import {
   Heart,
   ThumbsUp,
   X,
+  Check,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -677,6 +678,7 @@ function MessagesPage() {
 
   const fileInputRef = useRef<HTMLInputElement>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
+  const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null)
 
   // Initialize current user and socket connection
   useEffect(() => {
@@ -724,6 +726,30 @@ function MessagesPage() {
           }))
         })
 
+        // Listen for typing indicators
+        socket.on('typing-start', ({ senderId }: { senderId: string }) => {
+          console.log('⌨️ User is typing:', senderId)
+          setContacts(prev => prev.map(contact => 
+            contact.id === senderId ? { ...contact, typing: true } : contact
+          ))
+        })
+
+        socket.on('typing-stop', ({ senderId }: { senderId: string }) => {
+          console.log('✋ User stopped typing:', senderId)
+          setContacts(prev => prev.map(contact => 
+            contact.id === senderId ? { ...contact, typing: false } : contact
+          ))
+        })
+
+        // Listen for read receipts
+        socket.on('messages-read', ({ readBy, count }: { readBy: string; count: number }) => {
+          console.log(`✓✓ ${count} messages marked as read by:`, readBy)
+          // Update all messages from the current user to the readBy user as read
+          setMessages(prev => prev.map(msg => 
+            msg.fromMe && msg.receiver === readBy ? { ...msg, read: true } : msg
+          ))
+        })
+
         return () => {
           console.log('🔴 MessagesPage unmounting - disconnecting socket')
           disconnectSocket()
@@ -747,18 +773,25 @@ function MessagesPage() {
         .then((users) => {
           if (users && users.length > 0) {
             console.log('✅ Fetched users from backend:', users)
+            console.log('📋 Sample user data:', users[0]) // Log first user to see structure
             // Convert users to contacts format
             const contactList: Contact[] = users
               .filter(user => user._id !== currentUser._id) // Exclude current user
-              .map(user => ({
-                id: user._id,
-                name: user.name || user.email,
-                avatar: (user.name || user.email).charAt(0).toUpperCase(),
-                unread: 0,
-                online: false,
-                lastSeen: "Recently"
-              }))
+              .map(user => {
+                // Priority: fullName > name > username > email
+                const displayName = user.fullName || user.name || user.username || user.email
+                console.log(`👤 User ${user._id}: fullName="${user.fullName}", name="${user.name}", username="${user.username}", email="${user.email}" → Display: "${displayName}"`)
+                return {
+                  id: user._id,
+                  name: displayName,
+                  avatar: displayName.charAt(0).toUpperCase(),
+                  unread: 0,
+                  online: false,
+                  lastSeen: "Recently"
+                }
+              })
             
+            console.log('📱 Final contact list:', contactList)
             setContacts(contactList)
             if (contactList.length > 0) {
               setSelectedContact(contactList[0].id)
@@ -813,6 +846,13 @@ function MessagesPage() {
             type: msg.imageUrls && msg.imageUrls.length > 0 ? 'image' : 'text'
           }))
           setMessages(formattedMessages)
+
+          // Mark unread messages as read using the backend's mark-as-read event
+          const socket = getSocket()
+          const unreadMessages = fetchedMessages.filter(msg => msg.receiver === currentUser._id && !msg.read)
+          if (unreadMessages.length > 0) {
+            socket?.emit('mark-as-read', { userId: currentUser._id, otherUserId: selectedContact })
+          }
         })
         .catch((error) => {
           console.error('Error fetching messages:', error)
@@ -832,6 +872,27 @@ function MessagesPage() {
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages])
+
+  // Handle typing indicators with debouncing
+  const handleTyping = () => {
+    if (!currentUser || !selectedContact) return
+
+    const socket = getSocket()
+    if (!socket) return
+
+    // Emit typing-start event
+    socket.emit('typing-start', { senderId: currentUser._id, receiverId: selectedContact })
+
+    // Clear existing timeout
+    if (typingTimeoutRef.current) {
+      clearTimeout(typingTimeoutRef.current)
+    }
+
+    // Set new timeout to emit typing-stop after 500ms of inactivity
+    typingTimeoutRef.current = setTimeout(() => {
+      socket.emit('typing-stop', { senderId: currentUser._id, receiverId: selectedContact })
+    }, 500)
+  }
 
   const handleSend = async () => {
     if (!currentUser || !selectedContact) return
@@ -882,7 +943,8 @@ function MessagesPage() {
       setMessages(prev => [...prev, tempMessage])
       setInput("")
       
-      // Send via WebSocket
+      // Stop typing indicator and send via WebSocket
+      socket?.emit('typing-stop', { senderId: currentUser._id, receiverId: selectedContact })
       socket?.emit('private-message', {
         senderId: currentUser._id,
         receiverId: selectedContact,
@@ -1108,10 +1170,25 @@ function MessagesPage() {
                         ))}
                       </div>
                     )}
-                    <div className={`text-xs mt-2 ${
-                      message.fromMe ? "text-purple-100" : "text-slate-400"
+                    <div className={`text-xs mt-2 flex items-center gap-1 ${
+                      message.fromMe ? "text-purple-100 justify-end" : "text-slate-400"
                     }`}>
-                      {message.time}
+                      <span>{message.time}</span>
+                      {/* Read Receipts - only show for sent messages */}
+                      {message.fromMe && (
+                        <div className="flex items-center">
+                          {message.read ? (
+                            // Double check for read
+                            <div className="flex">
+                              <Check className="h-3 w-3" />
+                              <Check className="h-3 w-3 -ml-2" />
+                            </div>
+                          ) : (
+                            // Single check for delivered
+                            <Check className="h-3 w-3" />
+                          )}
+                        </div>
+                      )}
                     </div>
                   </div>
 
@@ -1187,7 +1264,10 @@ function MessagesPage() {
               <div className="flex-1 relative">
                 <Input
                   value={input}
-                  onChange={(e) => setInput(e.target.value)}
+                  onChange={(e) => {
+                    setInput(e.target.value)
+                    handleTyping()
+                  }}
                   placeholder="Type a message..."
                   className="h-12 rounded-2xl border-slate-300 focus:border-purple-500 focus:ring-purple-500/20 bg-slate-50 focus:bg-white shadow-sm text-base pr-12"
                   onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSend(); }}}

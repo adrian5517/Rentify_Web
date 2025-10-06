@@ -1,5 +1,16 @@
 const API_BASE_URL = 'https://rentify-server-ge0f.onrender.com/api';
 
+// Helper function to handle 401 errors (expired token)
+const handleUnauthorized = () => {
+  console.warn('⚠️ Token expired or invalid. Please log in again.');
+  // Clear auth storage
+  localStorage.removeItem('auth-storage');
+  // Redirect to login page
+  if (typeof window !== 'undefined') {
+    window.location.href = '/';
+  }
+};
+
 // Helper function to get auth token from localStorage
 const getAuthToken = (): string | null => {
   try {
@@ -42,8 +53,13 @@ export interface MessageData {
 
 export interface UserData {
   _id: string;
-  name: string;
+  name?: string;
+  fullName?: string;
+  username?: string;
   email: string;
+  profilePicture?: string;
+  role?: string;
+  phoneNumber?: string;
 }
 
 // Fetch messages between two users
@@ -66,6 +82,12 @@ export const fetchMessages = async (userId1: string, userId2: string): Promise<M
     
     const response = await fetch(url, { headers });
     console.log('📥 Response status:', response.status);
+    
+    if (response.status === 401) {
+      console.error('❌ Unauthorized: Token expired or invalid');
+      handleUnauthorized();
+      return [];
+    }
     
     if (!response.ok) {
       const errorText = await response.text();
@@ -125,6 +147,12 @@ export const sendMessageAPI = async (
       body: formData,
     });
 
+    if (response.status === 401) {
+      console.error('❌ Unauthorized: Token expired or invalid');
+      handleUnauthorized();
+      throw new Error('Unauthorized - please log in again');
+    }
+
     if (!response.ok) {
       throw new Error('Failed to send message');
     }
@@ -153,6 +181,12 @@ export const deleteMessage = async (messageId: string): Promise<void> => {
       headers,
     });
 
+    if (response.status === 401) {
+      console.error('❌ Unauthorized: Token expired or invalid');
+      handleUnauthorized();
+      throw new Error('Unauthorized - please log in again');
+    }
+
     if (!response.ok) {
       throw new Error('Failed to delete message');
     }
@@ -162,26 +196,47 @@ export const deleteMessage = async (messageId: string): Promise<void> => {
   }
 };
 
-// Fetch all users (you'll need to create this endpoint on your backend)
+// Fetch all users (for messaging contacts)
 export const fetchUsers = async (): Promise<UserData[]> => {
   try {
+    console.log('👥 Fetching users from backend...');
     const token = getAuthToken();
+    
+    if (!token) {
+      console.warn('⚠️ No auth token found. User needs to login.');
+      return [];
+    }
+    
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`,
     };
     
-    if (token) {
-      headers['Authorization'] = `Bearer ${token}`;
+    const response = await fetch(`${API_BASE_URL}/auth/users`, { headers });
+    
+    if (response.status === 401) {
+      console.error('❌ Unauthorized: Token expired or invalid');
+      handleUnauthorized();
+      return [];
     }
     
-    const response = await fetch(`${API_BASE_URL}/auth/users`, { headers });
     if (!response.ok) {
-      throw new Error('Failed to fetch users');
+      const errorText = await response.text();
+      console.error('❌ Failed to fetch users:', response.status, errorText);
+      return [];
     }
-    return await response.json();
+    
+    const data = await response.json();
+    console.log('✅ Fetched users from backend:', data);
+    
+    // Handle different response formats
+    // Backend might return { users: [...] } or just [...]
+    const users = data.users || data;
+    
+    return Array.isArray(users) ? users : [];
   } catch (error) {
-    console.error('Error fetching users:', error);
-    // Return mock data if endpoint doesn't exist yet
+    console.error('❌ Error fetching users:', error);
+    // Return empty array instead of throwing to prevent app crash
     return [];
   }
 };
