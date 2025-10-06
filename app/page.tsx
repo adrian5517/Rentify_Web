@@ -41,6 +41,8 @@ import { type Property } from "@/lib/property-data"
 import { getRecommendations, clusterProperties } from "@/lib/ml-utils"
 import AddPropertyModal from "@/components/add-property-modal"
 import AuthProtected from "@/components/auth-protected"
+import { initializeSocket, getSocket, disconnectSocket } from "@/lib/socket"
+import { fetchMessages, sendMessageAPI, deleteMessage, fetchUsers, MessageData, UserData } from "@/lib/api"
 
 // API Property interface matching the API response
 interface APIProperty {
@@ -642,19 +644,16 @@ function ImageViewer({ images, initialIndex, isOpen, onClose, propertyName }: Im
 // }
 
 function MessagesPage() {
-  // Enhanced message type with more features
-  type Message = {
-    id: string
-    fromMe: boolean
-    text?: string
-    image?: string
-    time: string
+  // Enhanced message type with MongoDB structure
+  type Message = MessageData & {
+    fromMe?: boolean
+    time?: string
     reactions?: { emoji: string; count: number }[]
-    type: 'text' | 'image'
+    type?: 'text' | 'image'
   }
 
   type Contact = {
-    id: number
+    id: string
     name: string
     avatar: string
     unread: number
@@ -663,80 +662,251 @@ function MessagesPage() {
     typing?: boolean
   }
 
-  // Enhanced contacts with online status
-  const contacts: Contact[] = [
-    { id: 1, name: "John Santos", avatar: "J", unread: 2, online: true, typing: false },
-    { id: 2, name: "Maria Cruz", avatar: "M", unread: 0, online: true, typing: true },
-    { id: 3, name: "Robert Kim", avatar: "R", unread: 0, online: false, lastSeen: "2 hours ago" },
-    { id: 4, name: "Lisa Wong", avatar: "L", unread: 1, online: false, lastSeen: "1 day ago" },
-  ]
-
-  // Enhanced chat history with different message types
-  const chatHistory: { [key: number]: Message[] } = {
-    1: [
-      { id: '1', fromMe: false, text: "Is the apartment still available?", time: "2 hours ago", type: 'text' },
-      { id: '2', fromMe: true, text: "Yes, it's available! Would you like to schedule a viewing?", time: "2 hours ago", type: 'text' },
-      { id: '3', fromMe: false, text: "Sure, how about tomorrow?", time: "1 hour ago", type: 'text', reactions: [{ emoji: '👍', count: 1 }] },
-      { id: '4', fromMe: false, image: "https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=300&h=200&fit=crop", time: "30 min ago", type: 'image' },
-    ],
-    2: [
-      { id: '5', fromMe: false, text: "Can we schedule a viewing?", time: "5 hours ago", type: 'text' },
-      { id: '6', fromMe: true, text: "Absolutely! What time works for you?", time: "5 hours ago", type: 'text' },
-    ],
-    3: [
-      { id: '7', fromMe: false, text: "Thank you for the tour!", time: "1 day ago", type: 'text' },
-      { id: '8', fromMe: true, text: "You're welcome! Let me know if you have more questions.", time: "1 day ago", type: 'text' },
-    ],
-    4: [
-      { id: '9', fromMe: false, text: "What's included in the rent?", time: "2 days ago", type: 'text' },
-      { id: '10', fromMe: true, text: "Water, internet, and parking are included.", time: "2 days ago", type: 'text' },
-    ],
-  }
-
-  const [selectedContact, setSelectedContact] = useState(contacts[0].id)
+  // Get current user from localStorage (Zustand auth store structure)
+  const [currentUser, setCurrentUser] = useState<{ _id: string; username: string; name?: string; email: string; profilePicture?: string } | null>(null)
+  const [contacts, setContacts] = useState<Contact[]>([])
+  const [selectedContact, setSelectedContact] = useState<string | null>(null)
   const [input, setInput] = useState("")
-  const [messages, setMessages] = useState<Message[]>(chatHistory[selectedContact])
+  const [messages, setMessages] = useState<Message[]>([])
   const [searchQuery, setSearchQuery] = useState("")
   const [showEmojiPicker, setShowEmojiPicker] = useState(false)
   const [imagePreview, setImagePreview] = useState<string | null>(null)
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([])
+  const [isConnected, setIsConnected] = useState(false)
+  const [isLoading, setIsLoading] = useState(false)
 
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const messagesEndRef = useRef<HTMLDivElement>(null)
 
+  // Initialize current user and socket connection
   useEffect(() => {
-    setMessages(chatHistory[selectedContact] || [])
-  }, [selectedContact])
+    console.log('🔵 MessagesPage component mounted')
+    
+    // Get auth data from Zustand store (stored as 'auth-storage')
+    const authStorageData = localStorage.getItem("auth-storage")
+    console.log('🔍 Auth storage data:', authStorageData)
+    
+    if (authStorageData) {
+      const authStore = JSON.parse(authStorageData)
+      const user = authStore.state?.user
+      
+      console.log('👤 Current user from auth store:', user)
+      
+      if (user && user._id) {
+        setCurrentUser(user)
+        
+        // Initialize WebSocket connection with user._id
+        console.log('🚀 Initializing socket with user ID:', user._id)
+        const socket = initializeSocket(user._id)
+        setIsConnected(true)
 
-  const handleSend = () => {
-    if (!input.trim() && !imagePreview) return
-    
-    const newMessage: Message = {
-      id: Date.now().toString(),
-      fromMe: true,
-      text: input || undefined,
-      image: imagePreview || undefined,
-      time: "now",
-      type: imagePreview ? 'image' : 'text'
+        // Listen for incoming messages
+        socket.on('private-message', (newMessage: MessageData) => {
+          console.log('📩 Received new message:', newMessage)
+          
+          // Update messages if the message is from the selected contact
+          if (selectedContact && 
+              (newMessage.sender === selectedContact || newMessage.receiver === selectedContact)) {
+            setMessages(prev => [...prev, {
+              ...newMessage,
+              fromMe: newMessage.sender === user._id,
+              time: 'now',
+              type: newMessage.imageUrls && newMessage.imageUrls.length > 0 ? 'image' : 'text'
+            }])
+          }
+          
+          // Update contact's unread count
+          setContacts(prev => prev.map(contact => {
+            if (contact.id === newMessage.sender && selectedContact !== newMessage.sender) {
+              return { ...contact, unread: contact.unread + 1 }
+            }
+            return contact
+          }))
+        })
+
+        return () => {
+          console.log('🔴 MessagesPage unmounting - disconnecting socket')
+          disconnectSocket()
+          setIsConnected(false)
+        }
+      } else {
+        console.log('⚠️ User data incomplete - missing user or user._id')
+      }
+    } else {
+      console.log('⚠️ No auth-storage data found in localStorage - user not logged in')
     }
+  }, [])
+
+  // Fetch contacts (mock data for now - you can replace with API call)
+  useEffect(() => {
+    if (currentUser) {
+      console.log('🔍 Fetching contacts/users...')
+      
+      // Try to fetch real users from backend
+      fetchUsers()
+        .then((users) => {
+          if (users && users.length > 0) {
+            console.log('✅ Fetched users from backend:', users)
+            // Convert users to contacts format
+            const contactList: Contact[] = users
+              .filter(user => user._id !== currentUser._id) // Exclude current user
+              .map(user => ({
+                id: user._id,
+                name: user.name || user.email,
+                avatar: (user.name || user.email).charAt(0).toUpperCase(),
+                unread: 0,
+                online: false,
+                lastSeen: "Recently"
+              }))
+            
+            setContacts(contactList)
+            if (contactList.length > 0) {
+              setSelectedContact(contactList[0].id)
+            }
+          } else {
+            console.log('⚠️ No users from backend, using mock contacts')
+            // Fallback to mock contacts with valid MongoDB ObjectId format
+            const mockContacts: Contact[] = [
+              { id: "507f1f77bcf86cd799439011", name: "John Santos", avatar: "J", unread: 0, online: true, typing: false },
+              { id: "507f1f77bcf86cd799439012", name: "Maria Cruz", avatar: "M", unread: 0, online: true, typing: false },
+              { id: "507f1f77bcf86cd799439013", name: "Robert Kim", avatar: "R", unread: 0, online: false, lastSeen: "2 hours ago" },
+              { id: "507f1f77bcf86cd799439014", name: "Lisa Wong", avatar: "L", unread: 0, online: false, lastSeen: "1 day ago" },
+            ]
+            setContacts(mockContacts)
+            if (mockContacts.length > 0) {
+              setSelectedContact(mockContacts[0].id)
+            }
+          }
+        })
+        .catch((error) => {
+          console.error('❌ Error fetching users:', error)
+          console.log('⚠️ Using mock contacts due to error')
+          // Fallback to mock contacts
+          const mockContacts: Contact[] = [
+            { id: "507f1f77bcf86cd799439011", name: "John Santos", avatar: "J", unread: 0, online: true, typing: false },
+            { id: "507f1f77bcf86cd799439012", name: "Maria Cruz", avatar: "M", unread: 0, online: true, typing: false },
+            { id: "507f1f77bcf86cd799439013", name: "Robert Kim", avatar: "R", unread: 0, online: false, lastSeen: "2 hours ago" },
+            { id: "507f1f77bcf86cd799439014", name: "Lisa Wong", avatar: "L", unread: 0, online: false, lastSeen: "1 day ago" },
+          ]
+          setContacts(mockContacts)
+          if (mockContacts.length > 0) {
+            setSelectedContact(mockContacts[0].id)
+          }
+        })
+    }
+  }, [currentUser])
+
+  // Fetch messages when contact is selected
+  useEffect(() => {
+    if (currentUser && selectedContact) {
+      setIsLoading(true)
+      fetchMessages(currentUser._id, selectedContact)
+        .then((fetchedMessages) => {
+          const formattedMessages: Message[] = fetchedMessages.map(msg => ({
+            ...msg,
+            fromMe: msg.sender === currentUser._id,
+            time: new Date(msg.createdAt).toLocaleTimeString('en-US', { 
+              hour: 'numeric', 
+              minute: '2-digit',
+              hour12: true 
+            }),
+            type: msg.imageUrls && msg.imageUrls.length > 0 ? 'image' : 'text'
+          }))
+          setMessages(formattedMessages)
+        })
+        .catch((error) => {
+          console.error('Error fetching messages:', error)
+        })
+        .finally(() => {
+          setIsLoading(false)
+        })
+      
+      // Reset unread count for selected contact
+      setContacts(prev => prev.map(contact => 
+        contact.id === selectedContact ? { ...contact, unread: 0 } : contact
+      ))
+    }
+  }, [selectedContact, currentUser])
+
+  // Auto-scroll to bottom when new messages arrive
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+  }, [messages])
+
+  const handleSend = async () => {
+    if (!currentUser || !selectedContact) return
+    if (!input.trim() && selectedFiles.length === 0) return
     
-    setMessages(prev => [...prev, newMessage])
-    setInput("")
-    setImagePreview(null)
+    const socket = getSocket()
+    const messageText = input.trim()
+    
+    // If there are images, use REST API
+    if (selectedFiles.length > 0) {
+      try {
+        const newMessage = await sendMessageAPI(
+          currentUser._id,
+          selectedContact,
+          messageText || undefined,
+          selectedFiles
+        )
+        
+        setMessages(prev => [...prev, {
+          ...newMessage,
+          fromMe: true,
+          time: 'now',
+          type: 'image'
+        }])
+        
+        setInput("")
+        setSelectedFiles([])
+        setImagePreview(null)
+      } catch (error) {
+        console.error('Error sending message with images:', error)
+        alert('Failed to send message. Please try again.')
+      }
+    } else {
+      // Use WebSocket for text-only messages
+      const tempMessage: Message = {
+        _id: Date.now().toString(),
+        sender: currentUser._id,
+        receiver: selectedContact,
+        message: messageText,
+        read: false,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        fromMe: true,
+        time: 'now',
+        type: 'text'
+      }
+      
+      setMessages(prev => [...prev, tempMessage])
+      setInput("")
+      
+      // Send via WebSocket
+      socket?.emit('private-message', {
+        senderId: currentUser._id,
+        receiverId: selectedContact,
+        text: messageText,
+        images: []
+      })
+    }
   }
 
   const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0]
-    if (file) {
+    const files = Array.from(event.target.files || [])
+    if (files.length > 0) {
+      setSelectedFiles(files.slice(0, 5)) // Max 5 images
       const reader = new FileReader()
       reader.onload = (e) => {
         setImagePreview(e.target?.result as string)
       }
-      reader.readAsDataURL(file)
+      reader.readAsDataURL(files[0])
     }
   }
 
   const addReaction = (messageId: string, emoji: string) => {
     setMessages(prev => prev.map(msg => {
-      if (msg.id === messageId) {
+      if (msg._id === messageId) {
         const reactions = msg.reactions || []
         const existingReaction = reactions.find(r => r.emoji === emoji)
         if (existingReaction) {
@@ -750,6 +920,15 @@ function MessagesPage() {
     }))
   }
 
+  const handleDeleteMessage = async (messageId: string) => {
+    try {
+      await deleteMessage(messageId)
+      setMessages(prev => prev.filter(msg => msg._id !== messageId))
+    } catch (error) {
+      console.error('Error deleting message:', error)
+    }
+  }
+
   const filteredContacts = contacts.filter(contact => 
     contact.name.toLowerCase().includes(searchQuery.toLowerCase())
   )
@@ -758,6 +937,21 @@ function MessagesPage() {
 
   return (
     <div className="max-w-6xl mx-auto py-6">
+      {/* Connection Status Indicator */}
+      {!isConnected && (
+        <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg flex items-center gap-2 text-yellow-800">
+          <div className="w-2 h-2 bg-yellow-500 rounded-full animate-pulse"></div>
+          <span className="text-sm font-medium">Connecting to server...</span>
+        </div>
+      )}
+      
+      {isConnected && (
+        <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg flex items-center gap-2 text-green-800">
+          <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+          <span className="text-sm font-medium">✓ Connected to real-time messaging</span>
+        </div>
+      )}
+
       <div className="flex rounded-3xl shadow-2xl bg-white border border-slate-200 overflow-hidden" style={{ height: 'calc(100vh - 200px)' }}>
         {/* Enhanced Contacts Sidebar */}
         <aside className="w-1/3 bg-gradient-to-br from-slate-50 to-purple-50 flex flex-col">
@@ -860,23 +1054,58 @@ function MessagesPage() {
             </div>
           </div>
 
+          {/* Connection Status in Message Box */}
+          <div className="px-6 py-2 border-b border-slate-100">
+            {!isConnected ? (
+              <div className="flex items-center gap-2 text-yellow-600 text-xs">
+                <div className="w-2 h-2 bg-yellow-500 rounded-full animate-pulse"></div>
+                <span className="font-medium">Connection to Server...</span>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2 text-green-600 text-xs">
+                <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                <span className="font-medium">✓ Connected to Server</span>
+              </div>
+            )}
+          </div>
+
           {/* Messages Container */}
           <div className="flex-1 overflow-y-auto p-6 space-y-4">
-            {messages.map((message) => (
-              <div key={message.id} className={`flex ${message.fromMe ? "justify-end" : "justify-start"}`}>
-                <div className={`group max-w-[70%] relative`}>
-                  {/* Message Bubble */}
-                  <div className={`px-4 py-3 rounded-2xl shadow-sm transition-all duration-200 hover:shadow-md ${
-                    message.fromMe
+            {isLoading ? (
+              <div className="flex items-center justify-center h-full">
+                <div className="text-center">
+                  <div className="animate-spin rounded-full h-8 w-8 border-2 border-blue-200 border-t-blue-600 mx-auto mb-2"></div>
+                  <p className="text-slate-500 text-sm">Loading messages...</p>
+                </div>
+              </div>
+            ) : messages.length === 0 ? (
+              <div className="flex items-center justify-center h-full">
+                <div className="text-center text-slate-400">
+                  <MessageCircle className="h-16 w-16 mx-auto mb-4 opacity-50" />
+                  <p>No messages yet</p>
+                  <p className="text-sm">Start the conversation!</p>
+                </div>
+              </div>
+            ) : (
+              messages.map((message) => (
+                <div key={message._id} className={`flex ${message.fromMe ? "justify-end" : "justify-start"}`}>
+                  <div className={`group max-w-[70%] relative`}>
+                    {/* Message Bubble */}
+                    <div className={`px-4 py-3 rounded-2xl shadow-sm transition-all duration-200 hover:shadow-md ${
+                      message.fromMe
                       ? "bg-gradient-to-r from-purple-600 to-fuchsia-500 text-white ml-auto"
                       : "bg-white text-slate-800 border border-slate-100"
                   }`}>
-                    {message.type === 'text' && message.text && (
-                      <p className="text-sm leading-relaxed">{message.text}</p>
+                    {message.type === 'text' && message.message && (
+                      <p className="text-sm leading-relaxed">{message.message}</p>
                     )}
-                    {message.type === 'image' && message.image && (
-                      <div className="rounded-lg overflow-hidden">
-                        <img src={message.image} alt="Shared image" className="max-w-full h-auto" />
+                    {message.type === 'image' && message.imageUrls && message.imageUrls.length > 0 && (
+                      <div className="space-y-2">
+                        {message.imageUrls.map((url, idx) => (
+                          <div key={idx} className="rounded-lg overflow-hidden">
+                            <img src={url} alt={`Shared image ${idx + 1}`} className="max-w-full h-auto" />
+                          </div>
+                        ))}
                       </div>
                     )}
                     <div className={`text-xs mt-2 ${
@@ -904,7 +1133,7 @@ function MessagesPage() {
                       {['❤️', '👍', '😊', '😂'].map((emoji) => (
                         <button
                           key={emoji}
-                          onClick={() => addReaction(message.id, emoji)}
+                          onClick={() => addReaction(message._id, emoji)}
                           className="p-1 hover:bg-slate-100 rounded-full transition-colors"
                           title={`React with ${emoji}`}
                         >
@@ -915,23 +1144,29 @@ function MessagesPage() {
                   </div>
                 </div>
               </div>
-            ))}
+            )))}
+            <div ref={messagesEndRef} />
           </div>
 
           {/* Image Preview */}
-          {imagePreview && (
+          {selectedFiles.length > 0 && imagePreview && (
             <div className="px-6 py-3 border-t border-slate-200 bg-slate-50">
               <div className="flex items-center gap-3">
                 <div className="relative">
                   <img src={imagePreview} alt="Preview" className="w-16 h-16 object-cover rounded-lg" />
                   <button
-                    onClick={() => setImagePreview(null)}
+                    onClick={() => {
+                      setImagePreview(null)
+                      setSelectedFiles([])
+                    }}
                     className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600"
                   >
                     <X className="h-3 w-3" />
                   </button>
                 </div>
-                <p className="text-sm text-slate-600">Ready to send image</p>
+                <p className="text-sm text-slate-600">
+                  {selectedFiles.length} image{selectedFiles.length > 1 ? 's' : ''} ready to send
+                </p>
               </div>
             </div>
           )}
