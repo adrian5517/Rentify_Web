@@ -661,6 +661,7 @@ function MessagesPage() {
     online: boolean
     lastSeen?: string
     typing?: boolean
+    lastMessageTime?: number // Timestamp of the last message
   }
 
   // Get current user from localStorage (Zustand auth store structure)
@@ -717,13 +718,49 @@ function MessagesPage() {
             }])
           }
           
-          // Update contact's unread count
-          setContacts(prev => prev.map(contact => {
-            if (contact.id === newMessage.sender && selectedContact !== newMessage.sender) {
-              return { ...contact, unread: contact.unread + 1 }
+          // Update contact's unread count and lastMessageTime, then sort by latest message
+          setContacts(prev => {
+            const senderId = newMessage.sender
+            const existingContact = prev.find(c => c.id === senderId)
+            
+            // If contact doesn't exist and message is from someone else, add them
+            if (!existingContact && senderId !== user._id) {
+              // Fetch user info and add to contacts
+              fetchUsers().then(users => {
+                const sender = users.find(u => u._id === senderId)
+                if (sender) {
+                  const displayName = sender.fullName || sender.name || sender.username || sender.email
+                  const newContact: Contact = {
+                    id: sender._id,
+                    name: displayName,
+                    avatar: displayName.charAt(0).toUpperCase(),
+                    unread: selectedContact !== senderId ? 1 : 0,
+                    online: false,
+                    lastSeen: "Recently",
+                    lastMessageTime: Date.now()
+                  }
+                  setContacts(prevContacts => {
+                    const updated = [...prevContacts, newContact]
+                    return updated.sort((a, b) => (b.lastMessageTime || 0) - (a.lastMessageTime || 0))
+                  })
+                }
+              })
+              return prev
             }
-            return contact
-          }))
+            
+            // Update existing contacts
+            const updatedContacts = prev.map(contact => {
+              if (contact.id === senderId && selectedContact !== senderId) {
+                return { ...contact, unread: contact.unread + 1, lastMessageTime: Date.now() }
+              }
+              if (contact.id === senderId || contact.id === newMessage.receiver) {
+                return { ...contact, lastMessageTime: Date.now() }
+              }
+              return contact
+            })
+            // Sort contacts by lastMessageTime (most recent first)
+            return updatedContacts.sort((a, b) => (b.lastMessageTime || 0) - (a.lastMessageTime || 0))
+          })
         })
 
         // Listen for typing indicators
@@ -763,68 +800,71 @@ function MessagesPage() {
     }
   }, [])
 
-  // Fetch contacts (mock data for now - you can replace with API call)
+  // Fetch contacts and check which ones have conversations
   useEffect(() => {
     if (currentUser) {
       console.log('🔍 Fetching contacts/users...')
       
       // Try to fetch real users from backend
       fetchUsers()
-        .then((users) => {
+        .then(async (users) => {
           if (users && users.length > 0) {
             console.log('✅ Fetched users from backend:', users)
             console.log('📋 Sample user data:', users[0]) // Log first user to see structure
-            // Convert users to contacts format
-            const contactList: Contact[] = users
-              .filter(user => user._id !== currentUser._id) // Exclude current user
-              .map(user => {
-                // Priority: fullName > name > username > email
-                const displayName = user.fullName || user.name || user.username || user.email
-                console.log(`👤 User ${user._id}: fullName="${user.fullName}", name="${user.name}", username="${user.username}", email="${user.email}" → Display: "${displayName}"`)
-                return {
-                  id: user._id,
-                  name: displayName,
-                  avatar: displayName.charAt(0).toUpperCase(),
-                  unread: 0,
-                  online: false,
-                  lastSeen: "Recently"
-                }
-              })
             
-            console.log('📱 Final contact list:', contactList)
-            setContacts(contactList)
-            if (contactList.length > 0) {
-              setSelectedContact(contactList[0].id)
+            // Filter out current user
+            const otherUsers = users.filter(user => user._id !== currentUser._id)
+            
+            // Check which users have conversations with the current user
+            const contactsWithMessages: Contact[] = []
+            
+            for (const user of otherUsers) {
+              try {
+                // Fetch messages for this user
+                const messages = await fetchMessages(currentUser._id, user._id)
+                
+                // Only add to contacts if there are messages
+                if (messages && messages.length > 0) {
+                  const displayName = user.fullName || user.name || user.username || user.email
+                  const latestMessage = messages[messages.length - 1]
+                  const lastMessageTime = new Date(latestMessage.createdAt).getTime()
+                  
+                  contactsWithMessages.push({
+                    id: user._id,
+                    name: displayName,
+                    avatar: displayName.charAt(0).toUpperCase(),
+                    unread: 0,
+                    online: false,
+                    lastSeen: "Recently",
+                    lastMessageTime
+                  })
+                  
+                  console.log(`✅ User ${displayName} has ${messages.length} messages, last at ${new Date(lastMessageTime).toLocaleString()}`)
+                }
+              } catch (error) {
+                console.error(`Error fetching messages for user ${user._id}:`, error)
+              }
+            }
+            
+            // Sort by lastMessageTime (most recent first)
+            contactsWithMessages.sort((a, b) => (b.lastMessageTime || 0) - (a.lastMessageTime || 0))
+            
+            console.log('📱 Contacts with conversations:', contactsWithMessages)
+            setContacts(contactsWithMessages)
+            
+            // Select the first contact (most recent conversation)
+            if (contactsWithMessages.length > 0) {
+              setSelectedContact(contactsWithMessages[0].id)
             }
           } else {
-            console.log('⚠️ No users from backend, using mock contacts')
-            // Fallback to mock contacts with valid MongoDB ObjectId format
-            const mockContacts: Contact[] = [
-              { id: "507f1f77bcf86cd799439011", name: "John Santos", avatar: "J", unread: 0, online: true, typing: false },
-              { id: "507f1f77bcf86cd799439012", name: "Maria Cruz", avatar: "M", unread: 0, online: true, typing: false },
-              { id: "507f1f77bcf86cd799439013", name: "Robert Kim", avatar: "R", unread: 0, online: false, lastSeen: "2 hours ago" },
-              { id: "507f1f77bcf86cd799439014", name: "Lisa Wong", avatar: "L", unread: 0, online: false, lastSeen: "1 day ago" },
-            ]
-            setContacts(mockContacts)
-            if (mockContacts.length > 0) {
-              setSelectedContact(mockContacts[0].id)
-            }
+            console.log('⚠️ No users from backend, using empty contacts')
+            setContacts([])
           }
         })
         .catch((error) => {
           console.error('❌ Error fetching users:', error)
-          console.log('⚠️ Using mock contacts due to error')
-          // Fallback to mock contacts
-          const mockContacts: Contact[] = [
-            { id: "507f1f77bcf86cd799439011", name: "John Santos", avatar: "J", unread: 0, online: true, typing: false },
-            { id: "507f1f77bcf86cd799439012", name: "Maria Cruz", avatar: "M", unread: 0, online: true, typing: false },
-            { id: "507f1f77bcf86cd799439013", name: "Robert Kim", avatar: "R", unread: 0, online: false, lastSeen: "2 hours ago" },
-            { id: "507f1f77bcf86cd799439014", name: "Lisa Wong", avatar: "L", unread: 0, online: false, lastSeen: "1 day ago" },
-          ]
-          setContacts(mockContacts)
-          if (mockContacts.length > 0) {
-            setSelectedContact(mockContacts[0].id)
-          }
+          console.log('⚠️ Using empty contacts due to error')
+          setContacts([])
         })
     }
   }, [currentUser])
@@ -846,6 +886,18 @@ function MessagesPage() {
             type: msg.imageUrls && msg.imageUrls.length > 0 ? 'image' : 'text'
           }))
           setMessages(formattedMessages)
+
+          // Update contact's lastMessageTime if there are messages
+          if (fetchedMessages.length > 0) {
+            const latestMessage = fetchedMessages[fetchedMessages.length - 1]
+            const lastMessageTime = new Date(latestMessage.createdAt).getTime()
+            setContacts(prev => {
+              const updatedContacts = prev.map(contact =>
+                contact.id === selectedContact ? { ...contact, lastMessageTime } : contact
+              )
+              return updatedContacts.sort((a, b) => (b.lastMessageTime || 0) - (a.lastMessageTime || 0))
+            })
+          }
 
           // Mark unread messages as read using the backend's mark-as-read event
           const socket = getSocket()
@@ -918,6 +970,14 @@ function MessagesPage() {
           type: 'image'
         }])
         
+        // Update contact's lastMessageTime and sort
+        setContacts(prev => {
+          const updatedContacts = prev.map(contact =>
+            contact.id === selectedContact ? { ...contact, lastMessageTime: Date.now() } : contact
+          )
+          return updatedContacts.sort((a, b) => (b.lastMessageTime || 0) - (a.lastMessageTime || 0))
+        })
+        
         setInput("")
         setSelectedFiles([])
         setImagePreview(null)
@@ -941,6 +1001,15 @@ function MessagesPage() {
       }
       
       setMessages(prev => [...prev, tempMessage])
+      
+      // Update contact's lastMessageTime and sort
+      setContacts(prev => {
+        const updatedContacts = prev.map(contact =>
+          contact.id === selectedContact ? { ...contact, lastMessageTime: Date.now() } : contact
+        )
+        return updatedContacts.sort((a, b) => (b.lastMessageTime || 0) - (a.lastMessageTime || 0))
+      })
+      
       setInput("")
       
       // Stop typing indicator and send via WebSocket
