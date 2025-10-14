@@ -16,13 +16,13 @@ export default function ProfilePage() {
   const [uploadingImage, setUploadingImage] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
   
-  // Form state
+  // Form state - mapping backend fields to frontend
   const [formData, setFormData] = useState({
-    name: user?.name || user?.username || "",
+    name: user?.fullName || user?.name || user?.username || "",
     email: user?.email || "",
-    phone: "",
-    location: "",
-    bio: ""
+    phone: user?.phoneNumber || user?.phone || "",
+    location: user?.address || user?.location || "",
+    bio: user?.bio || ""
   })
 
   const [profilePicture, setProfilePicture] = useState(user?.profilePicture || "")
@@ -56,41 +56,120 @@ export default function ProfilePage() {
       return
     }
 
+    // Check authentication
+    if (!user?._id) {
+      alert('You must be logged in to update your profile picture')
+      return
+    }
+
     setUploadingImage(true)
 
     try {
-      // Create form data
+      console.log('Step 1: Uploading image to Cloudinary...')
+      console.log('File details:', {
+        name: file.name,
+        type: file.type,
+        size: file.size,
+        sizeInMB: (file.size / 1024 / 1024).toFixed(2) + 'MB'
+      })
+      
+      // Step 1: Upload image to Cloudinary
       const formDataToSend = new FormData()
-      formDataToSend.append('profilePicture', file)
+      formDataToSend.append('propertyImage', file) // Field name must be 'propertyImage'
 
-      // Upload to server
-      const response = await fetch('https://rentify-server-ge0f.onrender.com/api/auth/upload-profile-picture', {
+      console.log('Sending request to: https://rentify-server-ge0f.onrender.com/upload')
+
+      const uploadResponse = await fetch('https://rentify-server-ge0f.onrender.com/upload', {
         method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        },
         body: formDataToSend
       })
 
-      const data = await response.json()
+      console.log('Upload response status:', uploadResponse.status)
+      console.log('Upload response ok:', uploadResponse.ok)
 
-      if (!response.ok) {
-        throw new Error(data.message || 'Failed to upload image')
+      // Check if response is JSON
+      const contentType = uploadResponse.headers.get('content-type')
+      console.log('Response content-type:', contentType)
+
+      let uploadData
+      try {
+        uploadData = await uploadResponse.json()
+        console.log('Upload response data:', uploadData)
+      } catch (parseError) {
+        const text = await uploadResponse.text()
+        console.error('Failed to parse JSON response:', text.substring(0, 500))
+        throw new Error('Server returned invalid response. Check console for details.')
       }
 
-      // Update local state with the new profile picture URL
-      setProfilePicture(data.profilePictureUrl)
+      if (!uploadResponse.ok) {
+        throw new Error(uploadData.message || uploadData.error || `Upload failed with status ${uploadResponse.status}`)
+      }
+
+      // Check for success field and fileUrl
+      if (!uploadData.success || !uploadData.fileUrl) {
+        console.error('Response missing success or fileUrl:', uploadData)
+        throw new Error('Failed to upload image to Cloudinary - invalid response format')
+      }
+
+      const imageUrl = uploadData.fileUrl
+      console.log('✅ Upload successful! Image URL:', imageUrl)
+      console.log('Step 2: Updating user profile picture with URL...')
+
+      // Step 2: Update user profile picture in database
+      const updateResponse = await fetch(`https://rentify-server-ge0f.onrender.com/api/auth/users/${user._id}/profile-picture`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ imageUrl })
+      })
+
+      const updateData = await updateResponse.json()
+      console.log('Update response:', updateData)
+
+      if (!updateResponse.ok || !updateData.success) {
+        throw new Error(updateData.message || 'Failed to update profile picture')
+      }
+
+      // Update local state and auth store with new profile picture
+      setProfilePicture(updateData.user.profilePicture)
       
-      // Update user in auth store
       useAuthStore.setState({ 
-        user: { ...user!, profilePicture: data.profilePictureUrl },
-        profilePicture: data.profilePictureUrl
+        user: updateData.user
       })
 
       alert('Profile picture updated successfully!')
     } catch (error) {
       console.error('Error uploading profile picture:', error)
-      alert(error instanceof Error ? error.message : 'Failed to upload profile picture')
+      
+      // Show detailed error message
+      const errorMessage = error instanceof Error ? error.message : 'Failed to upload profile picture'
+      alert(`Upload failed: ${errorMessage}\n\nCheck browser console for details.`)
+      
+      // Optional: Offer fallback to base64 storage
+      if (confirm('Would you like to try saving the image locally instead? (Note: Image will not be uploaded to cloud)')) {
+        try {
+          const reader = new FileReader()
+          reader.onloadend = () => {
+            const base64String = reader.result as string
+            setProfilePicture(base64String)
+            useAuthStore.setState({ 
+              user: { ...user!, profilePicture: base64String }
+            })
+            alert('Profile picture saved locally (not uploaded to cloud)')
+            setUploadingImage(false)
+          }
+          reader.onerror = () => {
+            alert('Failed to read image file')
+            setUploadingImage(false)
+          }
+          // Use the file variable that's already in scope
+          reader.readAsDataURL(file)
+          return
+        } catch (fallbackError) {
+          console.error('Fallback also failed:', fallbackError)
+        }
+      }
     } finally {
       setUploadingImage(false)
     }
@@ -100,24 +179,33 @@ export default function ProfilePage() {
     setIsSaving(true)
     
     try {
-      const response = await fetch('https://rentify-server-ge0f.onrender.com/api/auth/update-profile', {
+      // Validate that we have user
+      if (!user?._id) {
+        throw new Error('You must be logged in to update your profile')
+      }
+
+      console.log('Updating profile for user:', user._id)
+      console.log('Form data:', formData)
+      
+      // Call backend API
+      const response = await fetch(`https://rentify-server-ge0f.onrender.com/api/auth/users/${user._id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify(formData)
       })
 
       const data = await response.json()
+      console.log('Response:', data)
 
-      if (!response.ok) {
+      if (!response.ok || !data.success) {
         throw new Error(data.message || 'Failed to update profile')
       }
 
-      // Update user in auth store
+      // Update user in auth store with backend response
       useAuthStore.setState({ 
-        user: { ...user!, ...formData }
+        user: data.user
       })
 
       setIsEditing(false)
@@ -131,13 +219,13 @@ export default function ProfilePage() {
   }
 
   const handleCancelEdit = () => {
-    // Reset form data
+    // Reset form data with backend field mapping
     setFormData({
-      name: user?.name || user?.username || "",
+      name: user?.fullName || user?.name || user?.username || "",
       email: user?.email || "",
-      phone: "",
-      location: "",
-      bio: ""
+      phone: user?.phoneNumber || user?.phone || "",
+      location: user?.address || user?.location || "",
+      bio: user?.bio || ""
     })
     setIsEditing(false)
   }
@@ -197,7 +285,7 @@ export default function ProfilePage() {
               
               <div className="pb-2">
                 <h1 className="text-3xl font-bold text-slate-900 mb-1">
-                  {user?.name || user?.username || "User"}
+                  {user?.fullName || user?.name || user?.username || "User"}
                 </h1>
                 <p className="text-slate-600 flex items-center gap-2">
                   <Mail className="w-4 h-4" />

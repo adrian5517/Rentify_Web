@@ -6,7 +6,16 @@ interface User {
   username: string
   email: string
   name?: string
+  fullName?: string  // Backend field name
   profilePicture?: string
+  phoneNumber?: string  // Backend field name
+  phone?: string  // Frontend alias
+  address?: string  // Backend field name
+  location?: string  // Frontend alias
+  bio?: string
+  role?: string
+  createdAt?: string
+  updatedAt?: string
 }
 
 interface AuthState {
