@@ -1,12 +1,13 @@
 "use client"
 
 import { useState, useRef } from "react"
-import { User, Mail, MapPin, Phone, Calendar, Edit2, Camera, Save, X, Building, Heart, MessageSquare, TrendingUp } from "lucide-react"
+import { User, Mail, MapPin, Phone, Calendar, Edit2, Camera, Save, X, Building, Heart, MessageSquare, TrendingUp, CheckCircle2 } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
 import { useAuthStore } from "@/lib/auth-store"
 
 export default function ProfilePage() {
@@ -14,6 +15,8 @@ export default function ProfilePage() {
   const [isEditing, setIsEditing] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const [uploadingImage, setUploadingImage] = useState(false)
+  const [showSuccessModal, setShowSuccessModal] = useState(false)
+  const [successMessage, setSuccessMessage] = useState("")
   const fileInputRef = useRef<HTMLInputElement>(null)
   
   // Form state - mapping backend fields to frontend
@@ -138,7 +141,8 @@ export default function ProfilePage() {
         user: updateData.user
       })
 
-      alert('Profile picture updated successfully!')
+      setSuccessMessage('Profile picture updated successfully!')
+      setShowSuccessModal(true)
     } catch (error) {
       console.error('Error uploading profile picture:', error)
       
@@ -209,7 +213,8 @@ export default function ProfilePage() {
       })
 
       setIsEditing(false)
-      alert('Profile updated successfully!')
+      setSuccessMessage('Profile updated successfully!')
+      setShowSuccessModal(true)
     } catch (error) {
       console.error('Error updating profile:', error)
       alert(error instanceof Error ? error.message : 'Failed to update profile')
@@ -599,6 +604,31 @@ export default function ProfilePage() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Success Modal */}
+      <Dialog open={showSuccessModal} onOpenChange={setShowSuccessModal}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <div className="flex items-center justify-center mb-4">
+              <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center">
+                <CheckCircle2 className="w-10 h-10 text-green-600" />
+              </div>
+            </div>
+            <DialogTitle className="text-center text-2xl">Success!</DialogTitle>
+            <DialogDescription className="text-center text-base pt-2">
+              {successMessage}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex justify-center pt-4">
+            <Button
+              onClick={() => setShowSuccessModal(false)}
+              className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white px-8"
+            >
+              Got it!
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
