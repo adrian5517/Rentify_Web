@@ -427,7 +427,16 @@ export default function ProfilePage() {
                 <Calendar className="w-5 h-5 text-purple-600" />
                 <div>
                   <p className="text-slate-500 text-xs">Member Since</p>
-                  <p className="font-medium text-slate-900">January 2024</p>
+                  <p className="font-medium text-slate-900">
+                    {user?.createdAt 
+                      ? new Date(user.createdAt).toLocaleDateString('en-US', { 
+                          year: 'numeric', 
+                          month: 'long', 
+                          day: 'numeric' 
+                        })
+                      : 'N/A'
+                    }
+                  </p>
                 </div>
               </div>
               
