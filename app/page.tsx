@@ -29,6 +29,7 @@ import { Badge } from "@/components/ui/badge"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Slider } from "@/components/ui/slider"
 import PropertyMap from "@/components/property-map"
+import ProfilePage from "@/components/profile-page"
 import Navbar from "@/components/navbar"
 import { type Property } from "@/lib/property-data"
 import { getRecommendations, clusterProperties } from "@/lib/ml-utils"
@@ -635,63 +636,7 @@ function ImageViewer({ images, initialIndex, isOpen, onClose, propertyName }: Im
 //   )
 // }
 
-function ProfilePage() {
-  const user = JSON.parse(localStorage.getItem("rentify_auth") || '{"name": "User", "email": "user@example.com"}')
 
-  return (
-    <div className="space-y-6">
-      <div className="text-center py-8">
-        <div className="w-24 h-24 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-full flex items-center justify-center mx-auto mb-4">
-          <User className="h-12 w-12 text-white" />
-        </div>
-        <h2 className="text-2xl font-bold text-slate-900 mb-2">{user.name}</h2>
-        <p className="text-slate-600">{user.email}</p>
-      </div>
-
-      <div className="grid gap-6 md:grid-cols-2">
-        <Card>
-          <CardContent className="p-6">
-            <h3 className="font-semibold text-lg mb-4">My Properties</h3>
-            <div className="space-y-3">
-              <div className="flex justify-between">
-                <span className="text-slate-600">Active Listings</span>
-                <span className="font-semibold">3</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-slate-600">Total Views</span>
-                <span className="font-semibold">1,247</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-slate-600">Inquiries</span>
-                <span className="font-semibold">28</span>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-6">
-            <h3 className="font-semibold text-lg mb-4">Account Settings</h3>
-            <div className="space-y-3">
-              <Button variant="outline" className="w-full justify-start bg-transparent">
-                Edit Profile
-              </Button>
-              <Button variant="outline" className="w-full justify-start bg-transparent">
-                Notification Settings
-              </Button>
-              <Button variant="outline" className="w-full justify-start bg-transparent">
-                Privacy Settings
-              </Button>
-              <Button variant="outline" className="w-full justify-start text-red-600 hover:text-red-700 bg-transparent">
-                Sign Out
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    </div>
-  )
-}
 
 
 
