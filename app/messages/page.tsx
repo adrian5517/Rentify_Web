@@ -51,6 +51,9 @@ function MessagesPage() {
   const [isConnected, setIsConnected] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [isInitialLoading, setIsInitialLoading] = useState(true) // For initial page load
+  const [hasLoadedOnce, setHasLoadedOnce] = useState(false) // Track if data has been loaded
+  const [loadedConversations, setLoadedConversations] = useState<Set<string>>(new Set()) // Track loaded conversations
+  const [messageCache, setMessageCache] = useState<Map<string, Message[]>>(new Map()) // Cache messages per contact
 
   const fileInputRef = useRef<HTMLInputElement>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
@@ -82,15 +85,28 @@ function MessagesPage() {
         socket.on('private-message', (newMessage: MessageData) => {
           console.log('📩 Received new message:', newMessage)
           
+          const formattedMessage: Message = {
+            ...newMessage,
+            fromMe: newMessage.sender === user._id,
+            time: 'now',
+            type: (newMessage.imageUrls && newMessage.imageUrls.length > 0 ? 'image' : 'text') as 'image' | 'text'
+          }
+
+          // Determine which contact this message belongs to
+          const contactId = newMessage.sender === user._id ? newMessage.receiver : newMessage.sender
+          
+          // Update cache for this contact
+          setMessageCache(prev => {
+            const newCache = new Map(prev)
+            const contactMessages = newCache.get(contactId) || []
+            newCache.set(contactId, [...contactMessages, formattedMessage])
+            return newCache
+          })
+
           // Update messages if the message is from the selected contact
           if (selectedContact && 
               (newMessage.sender === selectedContact || newMessage.receiver === selectedContact)) {
-            setMessages(prev => [...prev, {
-              ...newMessage,
-              fromMe: newMessage.sender === user._id,
-              time: 'now',
-              type: newMessage.imageUrls && newMessage.imageUrls.length > 0 ? 'image' : 'text'
-            }])
+            setMessages(prev => [...prev, formattedMessage])
           }
           
           // Update contact's unread count and lastMessageTime, then sort by latest message
@@ -157,6 +173,20 @@ function MessagesPage() {
         // Listen for read receipts
         socket.on('messages-read', ({ readBy, count }: { readBy: string; count: number }) => {
           console.log(`✓✓ ${count} messages marked as read by:`, readBy)
+          
+          // Update cache for this contact
+          setMessageCache(prev => {
+            const newCache = new Map(prev)
+            const contactMessages = newCache.get(readBy)
+            if (contactMessages) {
+              const updatedMessages = contactMessages.map(msg => 
+                msg.fromMe && msg.receiver === readBy ? { ...msg, read: true } : msg
+              )
+              newCache.set(readBy, updatedMessages)
+            }
+            return newCache
+          })
+
           // Update all messages from the current user to the readBy user as read
           setMessages(prev => prev.map(msg => 
             msg.fromMe && msg.receiver === readBy ? { ...msg, read: true } : msg
@@ -178,6 +208,13 @@ function MessagesPage() {
 
   // Fetch contacts and check which ones have conversations
   useEffect(() => {
+    // Skip if already loaded once
+    if (hasLoadedOnce) {
+      console.log('⏭️ Skipping contacts fetch - already loaded once')
+      setIsInitialLoading(false)
+      return
+    }
+
     if (currentUser) {
       console.log('🔍 Fetching contacts/users...')
       setIsInitialLoading(true) // Start loading
@@ -229,6 +266,7 @@ function MessagesPage() {
             
             console.log('📱 Contacts with conversations:', contactsWithMessages)
             setContacts(contactsWithMessages)
+            setHasLoadedOnce(true) // Mark as loaded
             
             // Select the first contact (most recent conversation)
             if (contactsWithMessages.length > 0) {
@@ -237,22 +275,37 @@ function MessagesPage() {
           } else {
             console.log('⚠️ No users from backend, using empty contacts')
             setContacts([])
+            setHasLoadedOnce(true) // Mark as loaded even if empty
           }
         })
         .catch((error) => {
           console.error('❌ Error fetching users:', error)
           console.log('⚠️ Using empty contacts due to error')
           setContacts([])
+          setHasLoadedOnce(true) // Mark as loaded even on error
         })
         .finally(() => {
           setIsInitialLoading(false) // End loading
         })
     }
-  }, [currentUser])
+  }, [currentUser, hasLoadedOnce])
 
   // Fetch messages when contact is selected
   useEffect(() => {
     if (currentUser && selectedContact) {
+      // Check if we already loaded this conversation from cache
+      if (messageCache.has(selectedContact)) {
+        console.log('⏭️ Loading conversation from cache:', selectedContact)
+        setMessages(messageCache.get(selectedContact) || [])
+        
+        // Reset unread count for selected contact
+        setContacts(prev => prev.map(contact => 
+          contact.id === selectedContact ? { ...contact, unread: 0 } : contact
+        ))
+        return
+      }
+
+      console.log('📨 Fetching messages for contact:', selectedContact)
       setIsLoading(true)
       fetchMessages(currentUser._id, selectedContact)
         .then((fetchedMessages) => {
@@ -266,7 +319,15 @@ function MessagesPage() {
             }),
             type: msg.imageUrls && msg.imageUrls.length > 0 ? 'image' : 'text'
           }))
+          
+          // Set messages for display
           setMessages(formattedMessages)
+
+          // Cache the messages for this contact
+          setMessageCache(prev => new Map(prev).set(selectedContact, formattedMessages))
+
+          // Mark this conversation as loaded
+          setLoadedConversations(prev => new Set(prev).add(selectedContact))
 
           // Update contact's lastMessageTime if there are messages
           if (fetchedMessages.length > 0) {
