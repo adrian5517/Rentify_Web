@@ -2,14 +2,14 @@
 
 import type React from "react"
 import { useState, useEffect, useRef, useCallback } from "react"
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Badge } from "@/components/ui/badge"
-import { X, Upload, MapPin, Home, DollarSign, FileText, Camera, Tag, Loader2, Navigation } from "lucide-react"
+import { X, Upload, MapPin, Home, DollarSign, FileText, Camera, Tag, Loader2, Navigation, CheckCircle2 } from "lucide-react"
 import mapboxgl from 'mapbox-gl'
 import 'mapbox-gl/dist/mapbox-gl.css'
 
@@ -100,6 +100,7 @@ export default function AddPropertyModal({ isOpen, onClose, onPropertyAdded }: A
   const [mapLoaded, setMapLoaded] = useState(false)
   const [gettingLocation, setGettingLocation] = useState(false)
   const [currentUser, setCurrentUser] = useState<{ id: string; fullname: string; email: string } | null>(null)
+  const [showSuccessModal, setShowSuccessModal] = useState(false)
   const mapRef = useRef<mapboxgl.Map | null>(null)
   const markerRef = useRef<mapboxgl.Marker | null>(null)
   const mapContainerRef = useRef<HTMLDivElement | null>(null)
@@ -560,8 +561,8 @@ export default function AddPropertyModal({ isOpen, onClose, onPropertyAdded }: A
       const data = await response.json()
       console.log('✅ Property created:', data)
 
-      // Show success message
-      alert('🎉 Property added successfully!')
+      // Show success modal
+      setShowSuccessModal(true)
 
       // Clean up object URLs
       formData.images.forEach(url => {
@@ -570,27 +571,6 @@ export default function AddPropertyModal({ isOpen, onClose, onPropertyAdded }: A
         }
       })
 
-      // Reset form
-      setFormData({
-        name: "",
-        description: "",
-        price: "",
-        address: "",
-        latitude: "",
-        longitude: "",
-        propertyType: "",
-        images: [],
-        amenities: [],
-        phoneNumber: "",
-      })
-      setImageFiles([])
-
-      // Call callback to refresh properties list
-      if (onPropertyAdded) {
-        onPropertyAdded()
-      }
-
-      onClose()
     } catch (error) {
       console.error('❌ Error creating property:', error)
       setSubmitError(error instanceof Error ? error.message : 'Failed to create property')
@@ -652,6 +632,33 @@ export default function AddPropertyModal({ isOpen, onClose, onPropertyAdded }: A
       ...prev,
       images: prev.images.filter((_, i) => i !== index),
     }))
+  }
+
+  const handleSuccessModalClose = () => {
+    setShowSuccessModal(false)
+    
+    // Reset form
+    setFormData({
+      name: "",
+      description: "",
+      price: "",
+      address: "",
+      latitude: "",
+      longitude: "",
+      propertyType: "",
+      images: [],
+      amenities: [],
+      phoneNumber: "",
+    })
+    setImageFiles([])
+
+    // Call callback to refresh properties list
+    if (onPropertyAdded) {
+      onPropertyAdded()
+    }
+
+    // Close the add property modal
+    onClose()
   }
 
   return (
@@ -987,6 +994,33 @@ export default function AddPropertyModal({ isOpen, onClose, onPropertyAdded }: A
           </div>
         </form>
       </DialogContent>
+
+      {/* Success Modal */}
+      <Dialog open={showSuccessModal} onOpenChange={handleSuccessModalClose}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <div className="flex items-center justify-center mb-4">
+              <div className="w-20 h-20 bg-gradient-to-br from-green-100 to-emerald-100 rounded-full flex items-center justify-center animate-bounce">
+                <CheckCircle2 className="w-12 h-12 text-green-600" />
+              </div>
+            </div>
+            <DialogTitle className="text-center text-2xl font-bold text-slate-900">
+              Property Created Successfully! 🎉
+            </DialogTitle>
+            <DialogDescription className="text-center text-base pt-3 text-slate-600">
+              Your property has been listed successfully and is now visible to potential renters. You can view and manage it from your profile page.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex justify-center pt-6 pb-2">
+            <Button
+              onClick={handleSuccessModalClose}
+              className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white px-10 py-6 text-lg font-semibold"
+            >
+              Awesome! 🏠
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </Dialog>
   )
 }

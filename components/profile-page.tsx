@@ -1,7 +1,7 @@
 "use client"
 
-import { useState, useRef } from "react"
-import { User, Mail, MapPin, Phone, Calendar, Edit2, Camera, Save, X, Building, Heart, MessageSquare, TrendingUp, CheckCircle2 } from "lucide-react"
+import { useState, useRef, useEffect } from "react"
+import { User, Mail, MapPin, Phone, Calendar, Edit2, Camera, Save, X, Building, Heart, MessageSquare, TrendingUp, CheckCircle2, Home, Edit, Trash2, Eye } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -10,13 +10,34 @@ import { Badge } from "@/components/ui/badge"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
 import { useAuthStore } from "@/lib/auth-store"
 
+// Property interface
+interface Property {
+  _id: string
+  name: string
+  description: string
+  images: string[]
+  price: number
+  propertyType: string
+  amenities: string[]
+  status: string
+  location: {
+    address: string
+    latitude: number
+    longitude: number
+  }
+  createdAt: string
+}
+
 export default function ProfilePage() {
   const { user, token, logout } = useAuthStore()
   const [isEditing, setIsEditing] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const [uploadingImage, setUploadingImage] = useState(false)
   const [showSuccessModal, setShowSuccessModal] = useState(false)
-  const [successMessage, setSuccessMessage] = useState("")
+  const [successMessage, setSuccessMessage] = useState('')
+  const [showEditComingSoonModal, setShowEditComingSoonModal] = useState(false)
+  const [myProperties, setMyProperties] = useState<Property[]>([])
+  const [loadingProperties, setLoadingProperties] = useState(true)
   const fileInputRef = useRef<HTMLInputElement>(null)
   
   // Form state - mapping backend fields to frontend
@@ -235,12 +256,84 @@ export default function ProfilePage() {
     setIsEditing(false)
   }
 
-  // Mock data for stats - in real app, fetch from API
+  // Mock data for stats - fetch from API
   const stats = {
-    activeListings: 3,
+    activeListings: myProperties.filter(p => p.status === 'available' || p.status === 'For rent').length,
     totalViews: 1247,
     inquiries: 28,
     favorites: 15
+  }
+
+  // Fetch user's properties
+  useEffect(() => {
+    const fetchMyProperties = async () => {
+      if (!user?._id) {
+        setLoadingProperties(false)
+        return
+      }
+
+      try {
+        setLoadingProperties(true)
+        const response = await fetch(`https://rentify-server-ge0f.onrender.com/api/properties/user/${user._id}`)
+        
+        if (!response.ok) {
+          throw new Error('Failed to fetch properties')
+        }
+
+        const data = await response.json()
+        console.log('User properties:', data)
+
+        // Handle different response formats
+        let properties: Property[] = []
+        if (Array.isArray(data)) {
+          properties = data
+        } else if (data.properties && Array.isArray(data.properties)) {
+          properties = data.properties
+        } else if (data.success && data.properties && Array.isArray(data.properties)) {
+          properties = data.properties
+        }
+
+        setMyProperties(properties)
+      } catch (error) {
+        console.error('Error fetching user properties:', error)
+      } finally {
+        setLoadingProperties(false)
+      }
+    }
+
+    fetchMyProperties()
+  }, [user?._id])
+
+  const handleDeleteProperty = async (propertyId: string) => {
+    if (!confirm('Are you sure you want to delete this property? This action cannot be undone.')) {
+      return
+    }
+
+    try {
+      const response = await fetch(`https://rentify-server-ge0f.onrender.com/api/properties/${propertyId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to delete property')
+      }
+
+      // Remove from local state
+      setMyProperties(myProperties.filter(p => p._id !== propertyId))
+      setSuccessMessage('Property deleted successfully!')
+      setShowSuccessModal(true)
+    } catch (error) {
+      console.error('Error deleting property:', error)
+      alert('Failed to delete property')
+    }
+  }
+
+  const getImageUrl = (imagePath: string) => {
+    if (!imagePath) return 'https://via.placeholder.com/400x300?text=No+Image'
+    return imagePath.startsWith('http') ? imagePath : `https://rentify-server-ge0f.onrender.com${imagePath.startsWith('/') ? imagePath : '/' + imagePath}`
   }
 
   return (
@@ -510,6 +603,161 @@ export default function ProfilePage() {
         </Card>
       </div>
 
+      {/* My Properties Section */}
+      <Card className="border-0 shadow-lg">
+        <CardHeader className="border-b bg-gradient-to-r from-purple-50 to-indigo-50">
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="text-2xl flex items-center gap-2">
+                <Home className="w-6 h-6 text-purple-600" />
+                My Properties
+              </CardTitle>
+              <p className="text-sm text-slate-600 mt-1">Manage your listed properties</p>
+            </div>
+            <Badge className="bg-purple-600 text-white">
+              {myProperties.length} {myProperties.length === 1 ? 'Property' : 'Properties'}
+            </Badge>
+          </div>
+        </CardHeader>
+        <CardContent className="p-6">
+          {loadingProperties ? (
+            <div className="flex flex-col items-center justify-center py-12">
+              <div className="animate-spin rounded-full h-12 w-12 border-4 border-purple-200 border-t-purple-600 mb-4"></div>
+              <p className="text-slate-600">Loading your properties...</p>
+            </div>
+          ) : myProperties.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-12">
+              <div className="w-20 h-20 bg-slate-100 rounded-full flex items-center justify-center mb-4">
+                <Building className="w-10 h-10 text-slate-400" />
+              </div>
+              <h3 className="text-xl font-semibold text-slate-900 mb-2">No Properties Yet</h3>
+              <p className="text-slate-600 mb-6 text-center max-w-md">
+                You haven't listed any properties yet. Start adding your first property to reach potential renters!
+              </p>
+              <Button className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white">
+                <Building className="w-4 h-4 mr-2" />
+                Add Your First Property
+              </Button>
+            </div>
+          ) : (
+            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+              {myProperties.map((property) => (
+                <Card key={property._id} className="overflow-hidden hover:shadow-xl transition-all duration-300 border-0 shadow-md group">
+                  {/* Property Image */}
+                  <div className="relative h-48 overflow-hidden">
+                    <img
+                      src={getImageUrl(property.images[0])}
+                      alt={property.name}
+                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).src = 'https://via.placeholder.com/400x300?text=No+Image'
+                      }}
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent"></div>
+                    
+                    {/* Status Badge */}
+                    <Badge 
+                      className={`absolute top-3 right-3 capitalize ${
+                        property.status === 'available' || property.status === 'For rent' 
+                          ? 'bg-green-500 text-white' 
+                          : property.status === 'For sale'
+                          ? 'bg-blue-500 text-white'
+                          : 'bg-red-500 text-white'
+                      }`}
+                    >
+                      {property.status}
+                    </Badge>
+
+                    {/* Image Count */}
+                    {property.images.length > 1 && (
+                      <div className="absolute bottom-3 right-3 bg-black/70 text-white text-xs px-2 py-1 rounded-full flex items-center gap-1">
+                        <Camera className="w-3 h-3" />
+                        {property.images.length}
+                      </div>
+                    )}
+                  </div>
+
+                  <CardContent className="p-4">
+                    {/* Property Info */}
+                    <h3 className="font-bold text-lg text-slate-900 mb-2 line-clamp-1">
+                      {property.name}
+                    </h3>
+                    
+                    <p className="text-2xl font-bold text-purple-600 mb-2">
+                      ₱{property.price.toLocaleString()}
+                      <span className="text-sm text-slate-500 font-normal">/month</span>
+                    </p>
+
+                    <div className="flex items-start gap-2 mb-3">
+                      <MapPin className="w-4 h-4 text-slate-400 mt-0.5 flex-shrink-0" />
+                      <p className="text-sm text-slate-600 line-clamp-2">{property.location.address}</p>
+                    </div>
+
+                    <p className="text-sm text-slate-600 line-clamp-2 mb-3">
+                      {property.description}
+                    </p>
+
+                    {/* Amenities */}
+                    {property.amenities.length > 0 && (
+                      <div className="flex flex-wrap gap-1 mb-3">
+                        {property.amenities.slice(0, 3).map((amenity, idx) => (
+                          <Badge key={idx} variant="outline" className="text-xs">
+                            {amenity}
+                          </Badge>
+                        ))}
+                        {property.amenities.length > 3 && (
+                          <Badge variant="outline" className="text-xs">
+                            +{property.amenities.length - 3}
+                          </Badge>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Property Type */}
+                    <div className="flex items-center gap-2 mb-4">
+                      <Badge className="bg-indigo-100 text-indigo-700 capitalize">
+                        {property.propertyType}
+                      </Badge>
+                      <span className="text-xs text-slate-500">
+                        Listed {new Date(property.createdAt).toLocaleDateString()}
+                      </span>
+                    </div>
+
+                    {/* Action Buttons */}
+                    <div className="flex gap-2">
+                      <Button
+                        size="sm"
+                        className="flex-1 bg-purple-600 hover:bg-purple-700 text-white"
+                        onClick={() => setShowEditComingSoonModal(true)}
+                      >
+                        <Edit className="w-3 h-3 mr-1" />
+                        Edit
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="border-slate-300 hover:bg-slate-50"
+                      >
+                        <Eye className="w-3 h-3 mr-1" />
+                        View
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="border-red-300 text-red-600 hover:bg-red-50"
+                        onClick={() => handleDeleteProperty(property._id)}
+                      >
+                        <Trash2 className="w-3 h-3" />
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
       {/* Additional Sections */}
       <div className="grid gap-6 md:grid-cols-2">
         {/* Account Settings */}
@@ -634,6 +882,31 @@ export default function ProfilePage() {
               className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white px-8"
             >
               Got it!
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Coming Soon Modal */}
+      <Dialog open={showEditComingSoonModal} onOpenChange={setShowEditComingSoonModal}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <div className="flex items-center justify-center mb-4">
+              <div className="w-16 h-16 bg-gradient-to-br from-purple-100 to-indigo-100 rounded-full flex items-center justify-center">
+                <Edit className="w-10 h-10 text-purple-600" />
+              </div>
+            </div>
+            <DialogTitle className="text-center text-2xl">Coming Soon!</DialogTitle>
+            <DialogDescription className="text-center text-base pt-2">
+              Edit functionality is currently under development. You'll be able to update your property details soon!
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex justify-center pt-4">
+            <Button
+              onClick={() => setShowEditComingSoonModal(false)}
+              className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white px-8"
+            >
+              Okay, Got it!
             </Button>
           </div>
         </DialogContent>
