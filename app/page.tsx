@@ -54,6 +54,26 @@ interface APIProperty {
   }
   createdAt: string
   __v: number
+  postedBy?: string | {
+    _id: string
+    username: string
+    email: string
+    fullName?: string
+    profilePicture?: string
+    phoneNumber?: string
+    address?: string
+  }
+  createdBy?: string | {
+    _id: string
+    username: string
+    email: string
+    fullName?: string
+    profilePicture?: string
+    phoneNumber?: string
+    address?: string
+  }
+  rating?: number
+  phoneNumber?: string
 }
 
 // Helper function to get proper image URI
@@ -684,50 +704,95 @@ export default function PropertyListingPage() {
   }
 
   // Function to convert API property to Property interface
-  const convertAPIProperty = (apiProperty: APIProperty): Property => ({
-    id: apiProperty._id,
-    name: apiProperty.name,
-    description: apiProperty.description,
-    price: apiProperty.price,
-    location: {
-      address: apiProperty.location.address,
-      latitude: apiProperty.location.latitude,
-      longitude: apiProperty.location.longitude,
-    },
-    images: apiProperty.images,
-    amenities: apiProperty.amenities,
-    status: apiProperty.status === "available" ? "Available" : 
-            apiProperty.status === "rented" ? "Rented" : "Available" as "Available" | "Rented" | "Sold",
-    propertyType: apiProperty.propertyType,
-    bedrooms: 1, // Default values as API doesn't provide these
-    bathrooms: 1,
-    parking: apiProperty.amenities.some(a => a.toLowerCase().includes('parking')) ? 1 : 0,
-  })
+  const convertAPIProperty = (apiProperty: APIProperty): Property => {
+    // Map backend status to frontend format
+    let mappedStatus: "available" | "For rent" | "For sale" | "fully booked" = "available"
+    if (apiProperty.status) {
+      const statusLower = apiProperty.status.toLowerCase()
+      if (statusLower === "available") mappedStatus = "available"
+      else if (statusLower === "for rent") mappedStatus = "For rent"
+      else if (statusLower === "for sale") mappedStatus = "For sale"
+      else if (statusLower === "fully booked" || statusLower === "rented") mappedStatus = "fully booked"
+    }
 
-  // Fetch properties from API
-  useEffect(() => {
-    const fetchProperties = async () => {
-      try {
-        setLoading(true)
-        setError(null)
-        const response = await fetch('https://rentify-server-ge0f.onrender.com/api/properties')
-        
-        if (!response.ok) {
-          throw new Error('Failed to fetch properties')
-        }
-        
-        const apiProperties: APIProperty[] = await response.json()
-        const convertedProperties = apiProperties.map(convertAPIProperty)
-        setProperties(convertedProperties)
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'An error occurred')
-        console.error('Error fetching properties:', err)
-      } finally {
-        setLoading(false)
+    // Map backend propertyType to frontend format
+    let mappedType: 'apartment' | 'house' | 'condo' | 'room' | 'dorm' | 'boarding house' | 'other' = 'other'
+    if (apiProperty.propertyType) {
+      const typeLower = apiProperty.propertyType.toLowerCase()
+      if (['apartment', 'house', 'condo', 'room', 'dorm', 'boarding house'].includes(typeLower)) {
+        mappedType = typeLower as typeof mappedType
       }
     }
 
-    fetchProperties()
+    return {
+      id: apiProperty._id,
+      _id: apiProperty._id,
+      name: apiProperty.name,
+      description: apiProperty.description,
+      price: apiProperty.price,
+      location: {
+        address: apiProperty.location.address,
+        latitude: apiProperty.location.latitude,
+        longitude: apiProperty.location.longitude,
+      },
+      images: apiProperty.images || [],
+      amenities: apiProperty.amenities || [],
+      status: mappedStatus,
+      propertyType: mappedType,
+      bedrooms: 1, // Default values as API doesn't provide these yet
+      bathrooms: 1,
+      parking: (apiProperty.amenities || []).some(a => a.toLowerCase().includes('parking')) ? 1 : 0,
+      createdAt: apiProperty.createdAt,
+      postedBy: apiProperty.postedBy,
+      createdBy: apiProperty.createdBy,
+      rating: apiProperty.rating,
+      phoneNumber: apiProperty.phoneNumber,
+    }
+  }
+
+  // Fetch properties from API
+  const fetchPropertiesFromAPI = async () => {
+    try {
+      setLoading(true)
+      setError(null)
+      const response = await fetch('https://rentify-server-ge0f.onrender.com/api/properties')
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch properties')
+      }
+      
+      const data = await response.json()
+      console.log('API Response:', data)
+      
+      // Handle different response formats
+      let apiProperties: APIProperty[] = []
+      
+      if (Array.isArray(data)) {
+        // Direct array response
+        apiProperties = data
+      } else if (data.properties && Array.isArray(data.properties)) {
+        // Object with properties array
+        apiProperties = data.properties
+      } else if (data.success && data.properties && Array.isArray(data.properties)) {
+        // Success wrapper with properties array
+        apiProperties = data.properties
+      } else {
+        console.error('Unexpected API response format:', data)
+        throw new Error('Invalid API response format')
+      }
+      
+      const convertedProperties = apiProperties.map(convertAPIProperty)
+      setProperties(convertedProperties)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An error occurred')
+      console.error('Error fetching properties:', err)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    fetchPropertiesFromAPI()
   }, [])
 
   // Helper function to check if price range is not default
@@ -760,14 +825,20 @@ export default function PropertyListingPage() {
         filtered.sort((a, b) => b.price - a.price)
         break
       case "newest":
-        // Assuming newer properties have higher indices or use createdAt if available
-        filtered.sort((a, b) => b.id.localeCompare(a.id))
+        // Sort by createdAt or id
+        filtered.sort((a, b) => {
+          const aId = a._id || a.id || ''
+          const bId = b._id || b.id || ''
+          return bId.localeCompare(aId)
+        })
         break
       case "popular":
-        // Sort by status (Available first) then by name
+        // Sort by status (available/For rent first) then by name
         filtered.sort((a, b) => {
-          if (a.status === "Available" && b.status !== "Available") return -1
-          if (b.status === "Available" && a.status !== "Available") return 1
+          const aAvailable = a.status === "available" || a.status === "For rent"
+          const bAvailable = b.status === "available" || b.status === "For rent"
+          if (aAvailable && !bAvailable) return -1
+          if (bAvailable && !aAvailable) return 1
           return a.name.localeCompare(b.name)
         })
         break
@@ -801,7 +872,7 @@ export default function PropertyListingPage() {
   useEffect(() => {
     if (properties.length > 0) {
       const nearby = properties
-        .filter(p => p.status === "Available")
+        .filter(p => p.status === "available" || p.status === "For rent")
         .slice(0, 6)
         .map(p => ({ ...p, distance: Math.random() * 2 + 0.1 })) // Simulate distance 0.1-2.1 km
       setNearbyProperties(nearby)
@@ -813,7 +884,7 @@ export default function PropertyListingPage() {
     if (properties.length > 0) {
       const sorted = [...properties].sort((a, b) => a.price - b.price)
       const budgetCount = Math.max(3, Math.floor(sorted.length * 0.25))
-      setBudgetFriendly(sorted.slice(0, budgetCount).filter(p => p.status === "Available"))
+      setBudgetFriendly(sorted.slice(0, budgetCount).filter(p => p.status === "available" || p.status === "For rent"))
     }
   }, [properties])
 
@@ -926,10 +997,12 @@ export default function PropertyListingPage() {
                       <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-black/10 pointer-events-none" />
                       
                       {/* Status Badge */}
-                      <Badge className={`absolute top-3 right-3 border-0 shadow-lg font-bold text-xs z-10 ${
-                        property.status === 'Available' 
+                      <Badge className={`absolute top-3 right-3 border-0 shadow-lg font-bold text-xs z-10 capitalize ${
+                        property.status === 'available' 
                           ? 'bg-emerald-500 text-white' 
-                          : property.status === 'Rented' 
+                          : property.status === 'For rent' 
+                          ? 'bg-blue-500 text-white'
+                          : property.status === 'For sale'
                           ? 'bg-amber-500 text-white' 
                           : 'bg-slate-500 text-white'
                       }`}>
@@ -1141,11 +1214,11 @@ export default function PropertyListingPage() {
                       </div>
                       <div className="flex justify-center gap-6 mt-3 text-sm">
                         <span className="text-emerald-600 font-medium">
-                          {properties.filter(p => p.status === 'Available').length} Available
+                          {properties.filter(p => p.status === 'available' || p.status === 'For rent').length} Available
                         </span>
                         <span className="text-slate-500">•</span>
                         <span className="text-amber-600 font-medium">
-                          {properties.filter(p => p.status === 'Rented').length} Rented
+                          {properties.filter(p => p.status === 'fully booked' || p.status === 'For sale').length} Booked/Sale
                         </span>
                       </div>
                     </div>
@@ -1165,12 +1238,12 @@ export default function PropertyListingPage() {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
               <Image
-                src="/icon.png"
+                src="/rentify-logo.png"
                 alt="Rentify - Find Your Perfect Home"
-                width={140}
-                height={36}
-                className="h-9 w-auto"
-                priority
+                width={100}
+                height={30}
+                className="h-17 w-auto"
+                loading="eager"
               />
               <div className="hidden sm:block h-6 w-px bg-slate-300"></div>
               {/* Inline navbar with better spacing */}
@@ -1479,11 +1552,11 @@ export default function PropertyListingPage() {
                     <div className="flex items-center gap-4 text-sm">
                       <div className="flex items-center gap-2">
                         <div className="w-3 h-3 bg-emerald-500 rounded-full"></div>
-                        <span className="text-slate-600">{filteredProperties.filter(p => p.status === 'Available').length} Available</span>
+                        <span className="text-slate-600">{filteredProperties.filter(p => p.status === 'available' || p.status === 'For rent').length} Available</span>
                       </div>
                       <div className="flex items-center gap-2">
                         <div className="w-3 h-3 bg-amber-500 rounded-full"></div>
-                        <span className="text-slate-600">{filteredProperties.filter(p => p.status === 'Rented').length} Rented</span>
+                        <span className="text-slate-600">{filteredProperties.filter(p => p.status === 'fully booked' || p.status === 'For sale').length} Booked</span>
                       </div>
                     </div>
                   </div>
@@ -1527,10 +1600,12 @@ export default function PropertyListingPage() {
                       <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-black/10 pointer-events-none" />
                       
                       {/* Status Badge */}
-                      <Badge className={`absolute top-3 right-3 border-0 shadow-lg font-bold text-xs z-10 ${
-                        property.status === 'Available' 
+                      <Badge className={`absolute top-3 right-3 border-0 shadow-lg font-bold text-xs z-10 capitalize ${
+                        property.status === 'available' 
                           ? 'bg-emerald-500 text-white' 
-                          : property.status === 'Rented' 
+                          : property.status === 'For rent' 
+                          ? 'bg-blue-500 text-white'
+                          : property.status === 'For sale'
                           ? 'bg-amber-500 text-white' 
                           : 'bg-slate-500 text-white'
                       }`}>
@@ -1927,13 +2002,13 @@ export default function PropertyListingPage() {
               <div className="flex items-center gap-3">
                 <div className="w-3 h-3 bg-emerald-500 rounded-full shadow-sm"></div>
                 <span className="text-lg font-semibold text-slate-700">
-                  {filteredProperties.filter(p => p.status === 'Available').length} Available Now
+                  {filteredProperties.filter(p => p.status === 'available' || p.status === 'For rent').length} Available Now
                 </span>
               </div>
               <div className="flex items-center gap-3">
                 <div className="w-3 h-3 bg-amber-500 rounded-full shadow-sm"></div>
                 <span className="text-lg text-slate-600">
-                  {filteredProperties.filter(p => p.status === 'Rented').length} Already Rented
+                  {filteredProperties.filter(p => p.status === 'fully booked' || p.status === 'For sale').length} Booked/For Sale
                 </span>
               </div>
               <div className="flex items-center gap-3">
@@ -1987,7 +2062,11 @@ export default function PropertyListingPage() {
         </div>
       </div>
 
-      <AddPropertyModal isOpen={showAddPropertyModal} onClose={handleCloseModal} />
+      <AddPropertyModal 
+        isOpen={showAddPropertyModal} 
+        onClose={handleCloseModal} 
+        onPropertyAdded={fetchPropertiesFromAPI}
+      />
 
       <Dialog open={!!selectedProperty} onOpenChange={() => setSelectedProperty(null)}>
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">

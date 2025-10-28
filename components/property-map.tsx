@@ -298,6 +298,58 @@ export default function PropertyMap({
   const [loadingML, setLoadingML] = useState(false)
   const [routeSteps, setRouteSteps] = useState<RouteStep[]>([])
   const [currentStep, setCurrentStep] = useState(0)
+
+  // Helper function to get owner information from property
+  const getOwnerInfo = (property: Property) => {
+    // Debug: Log property data to see what we have
+    console.log('Getting owner info for property:', {
+      name: property.name,
+      postedBy: property.postedBy,
+      createdBy: property.createdBy,
+      owner: property.owner,
+      phoneNumber: property.phoneNumber
+    })
+    
+    // First check if there's a legacy owner field
+    if (property.owner) {
+      return property.owner
+    }
+    
+    // Check postedBy field (can be populated User object or just ID)
+    if (property.postedBy && typeof property.postedBy === 'object') {
+      return {
+        id: property.postedBy._id,
+        name: property.postedBy.fullName || property.postedBy.name || property.postedBy.username || 'Property Owner',
+        profilePicture: property.postedBy.profilePicture,
+        phone: property.postedBy.phoneNumber || property.postedBy.phone || property.phoneNumber,
+        email: property.postedBy.email
+      }
+    }
+    
+    // Check createdBy field
+    if (property.createdBy && typeof property.createdBy === 'object') {
+      return {
+        id: property.createdBy._id,
+        name: property.createdBy.fullName || property.createdBy.name || property.createdBy.username || 'Property Owner',
+        profilePicture: property.createdBy.profilePicture,
+        phone: property.createdBy.phoneNumber || property.createdBy.phone || property.phoneNumber,
+        email: property.createdBy.email
+      }
+    }
+    
+    // Fallback: If we have a phoneNumber on the property but no populated owner, create basic owner info
+    if (property.phoneNumber || property.postedBy || property.createdBy) {
+      return {
+        id: (typeof property.postedBy === 'string' ? property.postedBy : property.createdBy) || 'unknown',
+        name: 'Property Owner',
+        phone: property.phoneNumber,
+        email: undefined,
+        profilePicture: undefined
+      }
+    }
+    
+    return null
+  }
   const [currentImageIndex, setCurrentImageIndex] = useState(0)
 
   const initializedRef = useRef(false)
@@ -339,16 +391,33 @@ export default function PropertyMap({
         throw new Error(`Failed to fetch properties: ${fullPropertyRes.status}`)
       }
       
-      const allProperties = await fullPropertyRes.json()
+      const data = await fullPropertyRes.json()
+      
+      // Handle different response formats from backend
+      let allProperties: any[] = []
+      if (Array.isArray(data)) {
+        allProperties = data
+      } else if (data.properties && Array.isArray(data.properties)) {
+        allProperties = data.properties
+      } else if (data.success && data.properties && Array.isArray(data.properties)) {
+        allProperties = data.properties
+      } else {
+        console.error('Unexpected API response format:', data)
+        throw new Error('Invalid API response format')
+      }
+      
       console.log(`📊 Total properties from database: ${allProperties.length}`)
 
-      // Use new ML API to classify each property
-      console.log('🤖 Classifying properties using KMeans ML API...')
+      // Use ML API but OVERRIDE with strict price-based classification
+      console.log('🤖 Classifying properties using ML API (with price-based override)...')
       const classifiedProperties = await Promise.all(
         allProperties.map(async (property: any) => {
+          const price = property.price || 0
+          let cluster
+          
           try {
-            // Call the KMeans ML API for each property
-            const response = await fetch('https://new-train-ml.onrender.com/predict_kmeans', {
+            // Call ML API (for logging/future use)
+            const response = await fetch('/api/ml-predict', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
@@ -358,44 +427,27 @@ export default function PropertyMap({
               })
             })
 
-            if (!response.ok) {
-              console.warn(`⚠️ ML API failed for property ${property._id}, using price fallback`)
-              // Price-based fallback based on actual data (₱2,000 - ₱12,000)
-              const price = property.price || 0
-              let cluster
-              if (price <= 4000) {
-                cluster = 0 // Low Budget (₱2,000 - ₱4,000)
-              } else if (price <= 7000) {
-                cluster = 1 // Mid Range (₱4,001 - ₱7,000)
-              } else {
-                cluster = 2 // High End (₱7,001 - ₱12,000)
-              }
-              return { ...property, cluster }
+            if (response.ok) {
+              const result = await response.json()
+              console.log(`  🔮 ML prediction for ${property.name}: ${result.cluster_label} (cluster ${result.cluster_id})`)
             }
-
-            const result = await response.json()
-            
-            // Use cluster_id directly from KMeans API (already 0, 1, or 2)
-            // cluster_label will be "Low Budget", "Mid Range", or "High End"
-            const cluster = result.cluster_id
-            
-            console.log(`  ✓ ${property.name}: ${result.cluster_label} (cluster ${cluster})`)
-
-            return { ...property, cluster }
           } catch (error) {
-            console.warn(`⚠️ Error classifying property ${property._id}:`, error)
-            // Price-based fallback based on actual data (₱2,000 - ₱12,000)
-            const price = property.price || 0
-            let cluster
-            if (price <= 4000) {
-              cluster = 0 // Low Budget (₱2,000 - ₱4,000)
-            } else if (price <= 7000) {
-              cluster = 1 // Mid Range (₱4,001 - ₱7,000)
-            } else {
-              cluster = 2 // High End (₱7,001 - ₱12,000)
-            }
-            return { ...property, cluster }
+            console.warn(`⚠️ ML API error for property ${property._id}:`, error)
           }
+
+          // OVERRIDE: Always use STRICT price-based classification
+          if (price > 0 && price <= 3000) {
+            cluster = 0 // Low Budget (₱1 - ₱3,000)
+          } else if (price > 3000 && price <= 5000) {
+            cluster = 1 // Mid Range (₱3,001 - ₱5,000)
+          } else if (price > 5000) {
+            cluster = 2 // High End (₱5,001+)
+          } else {
+            cluster = 2 // Default to High End if price is 0 or invalid
+          }
+          
+          console.log(`  ✅ ${property.name} (₱${price.toLocaleString()}): ASSIGNED to Cluster ${cluster}`)
+          return { ...property, cluster }
         })
       )
 
@@ -407,17 +459,22 @@ export default function PropertyMap({
       setMlProperties(classifiedProperties)
     } catch (error) {
       console.error('❌ Error fetching properties from database:', error)
-      // Final fallback: Use props with price-based clustering (₱2,000 - ₱12,000)
+      // Final fallback: Use props with STRICT price-based clustering
       const clusteredProperties = properties.map((prop) => {
         const price = prop.price || 0
         let cluster
-        if (price <= 4000) {
-          cluster = 0 // Low Budget (₱2,000 - ₱4,000)
-        } else if (price <= 7000) {
-          cluster = 1 // Mid Range (₱4,001 - ₱7,000)
+        
+        // STRICT price ranges
+        if (price > 0 && price <= 3000) {
+          cluster = 0 // Low Budget (₱1 - ₱3,000)
+        } else if (price > 3000 && price <= 5000) {
+          cluster = 1 // Mid Range (₱3,001 - ₱5,000)
+        } else if (price > 5000) {
+          cluster = 2 // High End (₱5,001+)
         } else {
-          cluster = 2 // High End (₱7,001 - ₱12,000)
+          cluster = 2 // Default to High End if price is 0 or invalid
         }
+        
         return { ...prop, cluster }
       })
       setMlProperties(clusteredProperties)
@@ -731,7 +788,10 @@ export default function PropertyMap({
           markerColor = staticColors[selectedCluster]
         } else {
           // In "All Properties" view or when clustering is disabled, use status colors
-          markerColor = property.status === "Available" ? "#10b981" : property.status === "Rented" ? "#f59e0b" : "#ef4444"
+          markerColor = property.status === "available" ? "#10b981" : 
+                       property.status === "For rent" ? "#3b82f6" : 
+                       property.status === "For sale" ? "#f59e0b" : 
+                       "#ef4444" // fully booked
         }
 
         // Create custom home icon marker
@@ -1583,10 +1643,11 @@ export default function PropertyMap({
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent"></div>
                 <Badge 
-                  className={`absolute top-2 right-2 px-2 py-1 text-xs font-medium rounded ${
-                    selectedProperty.status === 'Available' ? 'bg-green-500 text-white' :
-                    selectedProperty.status === 'Rented' ? 'bg-orange-500 text-white' :
-                    'bg-red-500 text-white'
+                  className={`absolute top-2 right-2 px-2 py-1 text-xs font-medium rounded capitalize ${
+                    selectedProperty.status === 'available' ? 'bg-green-500 text-white' :
+                    selectedProperty.status === 'For rent' ? 'bg-blue-500 text-white' :
+                    selectedProperty.status === 'For sale' ? 'bg-orange-500 text-white' :
+                    'bg-red-500 text-white' // fully booked
                   }`}
                 >
                   {selectedProperty.status}
@@ -1652,6 +1713,47 @@ export default function PropertyMap({
               <p className="text-sm text-gray-700 leading-relaxed line-clamp-4">{selectedProperty.description}</p>
             </div>
 
+            {/* Owner Information */}
+            {(() => {
+              const ownerInfo = getOwnerInfo(selectedProperty)
+              if (!ownerInfo) return null
+              
+              return (
+                <div className="bg-gradient-to-br from-purple-50 to-indigo-50 rounded-lg p-4 mb-4 border border-purple-100">
+                  <h3 className="text-sm font-semibold text-gray-900 mb-3">Property Owner</h3>
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 rounded-full bg-gradient-to-br from-purple-100 to-indigo-100 overflow-hidden flex-shrink-0 border-2 border-white shadow-md">
+                      {ownerInfo.profilePicture ? (
+                        <img 
+                          src={ownerInfo.profilePicture} 
+                          alt={ownerInfo.name} 
+                          className="w-full h-full object-cover"
+                          onError={(e) => {
+                            const target = e.target as HTMLImageElement;
+                            target.style.display = 'none';
+                            target.parentElement!.innerHTML = `<div class="w-full h-full flex items-center justify-center text-purple-600 font-bold text-lg">${ownerInfo.name.charAt(0).toUpperCase()}</div>`;
+                          }}
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-purple-600 font-bold text-lg">
+                          {ownerInfo.name.charAt(0).toUpperCase()}
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold text-gray-900 truncate">{ownerInfo.name}</p>
+                      {ownerInfo.phone && (
+                        <p className="text-xs text-gray-600 truncate">{ownerInfo.phone}</p>
+                      )}
+                      {ownerInfo.email && (
+                        <p className="text-xs text-gray-500 truncate">{ownerInfo.email}</p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )
+            })()}
+
             {/* Compact Amenities */}
             {selectedProperty.amenities && selectedProperty.amenities.length > 0 && (
               <div className="mb-4">
@@ -1693,32 +1795,48 @@ export default function PropertyMap({
             <div className="flex gap-2 pt-2 border-t border-gray-200">
               <button 
                 onClick={() => {
-                  console.log(`Contact owner for property: ${selectedProperty.name}`)
-                  alert(`Contact Owner\n\nProperty: ${selectedProperty.name}\nPhone: +63 912 345 6789\nEmail: owner@rentify.com`)
+                  const ownerInfo = getOwnerInfo(selectedProperty)
+                  if (ownerInfo) {
+                    // If we have owner ID, redirect to messages
+                    if (ownerInfo.id && ownerInfo.id !== 'unknown') {
+                      window.location.href = `/messages?contact=${ownerInfo.id}`
+                    } else if (ownerInfo.phone) {
+                      // If we only have phone number, show it
+                      alert(`Contact Owner\n\nPhone: ${ownerInfo.phone}\n\nYou can call or text this number to inquire about the property.`)
+                    } else if (ownerInfo.email) {
+                      // If we only have email
+                      alert(`Contact Owner\n\nEmail: ${ownerInfo.email}\n\nYou can email to inquire about the property.`)
+                    } else {
+                      alert('Owner contact information is available. Please check the property details.')
+                    }
+                  } else {
+                    alert('Owner information not available for this property. This may be a demo listing.')
+                  }
                 }}
-                className="modern-button flex-1 bg-blue-600 hover:bg-blue-700 text-white rounded-lg px-3 py-2 text-sm font-medium transition-all duration-300 hover:scale-105 hover:shadow-lg flex items-center justify-center gap-1"
+                className="modern-button flex-1 bg-purple-600 hover:bg-purple-700 text-white rounded-lg px-3 py-2 text-sm font-medium transition-all duration-300 hover:scale-105 hover:shadow-lg flex items-center justify-center gap-1"
               >
-                <span className="icon-phone text-sm"></span>
-                <span>Contact</span>
+                <span className="text-sm">💬</span>
+                <span>Contact Owner</span>
               </button>
               <button 
                 onClick={() => {
-                  if (selectedProperty.status === 'Available') {
+                  const isAvailable = selectedProperty.status === 'available' || selectedProperty.status === 'For rent'
+                  if (isAvailable) {
                     console.log(`Rent now for property: ${selectedProperty.name}`)
                     alert(`Rent Now\n\nProperty: ${selectedProperty.name}\nMonthly Rent: ₱${selectedProperty.price.toLocaleString()}\n\nRedirecting to booking form...`)
                   } else {
-                    alert('This property is not currently available for rent.')
+                    alert('This property is not currently available.')
                   }
                 }}
                 className={`modern-button flex-1 rounded-lg px-3 py-2 text-sm font-medium transition-all duration-300 hover:scale-105 hover:shadow-lg flex items-center justify-center gap-1 ${
-                  selectedProperty.status === 'Available' 
+                  (selectedProperty.status === 'available' || selectedProperty.status === 'For rent')
                     ? 'bg-green-600 hover:bg-green-700 text-white' 
                     : 'bg-gray-200 text-gray-500 cursor-not-allowed'
                 }`}
-                disabled={selectedProperty.status !== 'Available'}
+                disabled={!(selectedProperty.status === 'available' || selectedProperty.status === 'For rent')}
               >
                 <span className="icon-heart text-sm"></span>
-                <span>{selectedProperty.status === 'Available' ? 'Rent' : 'N/A'}</span>
+                <span>{(selectedProperty.status === 'available' || selectedProperty.status === 'For rent') ? 'Book' : 'N/A'}</span>
               </button>
             </div>
           </div>

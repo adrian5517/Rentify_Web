@@ -290,6 +290,29 @@ function MessagesPage() {
     }
   }, [currentUser, hasLoadedOnce])
 
+  // Handle contact query parameter from URL (e.g., from property page)
+  useEffect(() => {
+    if (contacts.length > 0) {
+      const urlParams = new URLSearchParams(window.location.search)
+      const contactId = urlParams.get('contact')
+      
+      if (contactId) {
+        console.log('🔗 Contact ID from URL:', contactId)
+        // Check if contact exists in the list
+        const contactExists = contacts.find(c => c.id === contactId)
+        
+        if (contactExists) {
+          console.log('✅ Contact found, selecting:', contactExists.name)
+          setSelectedContact(contactId)
+          // Remove query parameter from URL
+          window.history.replaceState({}, '', '/messages')
+        } else {
+          console.log('⚠️ Contact not found in list, contact ID:', contactId)
+        }
+      }
+    }
+  }, [contacts])
+
   // Fetch messages when contact is selected
   useEffect(() => {
     if (currentUser && selectedContact) {
