@@ -1003,6 +1003,16 @@ export default function PropertyMap({
               requestAnimationFrame(() => {
                 if (map && typeof map.resize === 'function') {
                   map.resize()
+                  // If focusing on a single property, center the map after resize
+                  if (focusOnProperty && properties.length === 1) {
+                    setTimeout(() => {
+                      map.easeTo({ 
+                        center: [properties[0].location.longitude, properties[0].location.latitude], 
+                        zoom: 16,
+                        duration: 500
+                      })
+                    }, 100)
+                  }
                 }
               })
             }
@@ -1362,8 +1372,8 @@ export default function PropertyMap({
         'w-full' // No panels open
       }`} style={{ minHeight: "300px" }}>
         
-        {/* Cluster Controls */}
-        {enableClustering && staticLabels.length > 0 && (
+        {/* Cluster Controls - Hide when focusing on single property */}
+        {enableClustering && staticLabels.length > 0 && !focusOnProperty && (
           <div className="absolute top-6 left-6 z-20 flex gap-3">
             {staticLabels.map((name, idx) => (
               <button
@@ -1391,16 +1401,16 @@ export default function PropertyMap({
         </div>
       )}
 
-      {/* Modern Loading indicator for ML clusters */}
-      {loadingML && enableClustering && (
+      {/* Modern Loading indicator for ML clusters - Hide when focusing on single property */}
+      {loadingML && enableClustering && !focusOnProperty && (
         <div className="absolute top-6 right-6 z-20 glass-panel px-5 py-3 rounded-2xl shadow-xl border border-white/50 text-sm text-slate-700 flex items-center gap-3 animate-slide-up">
           <div className="animate-spin rounded-full h-5 w-5 border-2 border-blue-200 border-t-blue-500"></div>
           <span className="font-medium">Loading clusters...</span>
         </div>
       )}
 
-      {/* Modern Route info overlay */}
-      {routeInfo && (
+      {/* Modern Route info overlay - Hide when focusing on single property */}
+      {routeInfo && !focusOnProperty && (
         <div className="absolute bottom-6 left-6 z-10 glass-panel px-5 py-4 rounded-2xl shadow-xl border border-white/50 text-sm text-slate-700 animate-scale-in">
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-2">
@@ -1427,10 +1437,10 @@ export default function PropertyMap({
 
       <div ref={mapRef} className="absolute inset-0 rounded-3xl overflow-hidden" style={{ backgroundColor: "#f8fafc", minHeight: "600px" }} />
 
-      {/* Modern Enhanced controls section */}
-      <div className="absolute bottom-6 right-6 z-10 flex flex-col gap-3 animate-slide-up">
-        {/* Modern My Location buttons - only show when not focusing on a single property */}
-        {!focusOnProperty && (
+      {/* Modern Enhanced controls section - Hide all when focusing on single property */}
+      {!focusOnProperty && (
+        <div className="absolute bottom-6 right-6 z-10 flex flex-col gap-3 animate-slide-up">
+          {/* Modern My Location buttons */}
           <div className="flex flex-col gap-2">
             <button
               aria-label="My location"
@@ -1490,36 +1500,36 @@ export default function PropertyMap({
               <span className="font-semibold">Refresh GPS</span>
             </button>
           </div>
-        )}
 
-        {/* Modern Navigation toggle button */}
-        <button
-          onClick={() => onNavigationToggle && onNavigationToggle(!navigationMode)}
-          className={`modern-button inline-flex items-center gap-3 px-4 py-3 rounded-2xl shadow-xl border transition-all duration-300 text-sm font-semibold backdrop-blur-md hover:scale-105 hover:shadow-2xl ${
-            navigationMode 
-              ? 'bg-gradient-to-r from-blue-500 to-indigo-600 text-white border-white/30 hover:from-blue-600 hover:to-indigo-700' 
-              : 'glass-panel hover:bg-white text-slate-700 border-white/50'
-          }`}
-          disabled={!selectedProperty || !routeInfo}
-        >
-          <div className="w-8 h-8 bg-gradient-to-br from-indigo-100 to-indigo-200 rounded-xl flex items-center justify-center">
-            <span className="text-indigo-600 text-sm">🧭</span>
-          </div>
-          <span>{navigationMode ? 'Stop Navigation' : 'Start Navigation'}</span>
-        </button>
+          {/* Modern Navigation toggle button */}
+          <button
+            onClick={() => onNavigationToggle && onNavigationToggle(!navigationMode)}
+            className={`modern-button inline-flex items-center gap-3 px-4 py-3 rounded-2xl shadow-xl border transition-all duration-300 text-sm font-semibold backdrop-blur-md hover:scale-105 hover:shadow-2xl ${
+              navigationMode 
+                ? 'bg-gradient-to-r from-blue-500 to-indigo-600 text-white border-white/30 hover:from-blue-600 hover:to-indigo-700' 
+                : 'glass-panel hover:bg-white text-slate-700 border-white/50'
+            }`}
+            disabled={!selectedProperty || !routeInfo}
+          >
+            <div className="w-8 h-8 bg-gradient-to-br from-indigo-100 to-indigo-200 rounded-xl flex items-center justify-center">
+              <span className="text-indigo-600 text-sm">🧭</span>
+            </div>
+            <span>{navigationMode ? 'Stop Navigation' : 'Start Navigation'}</span>
+          </button>
 
-        {/* Modern Refresh ML clusters button */}
-        <button
-          onClick={fetchMLClusters}
-          disabled={loadingML}
-          className="modern-button inline-flex items-center gap-3 px-4 py-3 rounded-2xl shadow-xl glass-panel hover:bg-white text-slate-700 border border-white/50 disabled:opacity-50 transition-all duration-300 hover:scale-105 hover:shadow-2xl"
-        >
-          <div className={`w-8 h-8 bg-gradient-to-br from-purple-100 to-purple-200 rounded-xl flex items-center justify-center ${loadingML ? 'animate-spin' : ''}`}>
-            <span className="text-purple-600 text-sm">🔄</span>
-          </div>
-          <span className="text-sm font-semibold">Refresh ML</span>
-        </button>
-      </div>
+          {/* Modern Refresh ML clusters button */}
+          <button
+            onClick={fetchMLClusters}
+            disabled={loadingML}
+            className="modern-button inline-flex items-center gap-3 px-4 py-3 rounded-2xl shadow-xl glass-panel hover:bg-white text-slate-700 border border-white/50 disabled:opacity-50 transition-all duration-300 hover:scale-105 hover:shadow-2xl"
+          >
+            <div className={`w-8 h-8 bg-gradient-to-br from-purple-100 to-purple-200 rounded-xl flex items-center justify-center ${loadingML ? 'animate-spin' : ''}`}>
+              <span className="text-purple-600 text-sm">🔄</span>
+            </div>
+            <span className="text-sm font-semibold">Refresh ML</span>
+          </button>
+        </div>
+      )}
 
       {/* Modern Location accuracy indicator */}
       {userLocation && locationAccuracy && !focusOnProperty && !routeInfo && (
@@ -1542,7 +1552,7 @@ export default function PropertyMap({
         </div>
       )}
 
-      {/* Cluster stats overlay */}
+      {/* Cluster stats overlay - Already hidden when focusOnProperty is true */}
       {enableClustering && mlProperties.length > 0 && !focusOnProperty && !routeInfo && (
         <div className="absolute bottom-6 left-6 z-10 glass-panel px-4 py-3 rounded-2xl shadow border border-white/30 text-sm text-slate-700 animate-scale-in">
           <div className="flex items-center gap-2">

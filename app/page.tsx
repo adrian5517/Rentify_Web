@@ -2069,87 +2069,205 @@ export default function PropertyListingPage() {
       />
 
       <Dialog open={!!selectedProperty} onOpenChange={() => setSelectedProperty(null)}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-5xl max-h-[92vh] overflow-y-auto">
           {selectedProperty && (
             <>
-              <DialogHeader>
-                <DialogTitle className="text-2xl text-balance">{selectedProperty.name}</DialogTitle>
+              <DialogHeader className="pb-4">
+                <DialogTitle className="text-2xl font-bold text-balance pr-8 leading-tight">{selectedProperty.name}</DialogTitle>
               </DialogHeader>
               <div className="grid gap-6 md:grid-cols-2">
-                <div>
-                  <div className="relative h-64 rounded-lg overflow-hidden">
+                {/* Left Column - Images & Map */}
+                <div className="space-y-4">
+                  <div className="relative h-64 rounded-xl overflow-hidden shadow-lg ring-1 ring-black/5">
                     <ImageSlider 
                       property={selectedProperty} 
-                      className="h-64 rounded-lg" 
+                      className="h-64 rounded-xl" 
                       onImageClick={openImageViewer}
                     />
                   </div>
-                  <div className="mt-4 h-48 rounded-lg overflow-hidden">
+                  <div className="h-56 rounded-xl overflow-hidden shadow-md ring-1 ring-black/5">
                     <PropertyMap
                       properties={[selectedProperty]}
                       clusters={[]}
                       center={[selectedProperty.location.longitude, selectedProperty.location.latitude]}
-                      zoom={15}
+                      zoom={16}
                       focusOnProperty={true}
                     />
                   </div>
                 </div>
+
+                {/* Right Column - Details */}
                 <div className="space-y-4">
-                  <div>
-                    <p className="text-3xl font-bold text-blue-600">{formatPrice(selectedProperty.price)}</p>
-                    <div className="flex items-center gap-1 mt-1">
-                      <MapPin className="h-4 w-4 text-muted-foreground" />
-                      <span className="text-muted-foreground">{selectedProperty.location.address}</span>
+                  {/* Price & Location */}
+                  <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-4 ring-1 ring-blue-100">
+                    <p className="text-3xl font-bold text-blue-600 mb-1">
+                      {formatPrice(selectedProperty.price)}
+                      <span className="text-lg text-blue-500 font-normal">/month</span>
+                    </p>
+                    <div className="flex items-start gap-2 mt-2">
+                      <MapPin className="h-4 w-4 text-blue-600 mt-0.5 flex-shrink-0" />
+                      <span className="text-sm text-slate-700 leading-relaxed">{selectedProperty.location.address}</span>
+                    </div>
+                    <div className="mt-3">
+                      <Badge className="bg-blue-600 text-white capitalize text-xs px-3 py-1">{selectedProperty.status}</Badge>
                     </div>
                   </div>
-                  <div>
-                    <Badge className="bg-primary text-primary-foreground">{selectedProperty.status}</Badge>
+
+                  {/* Description */}
+                  <div className="bg-slate-50 rounded-xl p-4 ring-1 ring-slate-200">
+                    <h4 className="font-semibold text-slate-900 mb-2 text-sm flex items-center gap-2">
+                      <svg className="h-4 w-4 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                      </svg>
+                      Description
+                    </h4>
+                    <p className="text-sm text-slate-700 leading-relaxed line-clamp-3">{selectedProperty.description}</p>
                   </div>
-                  <div>
-                    <h4 className="font-semibold text-foreground mb-2">Description</h4>
-                    <p className="text-muted-foreground text-pretty">{selectedProperty.description}</p>
-                  </div>
-                  <div>
-                    <h4 className="font-semibold text-foreground mb-2">Amenities</h4>
-                    <div className="flex flex-wrap gap-2">
-                      {selectedProperty.amenities.map((amenity: string) => (
-                        <Badge key={amenity} variant="outline">
+
+                  {/* Amenities */}
+                  <div className="bg-emerald-50 rounded-xl p-4 ring-1 ring-emerald-100">
+                    <h4 className="font-semibold text-slate-900 mb-2 text-sm flex items-center gap-2">
+                      <svg className="h-4 w-4 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                      Amenities
+                    </h4>
+                    <div className="flex flex-wrap gap-1.5">
+                      {selectedProperty.amenities.slice(0, 6).map((amenity: string) => (
+                        <Badge key={amenity} variant="outline" className="text-xs px-2 py-0.5 bg-white border-emerald-200 text-emerald-800">
                           {amenity}
                         </Badge>
                       ))}
+                      {selectedProperty.amenities.length > 6 && (
+                        <Badge variant="outline" className="text-xs px-2 py-0.5 bg-white border-emerald-200 text-emerald-800">
+                          +{selectedProperty.amenities.length - 6}
+                        </Badge>
+                      )}
                     </div>
                   </div>
-                  <div className="flex gap-2 pt-4">
-                    <Button className="flex-1 flex items-center gap-2">
+                  
+                  {/* Owner Information */}
+                  {(selectedProperty.postedBy || selectedProperty.createdBy) && (
+                    <div className="bg-purple-50 rounded-xl p-4 ring-1 ring-purple-100">
+                      <h4 className="font-semibold text-slate-900 mb-3 text-sm flex items-center gap-2">
+                        <svg className="h-4 w-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                        </svg>
+                        Property Owner
+                      </h4>
+                      <div className="bg-white rounded-lg p-3">
+                        {(() => {
+                          const owner = typeof selectedProperty.postedBy === 'object' ? selectedProperty.postedBy : 
+                                       typeof selectedProperty.createdBy === 'object' ? selectedProperty.createdBy : null
+                          
+                          if (!owner) {
+                            return (
+                              <p className="text-xs text-slate-500">Owner information not available</p>
+                            )
+                          }
+                          
+                          return (
+                            <div className="flex items-center gap-3">
+                              {owner.profilePicture ? (
+                                <img 
+                                  src={owner.profilePicture.startsWith('http') ? owner.profilePicture : `https://rentify-server-ge0f.onrender.com${owner.profilePicture}`}
+                                  alt={owner.fullName || owner.username}
+                                  className="w-12 h-12 rounded-full object-cover border-2 border-purple-200 flex-shrink-0"
+                                />
+                              ) : (
+                                <div className="w-12 h-12 rounded-full bg-purple-100 flex items-center justify-center border-2 border-purple-200 flex-shrink-0">
+                                  <span className="text-purple-600 font-semibold text-lg">
+                                    {(owner.fullName || owner.username || 'U').charAt(0).toUpperCase()}
+                                  </span>
+                                </div>
+                              )}
+                              <div className="flex-1 min-w-0">
+                                <p className="font-semibold text-slate-900 text-sm truncate">
+                                  {owner.fullName || owner.username || 'Property Owner'}
+                                </p>
+                                {owner.email && (
+                                  <p className="text-xs text-slate-600 flex items-center gap-1 mt-0.5 truncate">
+                                    <svg className="h-3 w-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                                    </svg>
+                                    {owner.email}
+                                  </p>
+                                )}
+                                {owner.phoneNumber && (
+                                  <p className="text-xs text-slate-600 flex items-center gap-1 mt-0.5">
+                                    <Phone className="h-3 w-3 flex-shrink-0" />
+                                    {owner.phoneNumber}
+                                  </p>
+                                )}
+                              </div>
+                            </div>
+                          )
+                        })()}
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* Action Buttons */}
+                  <div className="flex gap-2 pt-2">
+                    <Button 
+                      onClick={() => {
+                        // Get owner ID from postedBy or createdBy
+                        const owner = typeof selectedProperty.postedBy === 'object' ? selectedProperty.postedBy : 
+                                     typeof selectedProperty.createdBy === 'object' ? selectedProperty.createdBy : null
+                        
+                        if (owner && owner._id) {
+                          // Redirect to messages page with owner ID
+                          setCurrentPage('messages')
+                          // Close the modal
+                          setSelectedProperty(null)
+                          // You can pass the owner ID to the messages component via URL or state
+                          window.history.pushState({}, '', `/messages?contact=${owner._id}`)
+                        } else {
+                          alert('Owner information not available')
+                        }
+                      }}
+                      className="flex-1 flex items-center justify-center gap-2 text-sm h-10 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700"
+                    >
                       <Phone className="h-4 w-4" />
                       Contact
                     </Button>
-                    <Button variant="secondary" className="flex-1">
+                    <Button className="flex-1 text-sm h-10 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white">
                       Rent Now
                     </Button>
                   </div>
                 </div>
               </div>
+
+              {/* Recommended Properties */}
               {recommendations.length > 0 && (
-                <div className="mt-8">
-                  <h4 className="text-lg font-semibold text-foreground mb-4">Recommended Properties</h4>
+                <div className="mt-6 pt-6 border-t">
+                  <h4 className="text-base font-semibold text-slate-900 mb-4 flex items-center gap-2">
+                    <svg className="h-5 w-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
+                    </svg>
+                    You Might Also Like
+                  </h4>
                   <div className="grid gap-4 md:grid-cols-3">
                     {recommendations.map((rec) => (
                       <Card
                         key={rec.id}
-                        className="cursor-pointer hover:shadow-md transition-shadow"
+                        className="cursor-pointer hover:shadow-lg transition-all hover:-translate-y-1 overflow-hidden ring-1 ring-black/5"
                         onClick={() => setSelectedProperty(rec)}
                       >
-                        <div className="relative h-32">
+                        <div className="relative h-28">
                           <img
-                            src={rec.images[0] || "/placeholder.svg"}
+                            src={getImageUri(rec, 0)}
                             alt={rec.name}
-                            className="h-full w-full object-cover rounded-t-lg"
+                            className="h-full w-full object-cover"
+                            onError={(e) => {
+                              (e.target as HTMLImageElement).src = 'https://via.placeholder.com/400x300?text=No+Image'
+                            }}
                           />
                         </div>
                         <CardContent className="p-3">
-                          <h5 className="font-medium text-sm text-balance">{rec.name}</h5>
-                          <p className="text-primary font-semibold">{formatPrice(rec.price)}</p>
+                          <h5 className="font-semibold text-sm text-slate-900 truncate">{rec.name}</h5>
+                          <p className="text-blue-600 font-bold text-base mt-0.5">{formatPrice(rec.price)}</p>
+                          <p className="text-xs text-slate-500 mt-0.5 truncate">{rec.location.address}</p>
                         </CardContent>
                       </Card>
                     ))}
