@@ -5,6 +5,7 @@ import mapboxgl from "mapbox-gl"
 import type { Property } from "@/lib/property-data"
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
+import { escapeHTML, sanitizeInput } from "@/lib/security"
 
 // Modern Design System with Professional Icons
 const modernStyles = `
@@ -829,15 +830,15 @@ export default function PropertyMap({
         `
         
         tooltip.innerHTML = `
-          <div style="font-weight: 700; color: #1e293b; font-size: 14px; margin-bottom: 6px; line-height: 1.3;">${property.name}</div>
+          <div style="font-weight: 700; color: #1e293b; font-size: 14px; margin-bottom: 6px; line-height: 1.3;">${escapeHTML(property.name)}</div>
           <div style="color: #2563eb; font-weight: 600; font-size: 13px; margin-bottom: 4px;">₱${property.price?.toLocaleString()}/month</div>
           <div style="color: #64748b; font-size: 12px; margin-bottom: 2px; display: flex; align-items: center; gap: 4px;">
             <span style="font-size: 10px;">📍</span>
-            <span>${property.location.address}</span>
+            <span>${escapeHTML(property.location.address)}</span>
           </div>
           ${distanceText ? `<div style="color: #10b981; font-size: 12px; font-weight: 600; margin-top: 4px; display: flex; align-items: center; gap: 4px;">
             <span style="font-size: 10px;">🧭</span>
-            <span>${distanceText}</span>
+            <span>${escapeHTML(distanceText)}</span>
           </div>` : ''}
         `
         
@@ -1740,7 +1741,11 @@ export default function PropertyMap({
                           onError={(e) => {
                             const target = e.target as HTMLImageElement;
                             target.style.display = 'none';
-                            target.parentElement!.innerHTML = `<div class="w-full h-full flex items-center justify-center text-purple-600 font-bold text-lg">${ownerInfo.name.charAt(0).toUpperCase()}</div>`;
+                            // Create fallback element safely without innerHTML
+                            const fallback = document.createElement('div');
+                            fallback.className = 'w-full h-full flex items-center justify-center text-purple-600 font-bold text-lg';
+                            fallback.textContent = ownerInfo.name.charAt(0).toUpperCase();
+                            target.parentElement!.appendChild(fallback);
                           }}
                         />
                       ) : (
