@@ -72,13 +72,31 @@ function MessagesPage() {
       const user = authStore.state?.user
       
       console.log('👤 Current user from auth store:', user)
+      console.log('🔍 User structure:', {
+        _id: user?._id,
+        id: user?.id,
+        username: user?.username,
+        email: user?.email,
+        name: user?.name,
+        fullName: user?.fullName
+      })
       
-      if (user && user._id) {
-        setCurrentUser(user)
+      // Handle both regular auth and Facebook auth user structures
+      // Facebook auth might have different ID field
+      const userId = user?._id || user?.id
+      
+      if (user && userId) {
+        // Normalize user object to ensure _id exists
+        const normalizedUser = {
+          ...user,
+          _id: userId // Ensure _id is set
+        }
         
-        // Initialize WebSocket connection with user._id
-        console.log('🚀 Initializing socket with user ID:', user._id)
-        const socket = initializeSocket(user._id)
+        setCurrentUser(normalizedUser)
+        
+        // Initialize WebSocket connection with user ID
+        console.log('🚀 Initializing socket with user ID:', userId)
+        const socket = initializeSocket(userId)
         setIsConnected(true)
 
         // Listen for incoming messages
@@ -87,13 +105,13 @@ function MessagesPage() {
           
           const formattedMessage: Message = {
             ...newMessage,
-            fromMe: newMessage.sender === user._id,
+            fromMe: newMessage.sender === userId,
             time: 'now',
             type: (newMessage.imageUrls && newMessage.imageUrls.length > 0 ? 'image' : 'text') as 'image' | 'text'
           }
 
           // Determine which contact this message belongs to
-          const contactId = newMessage.sender === user._id ? newMessage.receiver : newMessage.sender
+          const contactId = newMessage.sender === userId ? newMessage.receiver : newMessage.sender
           
           // Update cache for this contact
           setMessageCache(prev => {
@@ -115,14 +133,14 @@ function MessagesPage() {
             const existingContact = prev.find(c => c.id === senderId)
             
             // If contact doesn't exist and message is from someone else, add them
-            if (!existingContact && senderId !== user._id) {
+            if (!existingContact && senderId !== userId) {
               // Fetch user info and add to contacts
               fetchUsers().then(users => {
-                const sender = users.find(u => u._id === senderId)
+                const sender = users.find(u => u._id === senderId || u.id === senderId)
                 if (sender) {
                   const displayName = sender.fullName || sender.name || sender.username || sender.email
                   const newContact: Contact = {
-                    id: sender._id,
+                    id: sender._id || sender.id,
                     name: displayName,
                     avatar: displayName.charAt(0).toUpperCase(),
                     profilePicture: sender.profilePicture, // Add profile picture
@@ -199,7 +217,8 @@ function MessagesPage() {
           setIsConnected(false)
         }
       } else {
-        console.log('⚠️ User data incomplete - missing user or user._id')
+        console.log('⚠️ User data incomplete - missing user or user ID')
+        console.log('⚠️ User object:', user)
       }
     } else {
       console.log('⚠️ No auth-storage data found in localStorage - user not logged in')
@@ -227,15 +246,23 @@ function MessagesPage() {
             console.log('📋 Sample user data:', users[0]) // Log first user to see structure
             
             // Filter out current user
-            const otherUsers = users.filter(user => user._id !== currentUser._id)
+            const otherUsers = users.filter(user => {
+              const userIdToCheck = user._id || user.id
+              const currentUserId = currentUser._id || currentUser.id
+              return userIdToCheck !== currentUserId
+            })
             
             // Check which users have conversations with the current user
             const contactsWithMessages: Contact[] = []
             
             for (const user of otherUsers) {
               try {
+                // Get user ID (handle both _id and id fields)
+                const userIdToCheck = user._id || user.id
+                const currentUserId = currentUser._id || currentUser.id
+                
                 // Fetch messages for this user
-                const messages = await fetchMessages(currentUser._id, user._id)
+                const messages = await fetchMessages(currentUserId, userIdToCheck)
                 
                 // Only add to contacts if there are messages
                 if (messages && messages.length > 0) {
@@ -244,7 +271,7 @@ function MessagesPage() {
                   const lastMessageTime = new Date(latestMessage.createdAt).getTime()
                   
                   contactsWithMessages.push({
-                    id: user._id,
+                    id: userIdToCheck,
                     name: displayName,
                     avatar: displayName.charAt(0).toUpperCase(),
                     profilePicture: user.profilePicture, // Add profile picture from user data
@@ -312,12 +339,16 @@ function MessagesPage() {
         
         fetchUsers()
           .then(users => {
-            const user = users.find(u => u._id === contactId)
+            const user = users.find(u => {
+              const userIdToCheck = u._id || u.id
+              return userIdToCheck === contactId
+            })
             if (user) {
               console.log('✅ Found user info:', user)
               const displayName = user.fullName || user.name || user.username || user.email
+              const userIdToUse = user._id || user.id
               const newContact: Contact = {
-                id: user._id,
+                id: userIdToUse,
                 name: displayName,
                 avatar: displayName.charAt(0).toUpperCase(),
                 profilePicture: user.profilePicture,
@@ -357,6 +388,9 @@ function MessagesPage() {
   // Fetch messages when contact is selected
   useEffect(() => {
     if (currentUser && selectedContact) {
+      // Get current user ID (handle both _id and id fields)
+      const currentUserId = currentUser._id || currentUser.id
+      
       // Check if we already loaded this conversation from cache
       if (messageCache.has(selectedContact)) {
         console.log('⏭️ Loading conversation from cache:', selectedContact)
@@ -371,11 +405,12 @@ function MessagesPage() {
 
       console.log('📨 Fetching messages for contact:', selectedContact)
       setIsLoading(true)
-      fetchMessages(currentUser._id, selectedContact)
+      fetchMessages(currentUserId, selectedContact)
         .then((fetchedMessages) => {
+          const currentUserId = currentUser._id || currentUser.id
           const formattedMessages: Message[] = fetchedMessages.map(msg => ({
             ...msg,
-            fromMe: msg.sender === currentUser._id,
+            fromMe: msg.sender === currentUserId,
             time: new Date(msg.createdAt).toLocaleTimeString('en-US', { 
               hour: 'numeric', 
               minute: '2-digit',
