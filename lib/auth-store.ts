@@ -120,35 +120,11 @@ export const useAuthStore = create<AuthState>()(
       },
 
       loginWithFacebook: async () => {
-        set({ isLoading: true })
-
-        try {
-          // Authenticate with Facebook and get user data
-          const { userData, accessToken } = await authenticateWithFacebook()
-
-          // Verify token with backend and create/login user
-          const result = await verifyFacebookToken(accessToken, userData)
-
-          if (!result.success) {
-            throw new Error(result.error || 'Facebook authentication failed')
-          }
-
-          const { token, user } = result.data
-
-          set({
-            token,
-            user,
-            profilePicture: user.profilePicture,
-            isLoading: false,
-          })
-
-          return { success: true }
-        } catch (error) {
-          set({ isLoading: false })
-          return { 
-            success: false, 
-            error: error instanceof Error ? error.message : "Facebook login failed" 
-          }
+        // This function is no longer used - Facebook auth now redirects through backend
+        // Keeping for backward compatibility, but users should click the button that redirects
+        return { 
+          success: false, 
+          error: 'Please use the Facebook login button which redirects to the backend OAuth flow' 
         }
       },
 

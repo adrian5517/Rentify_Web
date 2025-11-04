@@ -69,8 +69,10 @@ export default function SignupModal({ isOpen, onClose, onSwitchToLogin }: Signup
     }
   }
 
-  const handleFacebookSignup = async () => {
-    setError('Coming Soon! Facebook signup will be available soon.')
+  const handleFacebookSignup = () => {
+    // Redirect to backend Facebook OAuth endpoint
+    const apiBase = 'https://rentify-server-ge0f.onrender.com'
+    window.location.href = `${apiBase}/api/auth/facebook`
   }
 
   return (
