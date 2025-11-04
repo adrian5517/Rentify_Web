@@ -373,13 +373,9 @@ export default function AddPropertyModal({ isOpen, onClose, onPropertyAdded }: A
         setGettingLocation(false)
       },
       (error) => {
-        console.error('❌ Geolocation error:', {
-          code: error.code,
-          message: error.message,
-          PERMISSION_DENIED: error.PERMISSION_DENIED,
-          POSITION_UNAVAILABLE: error.POSITION_UNAVAILABLE,
-          TIMEOUT: error.TIMEOUT
-        })
+        console.error('❌ Geolocation error:', error)
+        console.error('Error code:', error.code)
+        console.error('Error message:', error.message)
         
         let errorMessage = 'Unable to get your current location. '
         
