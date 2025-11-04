@@ -590,7 +590,7 @@ function MessagesPage() {
       {isConnected && (
         <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg flex items-center gap-2 text-green-800">
           <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-          <span className="text-sm font-medium">✓ Connected to real-time messaging</span>
+          <span className="text-sm font-medium">✓ Connected</span>
         </div>
       )}
 
