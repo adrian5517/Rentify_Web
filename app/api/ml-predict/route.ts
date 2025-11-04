@@ -2,15 +2,6 @@ import { NextResponse } from 'next/server'
 
 export async function POST(request: Request) {
   try {
-    // Check if request has a body
-    const contentLength = request.headers.get('content-length')
-    if (!contentLength || contentLength === '0') {
-      return NextResponse.json(
-        { error: 'Request body is required' },
-        { status: 400 }
-      )
-    }
-
     let body
     try {
       body = await request.json()
@@ -22,10 +13,11 @@ export async function POST(request: Request) {
       )
     }
     
-    // Validate that body has required properties array
-    if (!body || !Array.isArray(body.properties)) {
+    // Validate that body has required fields for single property prediction
+    if (!body || typeof body.price !== 'number' || typeof body.latitude !== 'number' || typeof body.longitude !== 'number') {
+      console.error('Missing required fields in request. Expected: { price, latitude, longitude }. Got:', body)
       return NextResponse.json(
-        { error: 'Request must contain properties array' },
+        { error: 'Request must contain price, latitude, and longitude' },
         { status: 400 }
       )
     }
@@ -41,6 +33,7 @@ export async function POST(request: Request) {
 
     if (!response.ok) {
       const errorText = await response.text()
+      console.error('ML API error:', errorText)
       return NextResponse.json(
         { error: 'ML API request failed', details: errorText },
         { status: response.status }

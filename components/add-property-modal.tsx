@@ -659,20 +659,20 @@ export default function AddPropertyModal({ isOpen, onClose, onPropertyAdded }: A
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-full sm:max-w-2xl md:max-w-3xl lg:max-w-4xl max-h-[90vh] overflow-y-auto p-4 sm:p-6">
         <DialogHeader>
-          <DialogTitle className="text-2xl font-bold text-slate-900 flex items-center gap-2">
-            <Home className="h-6 w-6 text-blue-600" />
+          <DialogTitle className="text-lg sm:text-xl md:text-2xl font-bold text-slate-900 flex items-center gap-2">
+            <Home className="h-5 sm:h-6 w-5 sm:w-6 text-blue-600" />
             Add New Property
           </DialogTitle>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-5 md:space-y-6">
           {/* Basic Information */}
-          <div className="grid gap-6 md:grid-cols-2">
+          <div className="grid gap-4 sm:gap-5 md:gap-6 grid-cols-1 md:grid-cols-2">
             <div className="space-y-2">
-              <Label htmlFor="name" className="text-sm font-semibold text-slate-700 flex items-center gap-2">
-                <FileText className="h-4 w-4" />
+              <Label htmlFor="name" className="text-xs sm:text-sm font-semibold text-slate-700 flex items-center gap-2">
+                <FileText className="h-3.5 sm:h-4 w-3.5 sm:w-4" />
                 Property Name
               </Label>
               <Input
@@ -681,13 +681,13 @@ export default function AddPropertyModal({ isOpen, onClose, onPropertyAdded }: A
                 onChange={(e) => handleInputChange("name", e.target.value)}
                 placeholder="e.g., Modern 2BR Apartment"
                 required
-                className="h-11"
+                className="h-10 sm:h-11 text-sm sm:text-base"
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="price" className="text-sm font-semibold text-slate-700 flex items-center gap-2">
-                <DollarSign className="h-4 w-4" />
+              <Label htmlFor="price" className="text-xs sm:text-sm font-semibold text-slate-700 flex items-center gap-2">
+                <DollarSign className="h-3.5 sm:h-4 w-3.5 sm:w-4" />
                 Monthly Rent (₱)
               </Label>
               <Input
@@ -697,15 +697,15 @@ export default function AddPropertyModal({ isOpen, onClose, onPropertyAdded }: A
                 onChange={(e) => handleInputChange("price", e.target.value)}
                 placeholder="25000"
                 required
-                className="h-11"
+                className="h-10 sm:h-11 text-sm sm:text-base"
               />
             </div>
           </div>
 
           {/* Address */}
           <div className="space-y-2">
-            <Label htmlFor="address" className="text-sm font-semibold text-slate-700 flex items-center gap-2">
-              <MapPin className="h-4 w-4" />
+            <Label htmlFor="address" className="text-xs sm:text-sm font-semibold text-slate-700 flex items-center gap-2">
+              <MapPin className="h-3.5 sm:h-4 w-3.5 sm:w-4" />
               Address
             </Label>
             <Input
@@ -714,15 +714,15 @@ export default function AddPropertyModal({ isOpen, onClose, onPropertyAdded }: A
               onChange={(e) => handleInputChange("address", e.target.value)}
               placeholder="Complete address in Naga City"
               required
-              className="h-11"
+              className="h-10 sm:h-11 text-sm sm:text-base"
             />
           </div>
 
           {/* Map Location Selector */}
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <Label className="text-sm font-semibold text-slate-700 flex items-center gap-2">
-                <MapPin className="h-4 w-4" />
+          <div className="space-y-3 sm:space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-0">
+              <Label className="text-xs sm:text-sm font-semibold text-slate-700 flex items-center gap-2">
+                <MapPin className="h-3.5 sm:h-4 w-3.5 sm:w-4" />
                 Select Location on Map
               </Label>
               <Button
@@ -731,16 +731,16 @@ export default function AddPropertyModal({ isOpen, onClose, onPropertyAdded }: A
                 size="sm"
                 onClick={getCurrentLocation}
                 disabled={gettingLocation}
-                className="flex items-center gap-2"
+                className="flex items-center gap-2 text-xs sm:text-sm h-8 sm:h-9"
               >
                 {gettingLocation ? (
                   <>
-                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <Loader2 className="h-3.5 sm:h-4 w-3.5 sm:w-4 animate-spin" />
                     Getting Location...
                   </>
                 ) : (
                   <>
-                    <Navigation className="h-4 w-4" />
+                    <Navigation className="h-3.5 sm:h-4 w-3.5 sm:w-4" />
                     Use Current Location
                   </>
                 )}
@@ -750,18 +750,18 @@ export default function AddPropertyModal({ isOpen, onClose, onPropertyAdded }: A
             {/* Map Container */}
             <div 
               ref={mapContainerRef}
-              className="relative w-full h-[400px] rounded-lg border-2 border-slate-200 overflow-hidden"
+              className="relative w-full h-[280px] sm:h-[350px] md:h-[400px] rounded-lg border-2 border-slate-200 overflow-hidden"
             >
               {!mapLoaded && (
                 <div className="absolute inset-0 flex items-center justify-center bg-slate-100">
-                  <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
+                  <Loader2 className="h-6 sm:h-8 w-6 sm:w-8 animate-spin text-blue-500" />
                 </div>
               )}
               
               {/* Map Instructions Overlay */}
               {!formData.latitude && mapLoaded && (
-                <div className="absolute top-4 left-4 right-4 bg-white/95 backdrop-blur-sm p-3 rounded-lg shadow-lg z-10">
-                  <p className="text-sm text-slate-700 font-medium">
+                <div className="absolute top-3 sm:top-4 left-3 sm:left-4 right-3 sm:right-4 bg-white/95 backdrop-blur-sm p-2.5 sm:p-3 rounded-lg shadow-lg z-10">
+                  <p className="text-xs sm:text-sm text-slate-700 font-medium">
                     📍 Click on the map or drag the marker to set the property location
                   </p>
                 </div>
@@ -769,16 +769,16 @@ export default function AddPropertyModal({ isOpen, onClose, onPropertyAdded }: A
             </div>
 
             {/* Coordinates Display */}
-            <div className="grid gap-4 md:grid-cols-2">
-              <div className="p-3 bg-slate-50 rounded-lg border border-slate-200">
+            <div className="grid gap-3 sm:gap-4 grid-cols-2">
+              <div className="p-2.5 sm:p-3 bg-slate-50 rounded-lg border border-slate-200">
                 <p className="text-xs font-semibold text-slate-500 mb-1">Latitude</p>
-                <p className="text-sm font-mono text-slate-700">
+                <p className="text-xs sm:text-sm font-mono text-slate-700">
                   {formData.latitude || '13.6218'}
                 </p>
               </div>
-              <div className="p-3 bg-slate-50 rounded-lg border border-slate-200">
+              <div className="p-2.5 sm:p-3 bg-slate-50 rounded-lg border border-slate-200">
                 <p className="text-xs font-semibold text-slate-500 mb-1">Longitude</p>
-                <p className="text-sm font-mono text-slate-700">
+                <p className="text-xs sm:text-sm font-mono text-slate-700">
                   {formData.longitude || '123.1815'}
                 </p>
               </div>
@@ -787,7 +787,7 @@ export default function AddPropertyModal({ isOpen, onClose, onPropertyAdded }: A
 
           {/* Phone Number */}
           <div className="space-y-2">
-            <Label htmlFor="phoneNumber" className="text-sm font-semibold text-slate-700">
+            <Label htmlFor="phoneNumber" className="text-xs sm:text-sm font-semibold text-slate-700">
               Contact Phone Number
             </Label>
             <Input
@@ -796,25 +796,25 @@ export default function AddPropertyModal({ isOpen, onClose, onPropertyAdded }: A
               value={formData.phoneNumber}
               onChange={(e) => handleInputChange("phoneNumber", e.target.value)}
               placeholder="+63 912 345 6789"
-              className="h-11"
+              className="h-10 sm:h-11 text-sm sm:text-base"
             />
           </div>
 
           {/* Created By (Readonly) */}
           <div className="space-y-2">
-            <Label className="text-sm font-semibold text-slate-700">
+            <Label className="text-xs sm:text-sm font-semibold text-slate-700">
               Created By (Owner)
             </Label>
-            <div className="grid gap-4 md:grid-cols-2">
-              <div className="p-3 bg-slate-50 rounded-lg border border-slate-200">
+            <div className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2">
+              <div className="p-2.5 sm:p-3 bg-slate-50 rounded-lg border border-slate-200">
                 <p className="text-xs font-semibold text-slate-500 mb-1">Name</p>
-                <p className="text-sm text-slate-700">
+                <p className="text-xs sm:text-sm text-slate-700">
                   {currentUser?.fullname || 'Loading...'}
                 </p>
               </div>
-              <div className="p-3 bg-slate-50 rounded-lg border border-slate-200">
+              <div className="p-2.5 sm:p-3 bg-slate-50 rounded-lg border border-slate-200">
                 <p className="text-xs font-semibold text-slate-500 mb-1">Email</p>
-                <p className="text-sm text-slate-700">
+                <p className="text-xs sm:text-sm text-slate-700 truncate">
                   {currentUser?.email || 'Loading...'}
                 </p>
               </div>
@@ -826,9 +826,9 @@ export default function AddPropertyModal({ isOpen, onClose, onPropertyAdded }: A
 
           {/* Property Details */}
           <div className="space-y-2">
-            <Label className="text-sm font-semibold text-slate-700">Property Type</Label>
+            <Label className="text-xs sm:text-sm font-semibold text-slate-700">Property Type</Label>
             <Select value={formData.propertyType} onValueChange={(value) => handleInputChange("propertyType", value)}>
-              <SelectTrigger className="h-11">
+              <SelectTrigger className="h-10 sm:h-11 text-sm sm:text-base">
                 <SelectValue placeholder="Select type" />
               </SelectTrigger>
               <SelectContent>
@@ -843,7 +843,7 @@ export default function AddPropertyModal({ isOpen, onClose, onPropertyAdded }: A
 
           {/* Description */}
           <div className="space-y-2">
-            <Label htmlFor="description" className="text-sm font-semibold text-slate-700">
+            <Label htmlFor="description" className="text-xs sm:text-sm font-semibold text-slate-700">
               Description
             </Label>
             <Textarea
@@ -852,19 +852,19 @@ export default function AddPropertyModal({ isOpen, onClose, onPropertyAdded }: A
               onChange={(e) => handleInputChange("description", e.target.value)}
               placeholder="Describe your property, its features, and what makes it special..."
               rows={4}
-              className="resize-none"
+              className="resize-none text-sm sm:text-base"
             />
           </div>
 
           {/* Image Upload */}
-          <div className="space-y-4">
-            <Label className="text-sm font-semibold text-slate-700 flex items-center gap-2">
-              <Camera className="h-4 w-4" />
+          <div className="space-y-3 sm:space-y-4">
+            <Label className="text-xs sm:text-sm font-semibold text-slate-700 flex items-center gap-2">
+              <Camera className="h-3.5 sm:h-4 w-3.5 sm:w-4" />
               Property Images
             </Label>
 
             {/* Upload Button */}
-            <div className="flex items-center gap-4">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4">
               <input
                 type="file"
                 id="image-upload"
@@ -877,12 +877,12 @@ export default function AddPropertyModal({ isOpen, onClose, onPropertyAdded }: A
                 type="button"
                 variant="outline"
                 onClick={() => document.getElementById('image-upload')?.click()}
-                className="flex items-center gap-2"
+                className="flex items-center gap-2 text-xs sm:text-sm h-9 sm:h-10"
               >
-                <Upload className="h-4 w-4" />
+                <Upload className="h-3.5 sm:h-4 w-3.5 sm:w-4" />
                 Select Images
               </Button>
-              <p className="text-sm text-slate-500">
+              <p className="text-xs sm:text-sm text-slate-500">
                 {imageFiles.length > 0 
                   ? `${imageFiles.length} image(s) selected (max 5MB each)`
                   : 'Upload multiple images (JPG, PNG, max 5MB each)'}
@@ -891,20 +891,20 @@ export default function AddPropertyModal({ isOpen, onClose, onPropertyAdded }: A
 
             {/* Image Preview */}
             {formData.images.length > 0 && (
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 sm:gap-4">
                 {formData.images.map((image, index) => (
                   <div key={index} className="relative group">
                     <img
                       src={image}
                       alt={`Property ${index + 1}`}
-                      className="w-full h-32 object-cover rounded-lg border"
+                      className="w-full h-28 sm:h-32 object-cover rounded-lg border"
                     />
                     <button
                       type="button"
                       onClick={() => removeImage(index)}
                       className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
                     >
-                      <X className="h-4 w-4" />
+                      <X className="h-3.5 sm:h-4 w-3.5 sm:w-4" />
                     </button>
                   </div>
                 ))}
@@ -913,14 +913,14 @@ export default function AddPropertyModal({ isOpen, onClose, onPropertyAdded }: A
           </div>
 
           {/* Amenities */}
-          <div className="space-y-4">
-            <Label className="text-sm font-semibold text-slate-700 flex items-center gap-2">
-              <Tag className="h-4 w-4" />
+          <div className="space-y-3 sm:space-y-4">
+            <Label className="text-xs sm:text-sm font-semibold text-slate-700 flex items-center gap-2">
+              <Tag className="h-3.5 sm:h-4 w-3.5 sm:w-4" />
               Amenities
             </Label>
 
             {/* Common Amenities */}
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
               {commonAmenities.map((amenity) => (
                 <Button
                   key={amenity}
@@ -928,7 +928,7 @@ export default function AddPropertyModal({ isOpen, onClose, onPropertyAdded }: A
                   variant={formData.amenities.includes(amenity) ? "default" : "outline"}
                   size="sm"
                   onClick={() => (formData.amenities.includes(amenity) ? removeAmenity(amenity) : addAmenity(amenity))}
-                  className="justify-start text-sm"
+                  className="justify-start text-xs sm:text-sm h-8 sm:h-9"
                 >
                   {amenity}
                 </Button>
@@ -941,19 +941,19 @@ export default function AddPropertyModal({ isOpen, onClose, onPropertyAdded }: A
                 value={newAmenity}
                 onChange={(e) => setNewAmenity(e.target.value)}
                 placeholder="Add custom amenity"
-                className="flex-1"
+                className="flex-1 h-9 sm:h-10 text-sm sm:text-base"
                 onKeyPress={(e) => e.key === "Enter" && (e.preventDefault(), addAmenity(newAmenity))}
               />
-              <Button type="button" onClick={() => addAmenity(newAmenity)} disabled={!newAmenity.trim()}>
+              <Button type="button" onClick={() => addAmenity(newAmenity)} disabled={!newAmenity.trim()} className="h-9 sm:h-10 text-xs sm:text-sm">
                 Add
               </Button>
             </div>
 
             {/* Selected Amenities */}
             {formData.amenities.length > 0 && (
-              <div className="flex flex-wrap gap-2">
+              <div className="flex flex-wrap gap-1.5 sm:gap-2">
                 {formData.amenities.map((amenity) => (
-                  <Badge key={amenity} variant="secondary" className="flex items-center gap-1">
+                  <Badge key={amenity} variant="secondary" className="flex items-center gap-1 text-xs sm:text-sm px-2 py-0.5">
                     {amenity}
                     <X className="h-3 w-3 cursor-pointer hover:text-red-600" onClick={() => removeAmenity(amenity)} />
                   </Badge>
@@ -964,23 +964,23 @@ export default function AddPropertyModal({ isOpen, onClose, onPropertyAdded }: A
 
           {/* Submit Buttons */}
           {submitError && (
-            <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
-              <p className="text-red-600 text-sm">{submitError}</p>
+            <div className="p-3 sm:p-4 bg-red-50 border border-red-200 rounded-lg">
+              <p className="text-red-600 text-xs sm:text-sm">{submitError}</p>
             </div>
           )}
           
-          <div className="flex gap-4 pt-6 border-t">
-            <Button type="button" variant="outline" onClick={onClose} className="flex-1 bg-transparent" disabled={isSubmitting}>
+          <div className="flex flex-col sm:flex-row gap-2 sm:gap-4 pt-4 sm:pt-6 border-t">
+            <Button type="button" variant="outline" onClick={onClose} className="flex-1 bg-transparent h-10 sm:h-11 text-sm sm:text-base" disabled={isSubmitting}>
               Cancel
             </Button>
             <Button
               type="submit"
               disabled={isSubmitting || !formData.name || !formData.price || !formData.address}
-              className="flex-1 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 disabled:opacity-50"
+              className="flex-1 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 disabled:opacity-50 h-10 sm:h-11 text-sm sm:text-base"
             >
               {isSubmitting ? (
                 <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  <Loader2 className="h-3.5 sm:h-4 w-3.5 sm:w-4 mr-2 animate-spin" />
                   Posting...
                 </>
               ) : (
@@ -993,24 +993,24 @@ export default function AddPropertyModal({ isOpen, onClose, onPropertyAdded }: A
 
       {/* Success Modal */}
       <Dialog open={showSuccessModal} onOpenChange={handleSuccessModalClose}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="w-[calc(100%-2rem)] sm:max-w-md">
           <DialogHeader>
-            <div className="flex items-center justify-center mb-4">
-              <div className="w-20 h-20 bg-gradient-to-br from-green-100 to-emerald-100 rounded-full flex items-center justify-center animate-bounce">
-                <CheckCircle2 className="w-12 h-12 text-green-600" />
+            <div className="flex items-center justify-center mb-3 sm:mb-4">
+              <div className="w-16 sm:w-20 h-16 sm:h-20 bg-gradient-to-br from-green-100 to-emerald-100 rounded-full flex items-center justify-center animate-bounce">
+                <CheckCircle2 className="w-10 sm:w-12 h-10 sm:h-12 text-green-600" />
               </div>
             </div>
-            <DialogTitle className="text-center text-2xl font-bold text-slate-900">
+            <DialogTitle className="text-center text-lg sm:text-xl md:text-2xl font-bold text-slate-900">
               Property Created Successfully! 🎉
             </DialogTitle>
-            <DialogDescription className="text-center text-base pt-3 text-slate-600">
+            <DialogDescription className="text-center text-sm sm:text-base pt-2 sm:pt-3 text-slate-600">
               Your property has been listed successfully and is now visible to potential renters. You can view and manage it from your profile page.
             </DialogDescription>
           </DialogHeader>
-          <div className="flex justify-center pt-6 pb-2">
+          <div className="flex justify-center pt-4 sm:pt-6 pb-1 sm:pb-2">
             <Button
               onClick={handleSuccessModalClose}
-              className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white px-10 py-6 text-lg font-semibold"
+              className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white px-8 sm:px-10 py-5 sm:py-6 text-base sm:text-lg font-semibold"
             >
               Awesome! 🏠
             </Button>

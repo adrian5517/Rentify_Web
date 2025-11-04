@@ -337,16 +337,16 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className="max-w-6xl mx-auto space-y-6 py-8">
+    <div className="max-w-6xl mx-auto space-y-4 sm:space-y-5 md:space-y-6 py-4 sm:py-6 md:py-8 px-3 sm:px-4">
       {/* Profile Header Card */}
       <Card className="overflow-hidden border-0 shadow-lg">
-        <div className="h-32 bg-gradient-to-r from-purple-600 via-indigo-600 to-blue-600"></div>
-        <CardContent className="relative pt-0 pb-8 px-6">
+        <div className="h-24 sm:h-28 md:h-32 bg-gradient-to-r from-purple-600 via-indigo-600 to-blue-600"></div>
+        <CardContent className="relative pt-0 pb-6 sm:pb-7 md:pb-8 px-4 sm:px-5 md:px-6">
           {/* Profile Picture */}
-          <div className="flex flex-col md:flex-row md:items-end md:justify-between -mt-16 mb-6">
-            <div className="flex flex-col md:flex-row md:items-end gap-6">
+          <div className="flex flex-col md:flex-row md:items-end md:justify-between -mt-12 sm:-mt-14 md:-mt-16 mb-4 sm:mb-5 md:mb-6">
+            <div className="flex flex-col sm:flex-row sm:items-end gap-4 sm:gap-5 md:gap-6">
               <div className="relative group">
-                <div className="w-32 h-32 rounded-2xl border-4 border-white shadow-xl bg-gradient-to-br from-purple-100 to-indigo-100 overflow-hidden">
+                <div className="w-24 sm:w-28 md:w-32 h-24 sm:h-28 md:h-32 rounded-xl sm:rounded-2xl border-4 border-white shadow-xl bg-gradient-to-br from-purple-100 to-indigo-100 overflow-hidden">
                   {profilePicture ? (
                     <img 
                       src={profilePicture} 
@@ -355,7 +355,7 @@ export default function ProfilePage() {
                     />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center">
-                      <User className="w-16 h-16 text-purple-600" />
+                      <User className="w-12 sm:w-14 md:w-16 h-12 sm:h-14 md:h-16 text-purple-600" />
                     </div>
                   )}
                 </div>
@@ -363,12 +363,12 @@ export default function ProfilePage() {
                   <button
                     onClick={handleProfilePictureClick}
                     disabled={uploadingImage}
-                    className="absolute bottom-2 right-2 w-10 h-10 bg-purple-600 hover:bg-purple-700 text-white rounded-full flex items-center justify-center shadow-lg transition-all duration-200 disabled:opacity-50"
+                    className="absolute bottom-1.5 sm:bottom-2 right-1.5 sm:right-2 w-8 sm:w-9 md:w-10 h-8 sm:h-9 md:h-10 bg-purple-600 hover:bg-purple-700 text-white rounded-full flex items-center justify-center shadow-lg transition-all duration-200 disabled:opacity-50"
                   >
                     {uploadingImage ? (
-                      <div className="animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent"></div>
+                      <div className="animate-spin rounded-full h-4 sm:h-5 w-4 sm:w-5 border-2 border-white border-t-transparent"></div>
                     ) : (
-                      <Camera className="w-5 h-5" />
+                      <Camera className="w-4 sm:w-5 h-4 sm:h-5" />
                     )}
                   </button>
                 )}
@@ -381,22 +381,22 @@ export default function ProfilePage() {
                 />
               </div>
               
-              <div className="pb-2">
-                <h1 className="text-3xl font-bold text-slate-900 mb-1">
+              <div className="pb-0 sm:pb-1 md:pb-2">
+                <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-slate-900 mb-1">
                   {user?.fullName || user?.name || user?.username || "User"}
                 </h1>
-                <p className="text-slate-600 flex items-center gap-2">
-                  <Mail className="w-4 h-4" />
+                <p className="text-sm sm:text-base text-slate-600 flex items-center gap-2">
+                  <Mail className="w-3.5 sm:w-4 h-3.5 sm:h-4" />
                   {user?.email}
                 </p>
               </div>
             </div>
 
-            <div className="flex gap-2 mt-4 md:mt-0">
+            <div className="flex flex-col sm:flex-row gap-2 mt-4 md:mt-0">
               {!isEditing ? (
                 <Button
                   onClick={() => setIsEditing(true)}
-                  className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white shadow-md"
+                  className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white shadow-md h-9 sm:h-10 text-sm sm:text-base"
                 >
                   <Edit2 className="w-4 h-4 mr-2" />
                   Edit Profile
@@ -406,16 +406,16 @@ export default function ProfilePage() {
                   <Button
                     onClick={handleSaveProfile}
                     disabled={isSaving}
-                    className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white shadow-md"
+                    className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white shadow-md h-9 sm:h-10 text-sm sm:text-base"
                   >
                     {isSaving ? (
                       <>
-                        <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent mr-2"></div>
+                        <div className="animate-spin rounded-full h-3.5 sm:h-4 w-3.5 sm:w-4 border-2 border-white border-t-transparent mr-2"></div>
                         Saving...
                       </>
                     ) : (
                       <>
-                        <Save className="w-4 h-4 mr-2" />
+                        <Save className="w-3.5 sm:w-4 h-3.5 sm:h-4 mr-2" />
                         Save Changes
                       </>
                     )}
@@ -424,8 +424,9 @@ export default function ProfilePage() {
                     onClick={handleCancelEdit}
                     variant="outline"
                     disabled={isSaving}
+                    className="h-9 sm:h-10 text-sm sm:text-base"
                   >
-                    <X className="w-4 h-4 mr-2" />
+                    <X className="w-3.5 sm:w-4 h-3.5 sm:h-4 mr-2" />
                     Cancel
                   </Button>
                 </>
@@ -435,20 +436,21 @@ export default function ProfilePage() {
 
           {/* Profile Info */}
           {isEditing ? (
-            <div className="grid gap-6 md:grid-cols-2">
+            <div className="grid gap-4 sm:gap-5 md:gap-6 grid-cols-1 md:grid-cols-2">
               <div className="space-y-2">
-                <Label htmlFor="name">Full Name</Label>
+                <Label htmlFor="name" className="text-xs sm:text-sm">Full Name</Label>
                 <Input
                   id="name"
                   name="name"
                   value={formData.name}
                   onChange={handleInputChange}
                   placeholder="Enter your full name"
+                  className="h-9 sm:h-10 text-sm sm:text-base"
                 />
               </div>
               
               <div className="space-y-2">
-                <Label htmlFor="email">Email Address</Label>
+                <Label htmlFor="email" className="text-xs sm:text-sm">Email Address</Label>
                 <Input
                   id="email"
                   name="email"
@@ -456,46 +458,49 @@ export default function ProfilePage() {
                   value={formData.email}
                   onChange={handleInputChange}
                   placeholder="your.email@example.com"
+                  className="h-9 sm:h-10 text-sm sm:text-base"
                 />
               </div>
               
               <div className="space-y-2">
-                <Label htmlFor="phone">Phone Number</Label>
+                <Label htmlFor="phone" className="text-xs sm:text-sm">Phone Number</Label>
                 <Input
                   id="phone"
                   name="phone"
                   value={formData.phone}
                   onChange={handleInputChange}
                   placeholder="+63 XXX XXX XXXX"
+                  className="h-9 sm:h-10 text-sm sm:text-base"
                 />
               </div>
               
               <div className="space-y-2">
-                <Label htmlFor="location">Location</Label>
+                <Label htmlFor="location" className="text-xs sm:text-sm">Location</Label>
                 <Input
                   id="location"
                   name="location"
                   value={formData.location}
                   onChange={handleInputChange}
                   placeholder="City, Country"
+                  className="h-9 sm:h-10 text-sm sm:text-base"
                 />
               </div>
               
               <div className="space-y-2 md:col-span-2">
-                <Label htmlFor="bio">Bio</Label>
+                <Label htmlFor="bio" className="text-xs sm:text-sm">Bio</Label>
                 <textarea
                   id="bio"
                   name="bio"
                   value={formData.bio}
                   onChange={handleInputChange}
                   placeholder="Tell us about yourself..."
-                  className="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-600 focus:border-transparent resize-none"
+                  className="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-600 focus:border-transparent resize-none text-sm sm:text-base"
                   rows={3}
                 />
               </div>
             </div>
           ) : (
-            <div className="grid gap-4 md:grid-cols-2 text-sm">
+            <div className="grid gap-3 sm:gap-4 grid-cols-1 md:grid-cols-2 text-xs sm:text-sm">
               {formData.phone && (
                 <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-lg">
                   <Phone className="w-5 h-5 text-purple-600" />
@@ -545,58 +550,58 @@ export default function ProfilePage() {
       </Card>
 
       {/* Stats Grid */}
-      <div className="grid gap-6 md:grid-cols-4">
+      <div className="grid gap-4 sm:gap-5 md:gap-6 grid-cols-2 md:grid-cols-4">
         <Card className="border-0 shadow-md hover:shadow-lg transition-shadow">
-          <CardContent className="p-6">
+          <CardContent className="p-4 sm:p-5 md:p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-slate-600 mb-1">Active Listings</p>
-                <p className="text-3xl font-bold text-slate-900">{stats.activeListings}</p>
+                <p className="text-xs sm:text-sm text-slate-600 mb-1">Active Listings</p>
+                <p className="text-xl sm:text-2xl md:text-3xl font-bold text-slate-900">{stats.activeListings}</p>
               </div>
-              <div className="w-12 h-12 bg-gradient-to-br from-blue-100 to-blue-200 rounded-xl flex items-center justify-center">
-                <Building className="w-6 h-6 text-blue-600" />
+              <div className="w-10 sm:w-11 md:w-12 h-10 sm:h-11 md:h-12 bg-gradient-to-br from-blue-100 to-blue-200 rounded-lg sm:rounded-xl flex items-center justify-center">
+                <Building className="w-5 sm:w-5.5 md:w-6 h-5 sm:h-5.5 md:h-6 text-blue-600" />
               </div>
             </div>
           </CardContent>
         </Card>
 
         <Card className="border-0 shadow-md hover:shadow-lg transition-shadow">
-          <CardContent className="p-6">
+          <CardContent className="p-4 sm:p-5 md:p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-slate-600 mb-1">Total Views</p>
-                <p className="text-3xl font-bold text-slate-900">{stats.totalViews.toLocaleString()}</p>
+                <p className="text-xs sm:text-sm text-slate-600 mb-1">Total Views</p>
+                <p className="text-xl sm:text-2xl md:text-3xl font-bold text-slate-900">{stats.totalViews.toLocaleString()}</p>
               </div>
-              <div className="w-12 h-12 bg-gradient-to-br from-purple-100 to-purple-200 rounded-xl flex items-center justify-center">
-                <TrendingUp className="w-6 h-6 text-purple-600" />
+              <div className="w-10 sm:w-11 md:w-12 h-10 sm:h-11 md:h-12 bg-gradient-to-br from-purple-100 to-purple-200 rounded-lg sm:rounded-xl flex items-center justify-center">
+                <TrendingUp className="w-5 sm:w-5.5 md:w-6 h-5 sm:h-5.5 md:h-6 text-purple-600" />
               </div>
             </div>
           </CardContent>
         </Card>
 
         <Card className="border-0 shadow-md hover:shadow-lg transition-shadow">
-          <CardContent className="p-6">
+          <CardContent className="p-4 sm:p-5 md:p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-slate-600 mb-1">Inquiries</p>
-                <p className="text-3xl font-bold text-slate-900">{stats.inquiries}</p>
+                <p className="text-xs sm:text-sm text-slate-600 mb-1">Inquiries</p>
+                <p className="text-xl sm:text-2xl md:text-3xl font-bold text-slate-900">{stats.inquiries}</p>
               </div>
-              <div className="w-12 h-12 bg-gradient-to-br from-green-100 to-green-200 rounded-xl flex items-center justify-center">
-                <MessageSquare className="w-6 h-6 text-green-600" />
+              <div className="w-10 sm:w-11 md:w-12 h-10 sm:h-11 md:h-12 bg-gradient-to-br from-green-100 to-green-200 rounded-lg sm:rounded-xl flex items-center justify-center">
+                <MessageSquare className="w-5 sm:w-5.5 md:w-6 h-5 sm:h-5.5 md:h-6 text-green-600" />
               </div>
             </div>
           </CardContent>
         </Card>
 
         <Card className="border-0 shadow-md hover:shadow-lg transition-shadow">
-          <CardContent className="p-6">
+          <CardContent className="p-4 sm:p-5 md:p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-slate-600 mb-1">Favorites</p>
-                <p className="text-3xl font-bold text-slate-900">{stats.favorites}</p>
+                <p className="text-xs sm:text-sm text-slate-600 mb-1">Favorites</p>
+                <p className="text-xl sm:text-2xl md:text-3xl font-bold text-slate-900">{stats.favorites}</p>
               </div>
-              <div className="w-12 h-12 bg-gradient-to-br from-pink-100 to-pink-200 rounded-xl flex items-center justify-center">
-                <Heart className="w-6 h-6 text-pink-600" />
+              <div className="w-10 sm:w-11 md:w-12 h-10 sm:h-11 md:h-12 bg-gradient-to-br from-pink-100 to-pink-200 rounded-lg sm:rounded-xl flex items-center justify-center">
+                <Heart className="w-5 sm:w-5.5 md:w-6 h-5 sm:h-5.5 md:h-6 text-pink-600" />
               </div>
             </div>
           </CardContent>
@@ -605,14 +610,14 @@ export default function ProfilePage() {
 
       {/* My Properties Section */}
       <Card className="border-0 shadow-lg">
-        <CardHeader className="border-b bg-gradient-to-r from-purple-50 to-indigo-50">
+        <CardHeader className="border-b bg-gradient-to-r from-purple-50 to-indigo-50 p-4 sm:p-5 md:p-6">
           <div className="flex items-center justify-between">
             <div>
-              <CardTitle className="text-2xl flex items-center gap-2">
-                <Home className="w-6 h-6 text-purple-600" />
+              <CardTitle className="text-lg sm:text-xl md:text-2xl flex items-center gap-2">
+                <Home className="w-5 sm:w-5.5 md:w-6 h-5 sm:h-5.5 md:h-6 text-purple-600" />
                 My Properties
               </CardTitle>
-              <p className="text-sm text-slate-600 mt-1">Manage your listed properties</p>
+              <p className="text-xs sm:text-sm text-slate-600 mt-1">Manage your listed properties</p>
             </div>
             <Badge className="bg-purple-600 text-white">
               {myProperties.length} {myProperties.length === 1 ? 'Property' : 'Properties'}
@@ -640,11 +645,11 @@ export default function ProfilePage() {
               </Button>
             </div>
           ) : (
-            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+            <div className="grid gap-4 sm:gap-5 md:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
               {myProperties.map((property) => (
                 <Card key={property._id} className="overflow-hidden hover:shadow-xl transition-all duration-300 border-0 shadow-md group">
                   {/* Property Image */}
-                  <div className="relative h-48 overflow-hidden">
+                  <div className="relative h-40 sm:h-44 md:h-48 overflow-hidden">
                     <img
                       src={getImageUrl(property.images[0])}
                       alt={property.name}
@@ -657,7 +662,7 @@ export default function ProfilePage() {
                     
                     {/* Status Badge */}
                     <Badge 
-                      className={`absolute top-3 right-3 capitalize ${
+                      className={`absolute top-2 sm:top-3 right-2 sm:right-3 capitalize text-xs px-2 py-0.5 ${
                         property.status === 'available' || property.status === 'For rent' 
                           ? 'bg-green-500 text-white' 
                           : property.status === 'For sale'
@@ -670,43 +675,43 @@ export default function ProfilePage() {
 
                     {/* Image Count */}
                     {property.images.length > 1 && (
-                      <div className="absolute bottom-3 right-3 bg-black/70 text-white text-xs px-2 py-1 rounded-full flex items-center gap-1">
+                      <div className="absolute bottom-2 sm:bottom-3 right-2 sm:right-3 bg-black/70 text-white text-xs px-2 py-1 rounded-full flex items-center gap-1">
                         <Camera className="w-3 h-3" />
                         {property.images.length}
                       </div>
                     )}
                   </div>
 
-                  <CardContent className="p-4">
+                  <CardContent className="p-3 sm:p-4">
                     {/* Property Info */}
-                    <h3 className="font-bold text-lg text-slate-900 mb-2 line-clamp-1">
+                    <h3 className="font-bold text-base sm:text-lg text-slate-900 mb-2 line-clamp-1">
                       {property.name}
                     </h3>
                     
-                    <p className="text-2xl font-bold text-purple-600 mb-2">
+                    <p className="text-xl sm:text-2xl font-bold text-purple-600 mb-2">
                       ₱{property.price.toLocaleString()}
-                      <span className="text-sm text-slate-500 font-normal">/month</span>
+                      <span className="text-xs sm:text-sm text-slate-500 font-normal">/month</span>
                     </p>
 
-                    <div className="flex items-start gap-2 mb-3">
-                      <MapPin className="w-4 h-4 text-slate-400 mt-0.5 flex-shrink-0" />
-                      <p className="text-sm text-slate-600 line-clamp-2">{property.location.address}</p>
+                    <div className="flex items-start gap-2 mb-2 sm:mb-3">
+                      <MapPin className="w-3.5 sm:w-4 h-3.5 sm:h-4 text-slate-400 mt-0.5 flex-shrink-0" />
+                      <p className="text-xs sm:text-sm text-slate-600 line-clamp-2">{property.location.address}</p>
                     </div>
 
-                    <p className="text-sm text-slate-600 line-clamp-2 mb-3">
+                    <p className="text-xs sm:text-sm text-slate-600 line-clamp-2 mb-2 sm:mb-3">
                       {property.description}
                     </p>
 
                     {/* Amenities */}
                     {property.amenities.length > 0 && (
-                      <div className="flex flex-wrap gap-1 mb-3">
+                      <div className="flex flex-wrap gap-1 mb-2 sm:mb-3">
                         {property.amenities.slice(0, 3).map((amenity, idx) => (
-                          <Badge key={idx} variant="outline" className="text-xs">
+                          <Badge key={idx} variant="outline" className="text-xs px-1.5 py-0.5">
                             {amenity}
                           </Badge>
                         ))}
                         {property.amenities.length > 3 && (
-                          <Badge variant="outline" className="text-xs">
+                          <Badge variant="outline" className="text-xs px-1.5 py-0.5">
                             +{property.amenities.length - 3}
                           </Badge>
                         )}
@@ -714,8 +719,8 @@ export default function ProfilePage() {
                     )}
 
                     {/* Property Type */}
-                    <div className="flex items-center gap-2 mb-4">
-                      <Badge className="bg-indigo-100 text-indigo-700 capitalize">
+                    <div className="flex items-center gap-2 mb-3 sm:mb-4">
+                      <Badge className="bg-indigo-100 text-indigo-700 capitalize text-xs px-1.5 py-0.5">
                         {property.propertyType}
                       </Badge>
                       <span className="text-xs text-slate-500">
@@ -727,7 +732,7 @@ export default function ProfilePage() {
                     <div className="flex gap-2">
                       <Button
                         size="sm"
-                        className="flex-1 bg-purple-600 hover:bg-purple-700 text-white"
+                        className="flex-1 bg-purple-600 hover:bg-purple-700 text-white h-8 sm:h-9 text-xs sm:text-sm"
                         onClick={() => setShowEditComingSoonModal(true)}
                       >
                         <Edit className="w-3 h-3 mr-1" />
@@ -736,7 +741,7 @@ export default function ProfilePage() {
                       <Button
                         size="sm"
                         variant="outline"
-                        className="border-slate-300 hover:bg-slate-50"
+                        className="border-slate-300 hover:bg-slate-50 h-8 sm:h-9 text-xs sm:text-sm"
                       >
                         <Eye className="w-3 h-3 mr-1" />
                         View
@@ -744,7 +749,7 @@ export default function ProfilePage() {
                       <Button
                         size="sm"
                         variant="outline"
-                        className="border-red-300 text-red-600 hover:bg-red-50"
+                        className="border-red-300 text-red-600 hover:bg-red-50 h-8 sm:h-9 px-2 sm:px-3"
                         onClick={() => handleDeleteProperty(property._id)}
                       >
                         <Trash2 className="w-3 h-3" />
@@ -759,18 +764,18 @@ export default function ProfilePage() {
       </Card>
 
       {/* Additional Sections */}
-      <div className="grid gap-6 md:grid-cols-2">
+      <div className="grid gap-4 sm:gap-5 md:gap-6 grid-cols-1 md:grid-cols-2">
         {/* Account Settings */}
         <Card className="border-0 shadow-md">
-          <CardHeader>
-            <CardTitle className="text-xl">Account Settings</CardTitle>
+          <CardHeader className="p-4 sm:p-5 md:p-6">
+            <CardTitle className="text-base sm:text-lg md:text-xl">Account Settings</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-3">
+          <CardContent className="space-y-2 sm:space-y-3 p-4 sm:p-5 md:p-6 pt-0">
             <Button 
               variant="outline" 
-              className="w-full justify-start hover:bg-purple-50 hover:text-purple-700 hover:border-purple-200"
+              className="w-full justify-start hover:bg-purple-50 hover:text-purple-700 hover:border-purple-200 h-9 sm:h-10 text-xs sm:text-sm"
             >
-              <User className="w-4 h-4 mr-2" />
+              <User className="w-3.5 sm:w-4 h-3.5 sm:h-4 mr-2" />
               Edit Profile Information
             </Button>
             <Button 

@@ -1234,15 +1234,15 @@ export default function PropertyListingPage() {
   return (
     <div className="min-h-screen bg-slate-50">
       <header className="bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/90 border-b border-slate-200 sticky top-0 z-40 shadow-sm">
-        <div className="container mx-auto px-4 py-4">
+        <div className="container mx-auto px-2 sm:px-4 py-3 sm:py-4">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2 sm:gap-4">
               <Image
                 src="/rentify-logo.png"
                 alt="Rentify - Find Your Perfect Home"
-                width={100}
-                height={30}
-                className="h-17 w-auto"
+                width={80}
+                height={24}
+                className="h-12 sm:h-14 md:h-17 w-auto"
                 loading="eager"
               />
               <div className="hidden sm:block h-6 w-px bg-slate-300"></div>
@@ -1251,47 +1251,47 @@ export default function PropertyListingPage() {
                 <Navbar currentPage={currentPage} onPageChange={setCurrentPage} />
               </div>
             </div>
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2 sm:gap-4">
               {currentPage === "home" && (
                 <>
-                  {/* Add Property Button with tooltip */}
+                  {/* Add Property Button - Mobile: Icon only, Desktop: Full button */}
                   <div className="relative group">
                     <button
                       onClick={handleOpenModal}
-                      className="hidden md:flex items-center gap-2 px-5 h-11 rounded-xl bg-gradient-to-r from-purple-600 to-blue-600 text-white hover:from-purple-700 hover:to-blue-700 transition-all duration-300 font-semibold shadow-lg hover:shadow-xl hover:scale-105"
+                      className="flex items-center gap-2 px-3 sm:px-5 h-9 sm:h-11 rounded-xl bg-gradient-to-r from-purple-600 to-blue-600 text-white hover:from-purple-700 hover:to-blue-700 transition-all duration-300 font-semibold shadow-lg hover:shadow-xl hover:scale-105"
                     >
                       <Plus className="h-4 w-4" />
-                      List Property
+                      <span className="hidden md:inline">List Property</span>
                     </button>
-                    <div className="absolute -bottom-12 left-1/2 transform -translate-x-1/2 bg-slate-800 text-white px-3 py-1 rounded-lg text-sm opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
+                    <div className="absolute -bottom-12 left-1/2 transform -translate-x-1/2 bg-slate-800 text-white px-3 py-1 rounded-lg text-sm opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
                       Add your property for rent
                     </div>
                   </div>
                   
-                  {/* View Mode Toggle with better labels */}
-                  <div className="hidden md:flex items-center rounded-full border-2 border-slate-200 p-1 bg-white shadow-md">
+                  {/* View Mode Toggle - Compact on mobile */}
+                  <div className="flex items-center rounded-full border-2 border-slate-200 p-1 bg-white shadow-md">
                     <button
                       onClick={() => setViewMode("grid")}
-                      className={`flex items-center gap-2 px-4 h-10 rounded-full text-sm font-medium transition-all duration-300 ${
+                      className={`flex items-center gap-1 sm:gap-2 px-2 sm:px-4 h-8 sm:h-10 rounded-full text-xs sm:text-sm font-medium transition-all duration-300 ${
                         viewMode === "grid"
                           ? "bg-purple-600 text-white shadow-md"
                           : "text-slate-700 hover:bg-slate-100"
                       }`}
                       title="View as grid layout"
                     >
-                      <Grid className="h-4 w-4" />
+                      <Grid className="h-3.5 sm:h-4 w-3.5 sm:w-4" />
                       <span className="hidden lg:inline">Cards</span>
                     </button>
                     <button
                       onClick={() => setViewMode("map")}
-                      className={`flex items-center gap-2 px-4 h-10 rounded-full text-sm font-medium transition-all duration-300 ${
+                      className={`flex items-center gap-1 sm:gap-2 px-2 sm:px-4 h-8 sm:h-10 rounded-full text-xs sm:text-sm font-medium transition-all duration-300 ${
                         viewMode === "map"
                           ? "bg-purple-600 text-white shadow-md"
                           : "text-slate-700 hover:bg-slate-100"
                       }`}
                       title="View on map"
                     >
-                      <Map className="h-4 w-4" />
+                      <Map className="h-3.5 sm:h-4 w-3.5 sm:w-4" />
                       <span className="hidden lg:inline">Map</span>
                     </button>
                   </div>
@@ -1308,16 +1308,16 @@ export default function PropertyListingPage() {
 
       {currentPage === "home" && viewMode !== "map" && (
         <div className="bg-gradient-to-r from-blue-50 to-purple-50 border-b border-slate-200">
-          <div className="container mx-auto px-4 py-6">
+          <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-6">
             {/* Search Header */}
-            <div className="text-center mb-6">
-              <h1 className="text-2xl font-bold text-slate-900 mb-2">Find Your Perfect Home</h1>
-              <p className="text-slate-600">Discover amazing rental properties in Naga City</p>
+            <div className="text-center mb-4 sm:mb-6">
+              <h1 className="text-xl sm:text-2xl font-bold text-slate-900 mb-1 sm:mb-2">Find Your Perfect Home</h1>
+              <p className="text-sm sm:text-base text-slate-600">Discover amazing rental properties in Naga City</p>
             </div>
             
-            <div className="flex flex-col gap-4 md:flex-row md:items-center max-w-4xl mx-auto">
+            <div className="flex flex-col gap-3 sm:gap-4 md:flex-row md:items-center max-w-4xl mx-auto">
               <div className="relative flex-1">
-                <Search className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
+                <Search className="absolute left-3 sm:left-4 top-1/2 h-4 sm:h-5 w-4 sm:w-5 -translate-y-1/2 text-slate-400" />
                 <Input
                   placeholder="Search by property name or location..."
                   value={searchTerm}
@@ -1325,7 +1325,7 @@ export default function PropertyListingPage() {
                     setSearchTerm(e.target.value)
                     setActiveFilter('all') // Reset filter when searching
                   }}
-                  className="pl-12 h-12 rounded-xl border-slate-300 focus:border-purple-500 focus:ring-purple-500/20 bg-white shadow-sm text-base placeholder:text-slate-500"
+                  className="pl-10 sm:pl-12 h-10 sm:h-12 rounded-xl border-slate-300 focus:border-purple-500 focus:ring-purple-500/20 bg-white shadow-sm text-sm sm:text-base placeholder:text-slate-500"
                 />
                 {searchTerm && (
                   <button
@@ -1333,24 +1333,24 @@ export default function PropertyListingPage() {
                       setSearchTerm("")
                       setActiveFilter('all')
                     }}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1"
+                    className="absolute right-2 sm:right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1"
                   >
-                    <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className="h-3.5 sm:h-4 w-3.5 sm:w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                     </svg>
                   </button>
                 )}
               </div>
-              <div className="flex gap-3">
+              <div className="flex gap-2 sm:gap-3">
                 <button
                   onClick={() => setShowFilters(!showFilters)}
-                  className={`flex items-center gap-2 h-12 px-6 rounded-xl border-2 font-medium transition-all duration-300 ${
+                  className={`flex-1 sm:flex-none flex items-center justify-center gap-2 h-10 sm:h-12 px-4 sm:px-6 rounded-xl border-2 font-medium transition-all duration-300 text-sm sm:text-base ${
                     showFilters 
                       ? 'border-purple-500 bg-purple-50 text-purple-700' 
                       : 'border-slate-300 text-slate-700 hover:bg-slate-50 hover:border-slate-400'
                   }`}
                 >
-                  <Filter className="h-4 w-4" />
+                  <Filter className="h-3.5 sm:h-4 w-3.5 sm:w-4" />
                   <span className="hidden sm:inline">Price Filter</span>
                   <span className="sm:hidden">Filter</span>
                 </button>
@@ -1543,30 +1543,30 @@ export default function PropertyListingPage() {
 
             {/* Sort Options for Search Results */}
             {filteredProperties.length > 0 && (
-              <div className="bg-white rounded-xl shadow-md border border-slate-200 p-4 mb-6">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                  <div className="flex items-center gap-6">
-                    <span className="text-lg font-semibold text-slate-800">
+              <div className="bg-white rounded-xl shadow-md border border-slate-200 p-3 sm:p-4 mb-4 sm:mb-6">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-6">
+                    <span className="text-base sm:text-lg font-semibold text-slate-800">
                       {filteredProperties.length} {filteredProperties.length === 1 ? 'Property' : 'Properties'} Found
                     </span>
-                    <div className="flex items-center gap-4 text-sm">
-                      <div className="flex items-center gap-2">
-                        <div className="w-3 h-3 bg-emerald-500 rounded-full"></div>
+                    <div className="flex items-center gap-3 sm:gap-4 text-xs sm:text-sm">
+                      <div className="flex items-center gap-1.5 sm:gap-2">
+                        <div className="w-2.5 sm:w-3 h-2.5 sm:h-3 bg-emerald-500 rounded-full"></div>
                         <span className="text-slate-600">{filteredProperties.filter(p => p.status === 'available' || p.status === 'For rent').length} Available</span>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <div className="w-3 h-3 bg-amber-500 rounded-full"></div>
+                      <div className="flex items-center gap-1.5 sm:gap-2">
+                        <div className="w-2.5 sm:w-3 h-2.5 sm:h-3 bg-amber-500 rounded-full"></div>
                         <span className="text-slate-600">{filteredProperties.filter(p => p.status === 'fully booked' || p.status === 'For sale').length} Booked</span>
                       </div>
                     </div>
                   </div>
                   
-                  <div className="flex items-center gap-3">
-                    <span className="text-sm text-slate-600 font-medium">Sort:</span>
+                  <div className="flex items-center gap-2 sm:gap-3">
+                    <span className="text-xs sm:text-sm text-slate-600 font-medium">Sort:</span>
                     <select 
                       value={sortBy}
                       onChange={(e) => setSortBy(e.target.value)}
-                      className="text-sm border-2 border-slate-200 rounded-lg px-3 py-2 bg-white text-slate-700 font-medium focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 min-w-[140px] cursor-pointer hover:border-slate-300 transition-colors"
+                      className="text-xs sm:text-sm border-2 border-slate-200 rounded-lg px-2 sm:px-3 py-1.5 sm:py-2 bg-white text-slate-700 font-medium focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 w-full sm:min-w-[140px] cursor-pointer hover:border-slate-300 transition-colors"
                     >
                       <option value="newest">✨ Latest First</option>
                       <option value="price-low">💸 Price: Low to High</option>
@@ -1581,18 +1581,18 @@ export default function PropertyListingPage() {
             
             {/* Search Results Grid */}
             {filteredProperties.length > 0 && (
-              <div className="grid gap-6 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 mb-8">
+              <div className="grid gap-4 sm:gap-5 md:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 mb-6 sm:mb-8">
                 {filteredProperties.map((property) => (
                   <Card
                     key={property.id}
-                    className="group overflow-hidden hover:shadow-2xl hover:-translate-y-2 transition-all duration-500 border-0 shadow-lg bg-white rounded-2xl cursor-pointer"
+                    className="group overflow-hidden hover:shadow-2xl hover:-translate-y-1 sm:hover:-translate-y-2 transition-all duration-500 border-0 shadow-lg bg-white rounded-xl sm:rounded-2xl cursor-pointer"
                     onClick={() => setSelectedProperty(property)}
                   >
                     {/* Enhanced Image Section */}
-                    <div className="relative h-48 overflow-hidden rounded-t-2xl">
+                    <div className="relative h-44 sm:h-48 overflow-hidden rounded-t-xl sm:rounded-t-2xl">
                       <ImageSlider 
                         property={property} 
-                        className="h-48" 
+                        className="h-44 sm:h-48" 
                         onImageClick={openImageViewer}
                       />
                       
@@ -1600,7 +1600,7 @@ export default function PropertyListingPage() {
                       <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-black/10 pointer-events-none" />
                       
                       {/* Status Badge */}
-                      <Badge className={`absolute top-3 right-3 border-0 shadow-lg font-bold text-xs z-10 capitalize ${
+                      <Badge className={`absolute top-2 sm:top-3 right-2 sm:right-3 border-0 shadow-lg font-bold text-xs z-10 capitalize px-2 py-0.5 sm:px-2.5 sm:py-1 ${
                         property.status === 'available' 
                           ? 'bg-emerald-500 text-white' 
                           : property.status === 'For rent' 
@@ -1613,72 +1613,72 @@ export default function PropertyListingPage() {
                       </Badge>
                       
                       {/* Rating Badge */}
-                      <div className="absolute top-3 left-3 flex items-center gap-1 bg-white/95 backdrop-blur-sm rounded-full px-2.5 py-1.5 shadow-lg z-10">
-                        <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
+                      <div className="absolute top-2 sm:top-3 left-2 sm:left-3 flex items-center gap-1 bg-white/95 backdrop-blur-sm rounded-full px-2 py-1 sm:px-2.5 sm:py-1.5 shadow-lg z-10">
+                        <Star className="h-2.5 sm:h-3 w-2.5 sm:w-3 fill-yellow-400 text-yellow-400" />
                         <span className="text-xs font-bold text-slate-800">4.8</span>
                       </div>
 
                       {/* Property Type Badge */}
-                      <div className="absolute bottom-3 left-3 bg-white/95 backdrop-blur-sm rounded-full px-3 py-1 shadow-lg z-10">
+                      <div className="absolute bottom-2 sm:bottom-3 left-2 sm:left-3 bg-white/95 backdrop-blur-sm rounded-full px-2.5 py-0.5 sm:px-3 sm:py-1 shadow-lg z-10">
                         <span className="text-xs font-bold text-slate-800 capitalize">{property.propertyType}</span>
                       </div>
 
                       {/* Favorite Heart Icon */}
-                      <button className="absolute bottom-3 right-3 bg-white/95 backdrop-blur-sm rounded-full p-2 shadow-lg z-10 hover:bg-white hover:scale-110 transition-all duration-200">
-                        <svg className="h-4 w-4 text-slate-600 hover:text-red-500 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <button className="absolute bottom-2 sm:bottom-3 right-2 sm:right-3 bg-white/95 backdrop-blur-sm rounded-full p-1.5 sm:p-2 shadow-lg z-10 hover:bg-white hover:scale-110 transition-all duration-200">
+                        <svg className="h-3.5 sm:h-4 w-3.5 sm:w-4 text-slate-600 hover:text-red-500 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
                         </svg>
                       </button>
                     </div>
 
                     {/* Compact Content Section */}
-                    <CardContent className="p-4">
+                    <CardContent className="p-3 sm:p-4">
                       {/* Property Name & Price */}
-                      <div className="mb-3">
-                        <h3 className="text-lg font-bold text-slate-900 leading-tight mb-1 line-clamp-1">{property.name}</h3>
+                      <div className="mb-2 sm:mb-3">
+                        <h3 className="text-base sm:text-lg font-bold text-slate-900 leading-tight mb-1 line-clamp-1">{property.name}</h3>
                         <div className="flex items-center justify-between">
-                          <p className="text-xl font-bold text-blue-600">{formatPrice(property.price)}</p>
+                          <p className="text-lg sm:text-xl font-bold text-blue-600">{formatPrice(property.price)}</p>
                           <span className="text-xs text-slate-500 font-medium">per month</span>
                         </div>
                       </div>
 
                       {/* Location */}
-                      <div className="flex items-center gap-1.5 mb-3 text-slate-600">
-                        <MapPin className="h-3.5 w-3.5 flex-shrink-0" />
+                      <div className="flex items-center gap-1.5 mb-2 sm:mb-3 text-slate-600">
+                        <MapPin className="h-3 sm:h-3.5 w-3 sm:w-3.5 flex-shrink-0" />
                         <span className="text-xs font-medium line-clamp-1">{property.location.address}</span>
                       </div>
 
                       {/* Property Details - Compact Grid */}
-                      <div className="grid grid-cols-3 gap-2 mb-3">
-                        <div className="flex flex-col items-center bg-slate-50 rounded-lg py-2">
-                          <Bed className="h-3.5 w-3.5 text-slate-600 mb-1" />
+                      <div className="grid grid-cols-3 gap-1.5 sm:gap-2 mb-2 sm:mb-3">
+                        <div className="flex flex-col items-center bg-slate-50 rounded-lg py-1.5 sm:py-2">
+                          <Bed className="h-3 sm:h-3.5 w-3 sm:w-3.5 text-slate-600 mb-0.5 sm:mb-1" />
                           <span className="text-xs font-bold text-slate-900">{property.bedrooms}</span>
-                          <span className="text-xs text-slate-500">bed{property.bedrooms !== 1 ? 's' : ''}</span>
+                          <span className="text-xs text-slate-500 hidden sm:inline">bed{property.bedrooms !== 1 ? 's' : ''}</span>
                         </div>
-                        <div className="flex flex-col items-center bg-slate-50 rounded-lg py-2">
-                          <Bath className="h-3.5 w-3.5 text-slate-600 mb-1" />
+                        <div className="flex flex-col items-center bg-slate-50 rounded-lg py-1.5 sm:py-2">
+                          <Bath className="h-3 sm:h-3.5 w-3 sm:w-3.5 text-slate-600 mb-0.5 sm:mb-1" />
                           <span className="text-xs font-bold text-slate-900">{property.bathrooms}</span>
-                          <span className="text-xs text-slate-500">bath{property.bathrooms !== 1 ? 's' : ''}</span>
+                          <span className="text-xs text-slate-500 hidden sm:inline">bath{property.bathrooms !== 1 ? 's' : ''}</span>
                         </div>
-                        <div className="flex flex-col items-center bg-slate-50 rounded-lg py-2">
-                          <Car className="h-3.5 w-3.5 text-slate-600 mb-1" />
+                        <div className="flex flex-col items-center bg-slate-50 rounded-lg py-1.5 sm:py-2">
+                          <Car className="h-3 sm:h-3.5 w-3 sm:w-3.5 text-slate-600 mb-0.5 sm:mb-1" />
                           <span className="text-xs font-bold text-slate-900">{property.parking || 0}</span>
-                          <span className="text-xs text-slate-500">parking</span>
+                          <span className="text-xs text-slate-500 hidden sm:inline">parking</span>
                         </div>
                       </div>
 
                       {/* Description */}
-                      <p className="text-xs text-slate-600 mb-3 line-clamp-2 leading-relaxed">{property.description}</p>
+                      <p className="text-xs text-slate-600 mb-2 sm:mb-3 line-clamp-2 leading-relaxed">{property.description}</p>
 
                       {/* Amenities - Condensed */}
-                      <div className="flex flex-wrap gap-1 mb-3">
+                      <div className="flex flex-wrap gap-1 mb-2 sm:mb-3">
                         {property.amenities.slice(0, 2).map((amenity) => (
-                          <Badge key={amenity} variant="outline" className="text-xs px-2 py-0.5 border-slate-300 text-slate-700 bg-slate-50">
+                          <Badge key={amenity} variant="outline" className="text-xs px-1.5 sm:px-2 py-0.5 border-slate-300 text-slate-700 bg-slate-50">
                             {amenity}
                           </Badge>
                         ))}
                         {property.amenities.length > 2 && (
-                          <Badge variant="outline" className="text-xs px-2 py-0.5 border-blue-200 text-blue-700 bg-blue-50">
+                          <Badge variant="outline" className="text-xs px-1.5 sm:px-2 py-0.5 border-blue-200 text-blue-700 bg-blue-50">
                             +{property.amenities.length - 2} more
                           </Badge>
                         )}
@@ -1691,15 +1691,15 @@ export default function PropertyListingPage() {
                             e.stopPropagation();
                             setSelectedProperty(property);
                           }}
-                          className="flex-1 h-9 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold rounded-lg transition-all duration-200 text-sm shadow-md hover:shadow-lg"
+                          className="flex-1 h-8 sm:h-9 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold rounded-lg transition-all duration-200 text-xs sm:text-sm shadow-md hover:shadow-lg"
                         >
                           View Details
                         </button>
                         <button
                           onClick={(e) => e.stopPropagation()}
-                          className="h-9 w-9 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors duration-200 flex items-center justify-center"
+                          className="h-8 sm:h-9 w-8 sm:w-9 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors duration-200 flex items-center justify-center"
                         >
-                          <Phone className="h-4 w-4 text-slate-600" />
+                          <Phone className="h-3.5 sm:h-4 w-3.5 sm:w-4 text-slate-600" />
                         </button>
                       </div>
                     </CardContent>
@@ -1710,24 +1710,24 @@ export default function PropertyListingPage() {
             
             {/* Empty Search Results */}
             {filteredProperties.length === 0 && (
-              <div className="text-center py-16 bg-white rounded-2xl border-2 border-slate-100">
-                <div className="w-20 h-20 mx-auto bg-slate-100 rounded-full flex items-center justify-center mb-6">
-                  <Search className="h-10 w-10 text-slate-400" />
+              <div className="text-center py-12 sm:py-16 bg-white rounded-xl sm:rounded-2xl border-2 border-slate-100 px-4">
+                <div className="w-16 sm:w-20 h-16 sm:h-20 mx-auto bg-slate-100 rounded-full flex items-center justify-center mb-4 sm:mb-6">
+                  <Search className="h-8 sm:h-10 w-8 sm:w-10 text-slate-400" />
                 </div>
-                <h3 className="text-2xl font-bold text-slate-900 mb-3">No Results Found</h3>
-                <p className="text-slate-600 mb-6 max-w-md mx-auto">
+                <h3 className="text-xl sm:text-2xl font-bold text-slate-900 mb-2 sm:mb-3">No Results Found</h3>
+                <p className="text-sm sm:text-base text-slate-600 mb-4 sm:mb-6 max-w-md mx-auto">
                   {searchTerm 
                     ? `We couldn't find any properties matching "${searchTerm}". Try adjusting your search terms.`
                     : `No ${activeFilter === 'nearby' ? 'nearby' : 'budget-friendly'} properties available right now.`
                   }
                 </p>
-                <div className="flex gap-3 justify-center">
+                <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 justify-center">
                   <Button
                     onClick={() => {
                       setSearchTerm("")
                       setActiveFilter('all')
                     }}
-                    className="bg-blue-600 hover:bg-blue-700 text-white"
+                    className="bg-blue-600 hover:bg-blue-700 text-white h-10 sm:h-11"
                   >
                     Clear Search
                   </Button>
@@ -1737,6 +1737,7 @@ export default function PropertyListingPage() {
                       setActiveFilter('all')
                     }}
                     variant="outline"
+                    className="h-10 sm:h-11"
                   >
                     Reset Filters
                   </Button>
@@ -2067,23 +2068,23 @@ export default function PropertyListingPage() {
       />
 
       <Dialog open={!!selectedProperty} onOpenChange={() => setSelectedProperty(null)}>
-        <DialogContent className="max-w-5xl max-h-[92vh] overflow-y-auto">
+        <DialogContent className="max-w-full sm:max-w-3xl md:max-w-4xl lg:max-w-5xl max-h-[92vh] overflow-y-auto p-4 sm:p-6">
           {selectedProperty && (
             <>
-              <DialogHeader className="pb-4">
-                <DialogTitle className="text-2xl font-bold text-balance pr-8 leading-tight">{selectedProperty.name}</DialogTitle>
+              <DialogHeader className="pb-3 sm:pb-4">
+                <DialogTitle className="text-lg sm:text-xl md:text-2xl font-bold text-balance pr-8 leading-tight">{selectedProperty.name}</DialogTitle>
               </DialogHeader>
-              <div className="grid gap-6 md:grid-cols-2">
+              <div className="grid gap-4 sm:gap-5 md:gap-6 grid-cols-1 md:grid-cols-2">
                 {/* Left Column - Images & Map */}
-                <div className="space-y-4">
-                  <div className="relative h-64 rounded-xl overflow-hidden shadow-lg ring-1 ring-black/5">
+                <div className="space-y-3 sm:space-y-4">
+                  <div className="relative h-48 sm:h-56 md:h-64 rounded-lg sm:rounded-xl overflow-hidden shadow-lg ring-1 ring-black/5">
                     <ImageSlider 
                       property={selectedProperty} 
-                      className="h-64 rounded-xl" 
+                      className="h-48 sm:h-56 md:h-64 rounded-lg sm:rounded-xl" 
                       onImageClick={openImageViewer}
                     />
                   </div>
-                  <div className="h-56 rounded-xl overflow-hidden shadow-md ring-1 ring-black/5">
+                  <div className="h-44 sm:h-52 md:h-56 rounded-lg sm:rounded-xl overflow-hidden shadow-md ring-1 ring-black/5">
                     <PropertyMap
                       properties={[selectedProperty]}
                       clusters={[]}
@@ -2095,49 +2096,49 @@ export default function PropertyListingPage() {
                 </div>
 
                 {/* Right Column - Details */}
-                <div className="space-y-4">
+                <div className="space-y-3 sm:space-y-4">
                   {/* Price & Location */}
-                  <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-4 ring-1 ring-blue-100">
-                    <p className="text-3xl font-bold text-blue-600 mb-1">
+                  <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-lg sm:rounded-xl p-3 sm:p-4 ring-1 ring-blue-100">
+                    <p className="text-2xl sm:text-3xl font-bold text-blue-600 mb-1">
                       {formatPrice(selectedProperty.price)}
-                      <span className="text-lg text-blue-500 font-normal">/month</span>
+                      <span className="text-base sm:text-lg text-blue-500 font-normal">/month</span>
                     </p>
                     <div className="flex items-start gap-2 mt-2">
-                      <MapPin className="h-4 w-4 text-blue-600 mt-0.5 flex-shrink-0" />
-                      <span className="text-sm text-slate-700 leading-relaxed">{selectedProperty.location.address}</span>
+                      <MapPin className="h-3.5 sm:h-4 w-3.5 sm:w-4 text-blue-600 mt-0.5 flex-shrink-0" />
+                      <span className="text-xs sm:text-sm text-slate-700 leading-relaxed">{selectedProperty.location.address}</span>
                     </div>
-                    <div className="mt-3">
-                      <Badge className="bg-blue-600 text-white capitalize text-xs px-3 py-1">{selectedProperty.status}</Badge>
+                    <div className="mt-2 sm:mt-3">
+                      <Badge className="bg-blue-600 text-white capitalize text-xs px-2.5 sm:px-3 py-0.5 sm:py-1">{selectedProperty.status}</Badge>
                     </div>
                   </div>
 
                   {/* Description */}
-                  <div className="bg-slate-50 rounded-xl p-4 ring-1 ring-slate-200">
+                  <div className="bg-slate-50 rounded-lg sm:rounded-xl p-3 sm:p-4 ring-1 ring-slate-200">
                     <h4 className="font-semibold text-slate-900 mb-2 text-sm flex items-center gap-2">
-                      <svg className="h-4 w-4 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <svg className="h-3.5 sm:h-4 w-3.5 sm:w-4 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                       </svg>
                       Description
                     </h4>
-                    <p className="text-sm text-slate-700 leading-relaxed line-clamp-3">{selectedProperty.description}</p>
+                    <p className="text-xs sm:text-sm text-slate-700 leading-relaxed line-clamp-3">{selectedProperty.description}</p>
                   </div>
 
                   {/* Amenities */}
-                  <div className="bg-emerald-50 rounded-xl p-4 ring-1 ring-emerald-100">
+                  <div className="bg-emerald-50 rounded-lg sm:rounded-xl p-3 sm:p-4 ring-1 ring-emerald-100">
                     <h4 className="font-semibold text-slate-900 mb-2 text-sm flex items-center gap-2">
-                      <svg className="h-4 w-4 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <svg className="h-3.5 sm:h-4 w-3.5 sm:w-4 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                       </svg>
                       Amenities
                     </h4>
                     <div className="flex flex-wrap gap-1.5">
                       {selectedProperty.amenities.slice(0, 6).map((amenity: string) => (
-                        <Badge key={amenity} variant="outline" className="text-xs px-2 py-0.5 bg-white border-emerald-200 text-emerald-800">
+                        <Badge key={amenity} variant="outline" className="text-xs px-1.5 sm:px-2 py-0.5 bg-white border-emerald-200 text-emerald-800">
                           {amenity}
                         </Badge>
                       ))}
                       {selectedProperty.amenities.length > 6 && (
-                        <Badge variant="outline" className="text-xs px-2 py-0.5 bg-white border-emerald-200 text-emerald-800">
+                        <Badge variant="outline" className="text-xs px-1.5 sm:px-2 py-0.5 bg-white border-emerald-200 text-emerald-800">
                           +{selectedProperty.amenities.length - 6}
                         </Badge>
                       )}
@@ -2146,14 +2147,14 @@ export default function PropertyListingPage() {
                   
                   {/* Owner Information */}
                   {(selectedProperty.postedBy || selectedProperty.createdBy) && (
-                    <div className="bg-purple-50 rounded-xl p-4 ring-1 ring-purple-100">
-                      <h4 className="font-semibold text-slate-900 mb-3 text-sm flex items-center gap-2">
-                        <svg className="h-4 w-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <div className="bg-purple-50 rounded-lg sm:rounded-xl p-3 sm:p-4 ring-1 ring-purple-100">
+                      <h4 className="font-semibold text-slate-900 mb-2 sm:mb-3 text-sm flex items-center gap-2">
+                        <svg className="h-3.5 sm:h-4 w-3.5 sm:w-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                         </svg>
                         Property Owner
                       </h4>
-                      <div className="bg-white rounded-lg p-3">
+                      <div className="bg-white rounded-lg p-2.5 sm:p-3">
                         {(() => {
                           const owner = typeof selectedProperty.postedBy === 'object' ? selectedProperty.postedBy : 
                                        typeof selectedProperty.createdBy === 'object' ? selectedProperty.createdBy : null
@@ -2165,22 +2166,22 @@ export default function PropertyListingPage() {
                           }
                           
                           return (
-                            <div className="flex items-center gap-3">
+                            <div className="flex items-center gap-2.5 sm:gap-3">
                               {owner.profilePicture ? (
                                 <img 
                                   src={owner.profilePicture.startsWith('http') ? owner.profilePicture : `https://rentify-server-ge0f.onrender.com${owner.profilePicture}`}
                                   alt={owner.fullName || owner.username}
-                                  className="w-12 h-12 rounded-full object-cover border-2 border-purple-200 flex-shrink-0"
+                                  className="w-10 sm:w-12 h-10 sm:h-12 rounded-full object-cover border-2 border-purple-200 flex-shrink-0"
                                 />
                               ) : (
-                                <div className="w-12 h-12 rounded-full bg-purple-100 flex items-center justify-center border-2 border-purple-200 flex-shrink-0">
-                                  <span className="text-purple-600 font-semibold text-lg">
+                                <div className="w-10 sm:w-12 h-10 sm:h-12 rounded-full bg-purple-100 flex items-center justify-center border-2 border-purple-200 flex-shrink-0">
+                                  <span className="text-purple-600 font-semibold text-base sm:text-lg">
                                     {(owner.fullName || owner.username || 'U').charAt(0).toUpperCase()}
                                   </span>
                                 </div>
                               )}
                               <div className="flex-1 min-w-0">
-                                <p className="font-semibold text-slate-900 text-sm truncate">
+                                <p className="font-semibold text-slate-900 text-xs sm:text-sm truncate">
                                   {owner.fullName || owner.username || 'Property Owner'}
                                 </p>
                                 {owner.email && (
@@ -2206,7 +2207,7 @@ export default function PropertyListingPage() {
                   )}
                   
                   {/* Action Buttons */}
-                  <div className="flex gap-2 pt-2">
+                  <div className="flex flex-col sm:flex-row gap-2 pt-2">
                     <Button 
                       onClick={() => {
                         // Get owner ID from postedBy or createdBy
@@ -2224,12 +2225,12 @@ export default function PropertyListingPage() {
                           alert('Owner information not available')
                         }
                       }}
-                      className="flex-1 flex items-center justify-center gap-2 text-sm h-10 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700"
+                      className="flex-1 flex items-center justify-center gap-2 text-sm h-10 sm:h-11 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700"
                     >
                       <Phone className="h-4 w-4" />
                       Contact
                     </Button>
-                    <Button className="flex-1 text-sm h-10 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white">
+                    <Button className="flex-1 text-sm h-10 sm:h-11 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white">
                       Rent Now
                     </Button>
                   </div>
@@ -2238,21 +2239,21 @@ export default function PropertyListingPage() {
 
               {/* Recommended Properties */}
               {recommendations.length > 0 && (
-                <div className="mt-6 pt-6 border-t">
-                  <h4 className="text-base font-semibold text-slate-900 mb-4 flex items-center gap-2">
-                    <svg className="h-5 w-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div className="mt-4 sm:mt-5 md:mt-6 pt-4 sm:pt-5 md:pt-6 border-t">
+                  <h4 className="text-sm sm:text-base font-semibold text-slate-900 mb-3 sm:mb-4 flex items-center gap-2">
+                    <svg className="h-4 sm:h-5 w-4 sm:w-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
                     </svg>
                     You Might Also Like
                   </h4>
-                  <div className="grid gap-4 md:grid-cols-3">
+                  <div className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-3">
                     {recommendations.map((rec) => (
                       <Card
                         key={rec.id}
                         className="cursor-pointer hover:shadow-lg transition-all hover:-translate-y-1 overflow-hidden ring-1 ring-black/5"
                         onClick={() => setSelectedProperty(rec)}
                       >
-                        <div className="relative h-28">
+                        <div className="relative h-24 sm:h-28">
                           <img
                             src={getImageUri(rec, 0)}
                             alt={rec.name}
@@ -2262,9 +2263,9 @@ export default function PropertyListingPage() {
                             }}
                           />
                         </div>
-                        <CardContent className="p-3">
-                          <h5 className="font-semibold text-sm text-slate-900 truncate">{rec.name}</h5>
-                          <p className="text-blue-600 font-bold text-base mt-0.5">{formatPrice(rec.price)}</p>
+                        <CardContent className="p-2.5 sm:p-3">
+                          <h5 className="font-semibold text-xs sm:text-sm text-slate-900 truncate">{rec.name}</h5>
+                          <p className="text-blue-600 font-bold text-sm sm:text-base mt-0.5">{formatPrice(rec.price)}</p>
                           <p className="text-xs text-slate-500 mt-0.5 truncate">{rec.location.address}</p>
                         </CardContent>
                       </Card>
