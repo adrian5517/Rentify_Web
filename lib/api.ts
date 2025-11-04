@@ -52,7 +52,8 @@ export interface MessageData {
 }
 
 export interface UserData {
-  _id: string;
+  _id?: string; // MongoDB ID
+  id?: string; // Facebook OAuth ID
   name?: string;
   fullName?: string;
   username?: string;

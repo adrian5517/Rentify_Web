@@ -39,7 +39,7 @@ function MessagesPage() {
   }
 
   // Get current user from localStorage (Zustand auth store structure)
-  const [currentUser, setCurrentUser] = useState<{ _id: string; username: string; name?: string; email: string; profilePicture?: string } | null>(null)
+  const [currentUser, setCurrentUser] = useState<{ _id?: string; id?: string; username: string; name?: string; email: string; profilePicture?: string } | null>(null)
   const [contacts, setContacts] = useState<Contact[]>([])
   const [selectedContact, setSelectedContact] = useState<string | null>(null)
   const [input, setInput] = useState("")
@@ -138,9 +138,12 @@ function MessagesPage() {
               fetchUsers().then(users => {
                 const sender = users.find(u => u._id === senderId || u.id === senderId)
                 if (sender) {
+                  const senderId = sender._id || sender.id
+                  if (!senderId) return
+                  
                   const displayName = sender.fullName || sender.name || sender.username || sender.email
                   const newContact: Contact = {
-                    id: sender._id || sender.id,
+                    id: senderId,
                     name: displayName,
                     avatar: displayName.charAt(0).toUpperCase(),
                     profilePicture: sender.profilePicture, // Add profile picture
@@ -261,6 +264,9 @@ function MessagesPage() {
                 const userIdToCheck = user._id || user.id
                 const currentUserId = currentUser._id || currentUser.id
                 
+                // Skip if IDs are not available
+                if (!userIdToCheck || !currentUserId) continue
+                
                 // Fetch messages for this user
                 const messages = await fetchMessages(currentUserId, userIdToCheck)
                 
@@ -347,6 +353,12 @@ function MessagesPage() {
               console.log('✅ Found user info:', user)
               const displayName = user.fullName || user.name || user.username || user.email
               const userIdToUse = user._id || user.id
+              
+              if (!userIdToUse) {
+                console.error('❌ User ID not found')
+                return
+              }
+              
               const newContact: Contact = {
                 id: userIdToUse,
                 name: displayName,
@@ -404,6 +416,13 @@ function MessagesPage() {
       }
 
       console.log('📨 Fetching messages for contact:', selectedContact)
+      
+      // Skip if current user ID is not available
+      if (!currentUserId) {
+        console.error('❌ Current user ID not available')
+        return
+      }
+      
       setIsLoading(true)
       fetchMessages(currentUserId, selectedContact)
         .then((fetchedMessages) => {
@@ -482,14 +501,20 @@ function MessagesPage() {
     }
 
     // Set new timeout to emit typing-stop after 500ms of inactivity
+    const currentUserId = currentUser._id || currentUser.id
+    if (!currentUserId) return
+    
     typingTimeoutRef.current = setTimeout(() => {
-      socket.emit('typing-stop', { senderId: currentUser._id, receiverId: selectedContact })
+      socket.emit('typing-stop', { senderId: currentUserId, receiverId: selectedContact })
     }, 500)
   }
 
   const handleSend = async () => {
     if (!currentUser || !selectedContact) return
     if (!input.trim() && selectedFiles.length === 0) return
+    
+    const currentUserId = currentUser._id || currentUser.id
+    if (!currentUserId) return
     
     const socket = getSocket()
     const messageText = input.trim()
@@ -498,7 +523,7 @@ function MessagesPage() {
     if (selectedFiles.length > 0) {
       try {
         const newMessage = await sendMessageAPI(
-          currentUser._id,
+          currentUserId,
           selectedContact,
           messageText || undefined,
           selectedFiles
@@ -528,9 +553,12 @@ function MessagesPage() {
       }
     } else {
       // Use WebSocket for text-only messages
+      const currentUserId = currentUser._id || currentUser.id
+      if (!currentUserId) return
+      
       const tempMessage: Message = {
         _id: Date.now().toString(),
-        sender: currentUser._id,
+        sender: currentUserId,
         receiver: selectedContact,
         message: messageText,
         read: false,

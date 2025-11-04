@@ -1,11 +1,13 @@
 "use client"
 
 import { useEffect, useRef, useState, useCallback } from "react"
+import { useRouter } from "next/navigation"
 import mapboxgl from "mapbox-gl"
 import type { Property } from "@/lib/property-data"
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { escapeHTML, sanitizeInput } from "@/lib/security"
+import { useAuthStore } from "@/lib/auth-store"
 
 // Modern Design System with Professional Icons
 const modernStyles = `
@@ -285,6 +287,8 @@ export default function PropertyMap({
   navigationMode = false,
   onNavigationToggle,
 }: PropertyMapProps) {
+  const router = useRouter()
+  const { user: currentUser } = useAuthStore()
   const mapRef = useRef<HTMLDivElement>(null)
   const mapInstanceRef = useRef<mapboxgl.Map | null>(null)
   const markersRef = useRef<mapboxgl.Marker[]>([])
@@ -1113,8 +1117,8 @@ export default function PropertyMap({
           console.error("🚨 Map error:", e.error)
           console.error("🚨 Error details:", {
             message: e.error?.message,
-            status: e.error?.status,
-            url: e.error?.url
+            status: (e.error as any)?.status,
+            url: (e.error as any)?.url
           })
           clearTimeout(loadTimeout)
           
@@ -1837,21 +1841,40 @@ export default function PropertyMap({
             <div className="flex gap-2 pt-2 border-t border-gray-200">
               <button 
                 onClick={() => {
+                  console.log('🔵 Contact Owner button clicked')
+                  
+                  // Check if user is logged in
+                  if (!currentUser) {
+                    console.log('❌ User not logged in')
+                    alert('Please log in to contact property owners')
+                    return
+                  }
+                  
                   const ownerInfo = getOwnerInfo(selectedProperty)
+                  console.log('🔍 Owner Info:', ownerInfo)
+                  console.log('🔍 Owner ID:', ownerInfo?.id)
+                  console.log('🔍 Selected Property:', selectedProperty)
+                  
                   if (ownerInfo) {
                     // If we have owner ID, redirect to messages
                     if (ownerInfo.id && ownerInfo.id !== 'unknown') {
-                      window.location.href = `/messages?contact=${ownerInfo.id}`
+                      console.log('✅ Redirecting to messages with contact:', ownerInfo.id)
+                      // Use Next.js router instead of window.location
+                      router.push(`/messages?contact=${ownerInfo.id}`)
                     } else if (ownerInfo.phone) {
+                      console.log('📱 Showing phone number')
                       // If we only have phone number, show it
                       alert(`Contact Owner\n\nPhone: ${ownerInfo.phone}\n\nYou can call or text this number to inquire about the property.`)
                     } else if (ownerInfo.email) {
+                      console.log('📧 Showing email')
                       // If we only have email
                       alert(`Contact Owner\n\nEmail: ${ownerInfo.email}\n\nYou can email to inquire about the property.`)
                     } else {
+                      console.log('⚠️ No valid contact info')
                       alert('Owner contact information is available. Please check the property details.')
                     }
                   } else {
+                    console.log('❌ No owner info available')
                     alert('Owner information not available for this property. This may be a demo listing.')
                   }
                 }}
