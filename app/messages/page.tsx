@@ -292,26 +292,67 @@ function MessagesPage() {
 
   // Handle contact query parameter from URL (e.g., from property page)
   useEffect(() => {
-    if (contacts.length > 0) {
-      const urlParams = new URLSearchParams(window.location.search)
-      const contactId = urlParams.get('contact')
+    const urlParams = new URLSearchParams(window.location.search)
+    const contactId = urlParams.get('contact')
+    
+    if (contactId && currentUser) {
+      console.log('🔗 Contact ID from URL:', contactId)
       
-      if (contactId) {
-        console.log('🔗 Contact ID from URL:', contactId)
-        // Check if contact exists in the list
-        const contactExists = contacts.find(c => c.id === contactId)
+      // Check if contact exists in the list
+      const contactExists = contacts.find(c => c.id === contactId)
+      
+      if (contactExists) {
+        console.log('✅ Contact found, selecting:', contactExists.name)
+        setSelectedContact(contactId)
+        // Remove query parameter from URL
+        window.history.replaceState({}, '', '/messages')
+      } else if (contacts.length > 0) {
+        // Contact doesn't exist yet - fetch their info and add them
+        console.log('⚠️ Contact not found in list, fetching user info:', contactId)
         
-        if (contactExists) {
-          console.log('✅ Contact found, selecting:', contactExists.name)
-          setSelectedContact(contactId)
-          // Remove query parameter from URL
-          window.history.replaceState({}, '', '/messages')
-        } else {
-          console.log('⚠️ Contact not found in list, contact ID:', contactId)
-        }
+        fetchUsers()
+          .then(users => {
+            const user = users.find(u => u._id === contactId)
+            if (user) {
+              console.log('✅ Found user info:', user)
+              const displayName = user.fullName || user.name || user.username || user.email
+              const newContact: Contact = {
+                id: user._id,
+                name: displayName,
+                avatar: displayName.charAt(0).toUpperCase(),
+                profilePicture: user.profilePicture,
+                unread: 0,
+                online: false,
+                lastSeen: "Recently",
+                lastMessageTime: Date.now()
+              }
+              
+              // Add to contacts and select
+              setContacts(prev => {
+                // Check if contact was already added (race condition)
+                if (prev.find(c => c.id === contactId)) {
+                  return prev
+                }
+                return [newContact, ...prev]
+              })
+              setSelectedContact(contactId)
+              
+              // Remove query parameter from URL
+              window.history.replaceState({}, '', '/messages')
+            } else {
+              console.log('❌ User not found in database')
+              alert('Unable to find this user. They may not exist or have been deleted.')
+              window.history.replaceState({}, '', '/messages')
+            }
+          })
+          .catch(err => {
+            console.error('❌ Error fetching user info:', err)
+            alert('Error loading user information. Please try again.')
+            window.history.replaceState({}, '', '/messages')
+          })
       }
     }
-  }, [contacts])
+  }, [contacts, currentUser])
 
   // Fetch messages when contact is selected
   useEffect(() => {

@@ -115,7 +115,7 @@ export default function SignupModal({ isOpen, onClose, onSwitchToLogin }: Signup
                 <Input
                   id="username"
                   type="text"
-                  placeholder="johndoe"
+                  placeholder="Adrian Boncodin"
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
                   className="pl-10 border-gray-300 focus:border-indigo-500 focus:ring-indigo-500"
