@@ -30,6 +30,8 @@ export function middleware(request: NextRequest) {
   const cspDirectives = [
     "default-src 'self'",
     "script-src 'self' 'unsafe-eval' 'unsafe-inline' https://api.mapbox.com",
+    "worker-src 'self' blob: https://api.mapbox.com",
+    "child-src 'self' blob:",
     "style-src 'self' 'unsafe-inline' https://api.mapbox.com https://fonts.googleapis.com",
     "img-src 'self' data: blob: https: https://api.mapbox.com https://rentify-server-ge0f.onrender.com",
     "font-src 'self' data: https://fonts.gstatic.com",

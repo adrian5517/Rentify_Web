@@ -967,12 +967,26 @@ export default function PropertyMap({
           center,
           zoom,
           attributionControl: true,
-          logoPosition: 'bottom-right'
+          logoPosition: 'bottom-right',
+          // Add retry logic
+          maxTileCacheSize: 50,
+          refreshExpiredTiles: true
         })
 
-        console.log("🗺️ Map instance created, waiting for load event...")
+        console.log("🗺️ Map instance created successfully!")
+        console.log("📦 Map container ID:", map.getContainer().id)
         const cont = map.getContainer() as HTMLElement
-        console.log("📐 Container size (init):", cont.clientWidth, "x", cont.clientHeight)
+        console.log("📐 Container dimensions:", {
+          width: cont.clientWidth,
+          height: cont.clientHeight,
+          offsetWidth: cont.offsetWidth,
+          offsetHeight: cont.offsetHeight
+        })
+
+        // Check if container has size
+        if (cont.clientWidth === 0 || cont.clientHeight === 0) {
+          console.warn("⚠️ Map container has no size! This may cause rendering issues.")
+        }
 
         map.addControl(new mapboxgl.NavigationControl(), 'top-right')
         map.addControl(new mapboxgl.FullscreenControl(), 'top-right')
@@ -1071,41 +1085,55 @@ export default function PropertyMap({
           setTimeout(containerCheck, 100)
         })
 
+        // Fallback: Use 'idle' event if 'load' never fires
         map.on("idle", () => {
           if (!mounted) return
           if (!loadedRef.current) { 
-            console.log("✅ Map idle - considering loaded"); 
+            console.log("✅ Map idle event fired (fallback) - marking as loaded"); 
             clearTimeout(loadTimeout); 
             setIsLoading(false); 
             initializedRef.current = true; 
             loadedRef.current = true 
           }
-          try {
-            if (map && typeof map.resize === 'function') {
-              map.resize()
-            }
-          } catch (error) {
-            console.warn("⚠️ Map resize failed on idle:", error)
-          }
-          const el2 = map.getContainer() as HTMLElement
-          console.log("📐 Container size (idle):", el2.clientWidth, "x", el2.clientHeight)
         })
 
-        // Fallback timeout to prevent infinite loading
+        // Final fallback timeout - force loading to complete
         setTimeout(() => {
           if (mounted && !loadedRef.current) {
-            console.log("⏰ Fallback timeout - forcing map to load")
+            console.log("⏰ Final fallback (5s) - forcing map to finish loading")
+            clearTimeout(loadTimeout)
             setIsLoading(false)
             initializedRef.current = true
             loadedRef.current = true
           }
-        }, 10000) // 10 second fallback
+        }, 5000) // 5 second final fallback
 
         map.on("error", (e) => {
           if (!mounted) return
           console.error("🚨 Map error:", e.error)
+          console.error("🚨 Error details:", {
+            message: e.error?.message,
+            status: e.error?.status,
+            url: e.error?.url
+          })
           clearTimeout(loadTimeout)
-          setError(`Map error: ${e.error?.message || "Unknown error"}`)
+          
+          // Provide more helpful error messages
+          let errorMessage = "Map error occurred"
+          if (e.error?.message) {
+            errorMessage = e.error.message
+            
+            // Add helpful hints for common errors
+            if (e.error.message.includes('401') || e.error.message.includes('Unauthorized')) {
+              errorMessage += ". Your Mapbox token may be invalid or expired."
+            } else if (e.error.message.includes('network') || e.error.message.includes('Failed to fetch')) {
+              errorMessage += ". Please check your internet connection."
+            } else if (e.error.message.includes('style')) {
+              errorMessage += ". Map style failed to load."
+            }
+          }
+          
+          setError(errorMessage)
           setIsLoading(false)
         })
 
