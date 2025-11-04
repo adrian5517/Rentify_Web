@@ -21,6 +21,7 @@ import {
   ChevronLeft,
   ChevronRight,
   X,
+  Calendar,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -1046,21 +1047,16 @@ export default function PropertyListingPage() {
                       </div>
 
                       {/* Property Details - Compact Grid */}
-                      <div className="grid grid-cols-3 gap-2 mb-3">
+                      <div className="grid grid-cols-2 gap-2 mb-3">
                         <div className="flex flex-col items-center bg-slate-50 rounded-lg py-2">
-                          <Bed className="h-3.5 w-3.5 text-slate-600 mb-1" />
-                          <span className="text-xs font-bold text-slate-900">{property.bedrooms}</span>
-                          <span className="text-xs text-slate-500">bed{property.bedrooms !== 1 ? 's' : ''}</span>
+                          <Home className="h-3.5 w-3.5 text-slate-600 mb-1" />
+                          <span className="text-xs font-bold text-slate-900 capitalize">{property.propertyType}</span>
+                          <span className="text-xs text-slate-500">Type</span>
                         </div>
                         <div className="flex flex-col items-center bg-slate-50 rounded-lg py-2">
-                          <Bath className="h-3.5 w-3.5 text-slate-600 mb-1" />
-                          <span className="text-xs font-bold text-slate-900">{property.bathrooms}</span>
-                          <span className="text-xs text-slate-500">bath{property.bathrooms !== 1 ? 's' : ''}</span>
-                        </div>
-                        <div className="flex flex-col items-center bg-slate-50 rounded-lg py-2">
-                          <Car className="h-3.5 w-3.5 text-slate-600 mb-1" />
-                          <span className="text-xs font-bold text-slate-900">{property.parking || 0}</span>
-                          <span className="text-xs text-slate-500">parking</span>
+                          <Calendar className="h-3.5 w-3.5 text-slate-600 mb-1" />
+                          <span className="text-xs font-bold text-slate-900">{property.createdAt ? new Date(property.createdAt).toLocaleDateString('en-US', { month: 'short' }) : 'New'}</span>
+                          <span className="text-xs text-slate-500">Listed</span>
                         </div>
                       </div>
 
@@ -1649,21 +1645,16 @@ export default function PropertyListingPage() {
                       </div>
 
                       {/* Property Details - Compact Grid */}
-                      <div className="grid grid-cols-3 gap-1.5 sm:gap-2 mb-2 sm:mb-3">
+                      <div className="grid grid-cols-2 gap-1.5 sm:gap-2 mb-2 sm:mb-3">
                         <div className="flex flex-col items-center bg-slate-50 rounded-lg py-1.5 sm:py-2">
-                          <Bed className="h-3 sm:h-3.5 w-3 sm:w-3.5 text-slate-600 mb-0.5 sm:mb-1" />
-                          <span className="text-xs font-bold text-slate-900">{property.bedrooms}</span>
-                          <span className="text-xs text-slate-500 hidden sm:inline">bed{property.bedrooms !== 1 ? 's' : ''}</span>
+                          <Home className="h-3 sm:h-3.5 w-3 sm:w-3.5 text-slate-600 mb-0.5 sm:mb-1" />
+                          <span className="text-xs font-bold text-slate-900 capitalize line-clamp-1">{property.propertyType}</span>
+                          <span className="text-xs text-slate-500 hidden sm:inline">Type</span>
                         </div>
                         <div className="flex flex-col items-center bg-slate-50 rounded-lg py-1.5 sm:py-2">
-                          <Bath className="h-3 sm:h-3.5 w-3 sm:w-3.5 text-slate-600 mb-0.5 sm:mb-1" />
-                          <span className="text-xs font-bold text-slate-900">{property.bathrooms}</span>
-                          <span className="text-xs text-slate-500 hidden sm:inline">bath{property.bathrooms !== 1 ? 's' : ''}</span>
-                        </div>
-                        <div className="flex flex-col items-center bg-slate-50 rounded-lg py-1.5 sm:py-2">
-                          <Car className="h-3 sm:h-3.5 w-3 sm:w-3.5 text-slate-600 mb-0.5 sm:mb-1" />
-                          <span className="text-xs font-bold text-slate-900">{property.parking || 0}</span>
-                          <span className="text-xs text-slate-500 hidden sm:inline">parking</span>
+                          <Calendar className="h-3 sm:h-3.5 w-3 sm:w-3.5 text-slate-600 mb-0.5 sm:mb-1" />
+                          <span className="text-xs font-bold text-slate-900">{property.createdAt ? new Date(property.createdAt).toLocaleDateString('en-US', { month: 'short' }) : 'New'}</span>
+                          <span className="text-xs text-slate-500 hidden sm:inline">Listed</span>
                         </div>
                       </div>
 
@@ -1814,12 +1805,12 @@ export default function PropertyListingPage() {
                         </div>
                         <div className="flex items-center gap-4 text-sm text-slate-600">
                           <div className="flex items-center gap-1">
-                            <Bed className="h-4 w-4" />
-                            <span>{property.bedrooms} bed{property.bedrooms !== 1 ? 's' : ''}</span>
+                            <Home className="h-4 w-4" />
+                            <span className="capitalize">{property.propertyType}</span>
                           </div>
                           <div className="flex items-center gap-1">
-                            <Bath className="h-4 w-4" />
-                            <span>{property.bathrooms} bath{property.bathrooms !== 1 ? 's' : ''}</span>
+                            <Calendar className="h-4 w-4" />
+                            <span>{property.createdAt ? new Date(property.createdAt).toLocaleDateString('en-US', { month: 'short', year: 'numeric' }) : 'Recently Listed'}</span>
                           </div>
                         </div>
                       </CardContent>

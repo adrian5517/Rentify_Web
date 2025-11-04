@@ -364,7 +364,7 @@ export default function PropertyMap({
   useEffect(() => { propertiesRef.current = properties }, [properties])
 
   // Static cluster labels and colors for consistent UI - Added "All Properties" as default
-  const staticLabels = ['Low Budget', 'Mid Range', 'High End', 'All Properties']
+  const staticLabels = ['Budget', 'Standard', 'Premium', 'All']
   const staticColors = ['#4CAF50', '#FFC107', '#E91E63', '#2563eb']
 
   // Direct cluster mapping - no need for dynamic remapping since we assign by price
@@ -1374,13 +1374,13 @@ export default function PropertyMap({
         
         {/* Cluster Controls - Hide when focusing on single property */}
         {enableClustering && staticLabels.length > 0 && !focusOnProperty && (
-          <div className="absolute top-6 left-6 z-20 flex gap-3">
+          <div className="absolute top-3 sm:top-6 left-3 sm:left-6 z-20 flex flex-wrap gap-2 sm:gap-3 max-w-[calc(100%-1.5rem)] sm:max-w-none">
             {staticLabels.map((name, idx) => (
               <button
                 key={name}
                 onClick={() => onClusterChange && onClusterChange(idx)}
                 className={`
-                  modern-button px-5 py-3 rounded-2xl text-sm font-semibold transition-all duration-300 transform backdrop-blur-md shadow-lg border
+                  modern-button px-3 sm:px-5 py-2 sm:py-3 rounded-xl sm:rounded-2xl text-xs sm:text-sm font-semibold transition-all duration-300 transform backdrop-blur-md shadow-lg border whitespace-nowrap
                   ${selectedCluster === idx 
                     ? 'text-white shadow-xl scale-105 border-white/30' 
                     : 'glass-panel text-slate-700 hover:bg-white hover:shadow-xl hover:scale-105 border-white/50'
@@ -1389,10 +1389,11 @@ export default function PropertyMap({
                 style={{
                   backgroundColor: selectedCluster === idx ? staticColors[idx] : undefined
                 }}
+                title={idx === 0 ? 'Budget Properties (₱1-3k)' : idx === 1 ? 'Standard Properties (₱3-8k)' : idx === 2 ? 'Premium Properties (₱8k+)' : 'All Properties'}
               >
-              <div className="flex items-center gap-2">
-                <span className="text-lg">
-                  {idx === 0 ? '💰' : idx === 1 ? '🏠' : '💎'}
+              <div className="flex items-center gap-1.5 sm:gap-2">
+                <span className="text-base sm:text-lg">
+                  {idx === 0 ? '💰' : idx === 1 ? '🏠' : idx === 2 ? '💎' : '🌐'}
                 </span>
                 <span>{name}</span>
               </div>
@@ -1676,33 +1677,31 @@ export default function PropertyMap({
 
             {/* Compact Specifications Grid */}
             <div className="bg-gray-50 rounded-lg p-3 mb-4">
-              <h3 className="text-sm font-semibold text-gray-900 mb-2">Specifications</h3>
+              <h3 className="text-sm font-semibold text-gray-900 mb-2">Property Details</h3>
               <div className="grid grid-cols-2 gap-2">
-                <div className="flex items-center gap-2">
-                  <span className="icon-bed text-blue-600 text-sm"></span>
-                  <div>
-                    <span className="text-sm font-semibold text-gray-900">{selectedProperty.bedrooms}</span>
-                    <span className="text-xs text-gray-500 ml-1">beds</span>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="icon-bath text-blue-600 text-sm"></span>
-                  <div>
-                    <span className="text-sm font-semibold text-gray-900">{selectedProperty.bathrooms}</span>
-                    <span className="text-xs text-gray-500 ml-1">baths</span>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="icon-car text-blue-600 text-sm"></span>
-                  <div>
-                    <span className="text-sm font-semibold text-gray-900">{selectedProperty.parking}</span>
-                    <span className="text-xs text-gray-500 ml-1">parking</span>
-                  </div>
-                </div>
                 <div className="flex items-center gap-2">
                   <span className="icon-home text-blue-600 text-sm"></span>
                   <div>
                     <span className="text-sm font-semibold text-gray-900 capitalize">{selectedProperty.propertyType}</span>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-blue-600 text-sm">📋</span>
+                  <div>
+                    <span className="text-sm font-semibold text-gray-900 capitalize">{selectedProperty.status || 'Available'}</span>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-blue-600 text-sm">📅</span>
+                  <div>
+                    <span className="text-xs text-gray-500">Listed {new Date(selectedProperty.createdAt || Date.now()).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}</span>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-blue-600 text-sm">💰</span>
+                  <div>
+                    <span className="text-sm font-semibold text-gray-900">₱{selectedProperty.price.toLocaleString()}</span>
+                    <span className="text-xs text-gray-500">/mo</span>
                   </div>
                 </div>
               </div>
