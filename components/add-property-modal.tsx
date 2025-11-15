@@ -431,12 +431,14 @@ export default function AddPropertyModal({ isOpen, onClose, onPropertyAdded }: A
       const token = getAuthToken()
       if (!token) {
         setSubmitError('You must be logged in to add a property')
+        setIsSubmitting(false)
         return
       }
 
       const userId = getCurrentUserId()
       if (!userId) {
         setSubmitError('Unable to identify user. Please log in again.')
+        setIsSubmitting(false)
         return
       }
 
@@ -476,31 +478,22 @@ export default function AddPropertyModal({ isOpen, onClose, onPropertyAdded }: A
         formDataToSend.append('amenities', amenity)
       })
       
-      // Convert images to base64 and append - backend expects files
-      console.log(`📸 Converting ${imageFiles.length} image file(s) to base64...`)
+      // Append images directly as File objects - most reliable method
+      console.log(`📸 Adding ${imageFiles.length} image file(s) to upload...`)
       
-      for (let index = 0; index < imageFiles.length; index++) {
-        const file = imageFiles[index]
-        try {
-          // Convert file to base64
-          const base64 = await new Promise<string>((resolve, reject) => {
-            const reader = new FileReader()
-            reader.onload = () => {
-              const result = reader.result as string
-              resolve(result)
-            }
-            reader.onerror = reject
-            reader.readAsDataURL(file)
-          })
-          
-          // Create a proper File/Blob for the FormData
-          const blob = await fetch(base64).then(r => r.blob())
-          formDataToSend.append('images', blob, file.name)
-          
-          console.log(`  ${index + 1}. ${file.name} converted (${(file.size / 1024).toFixed(2)}KB)`)
-        } catch (error) {
-          console.error(`❌ Error converting ${file.name}:`, error)
+      if (imageFiles.length > 0) {
+        for (let index = 0; index < imageFiles.length; index++) {
+          const file = imageFiles[index]
+          try {
+            // Append file directly - browser handles multipart/form-data encoding
+            formDataToSend.append('images', file)
+            console.log(`  ${index + 1}. ${file.name} added (${(file.size / 1024).toFixed(2)}KB, type: ${file.type})`)
+          } catch (error) {
+            console.error(`❌ Error adding ${file.name}:`, error)
+          }
         }
+      } else {
+        console.log('📸 No images to upload')
       }
 
       console.log('🏠 Creating property with images...')
@@ -526,6 +519,7 @@ export default function AddPropertyModal({ isOpen, onClose, onPropertyAdded }: A
 
       if (response.status === 401) {
         setSubmitError('Your session has expired. Please log in again.')
+        setIsSubmitting(false)
         return
       }
 
@@ -555,7 +549,26 @@ export default function AddPropertyModal({ isOpen, onClose, onPropertyAdded }: A
       }
 
       const data = await response.json()
-      console.log('✅ Property created:', data)
+      console.log('✅ Property created successfully!')
+      console.log('📦 Response data:', data)
+      console.log('🖼️ Images in response:', data.property?.images || data.images)
+      console.log('🔗 Image URLs:', data.property?.images?.length || data.images?.length || 0)
+      
+      // Check if images were uploaded to Cloudinary
+      if (imageFiles.length > 0) {
+        const uploadedImages = data.property?.images || data.images || []
+        if (uploadedImages.length === 0) {
+          console.warn('⚠️ WARNING: Images were sent but none were returned from backend!')
+          console.warn('⚠️ Backend may have failed to upload to Cloudinary')
+        } else if (uploadedImages.length < imageFiles.length) {
+          console.warn(`⚠️ WARNING: Only ${uploadedImages.length}/${imageFiles.length} images were uploaded`)
+        } else {
+          console.log(`✅ All ${uploadedImages.length} images uploaded to Cloudinary successfully`)
+          uploadedImages.forEach((url: string, i: number) => {
+            console.log(`  ${i + 1}. ${url}`)
+          })
+        }
+      }
 
       // Show success modal
       setShowSuccessModal(true)
@@ -569,7 +582,21 @@ export default function AddPropertyModal({ isOpen, onClose, onPropertyAdded }: A
 
     } catch (error) {
       console.error('❌ Error creating property:', error)
-      setSubmitError(error instanceof Error ? error.message : 'Failed to create property')
+      console.error('❌ Error type:', typeof error)
+      console.error('❌ Error name:', error instanceof Error ? error.name : 'Unknown')
+      console.error('❌ Error message:', error instanceof Error ? error.message : String(error))
+      console.error('❌ Error stack:', error instanceof Error ? error.stack : 'No stack trace')
+      
+      let errorMessage = 'Failed to create property'
+      if (error instanceof Error) {
+        errorMessage = error.message
+      } else if (typeof error === 'string') {
+        errorMessage = error
+      } else {
+        errorMessage = 'An unexpected error occurred. Please try again.'
+      }
+      
+      setSubmitError(errorMessage)
     } finally {
       setIsSubmitting(false)
     }
@@ -626,12 +653,30 @@ export default function AddPropertyModal({ isOpen, onClose, onPropertyAdded }: A
     }
 
     if (validFiles.length > 0) {
-      setImageFiles(prev => [...prev, ...validFiles])
-      setFormData(prev => ({
-        ...prev,
-        images: [...prev.images, ...previewUrls]
-      }))
-      console.log(`📸 Total images ready: ${validFiles.length + imageFiles.length}`)
+      console.log(`📸 Adding ${validFiles.length} valid files to state...`)
+      console.log(`📸 Preview URLs created:`, previewUrls.length)
+      console.log(`📸 First preview URL (truncated):`, previewUrls[0]?.substring(0, 50))
+      
+      setImageFiles(prev => {
+        const newFiles = [...prev, ...validFiles]
+        console.log(`📸 Total files in state: ${newFiles.length}`)
+        return newFiles
+      })
+      
+      setFormData(prev => {
+        const newImages = [...prev.images, ...previewUrls]
+        console.log(`📸 Total images in formData: ${newImages.length}`)
+        return {
+          ...prev,
+          images: newImages
+        }
+      })
+      
+      // Log final state after a short delay
+      setTimeout(() => {
+        console.log(`📸 Final check - imageFiles count: ${imageFiles.length + validFiles.length}`)
+        console.log(`📸 Final check - formData.images count:`, formData.images.length + previewUrls.length)
+      }, 100)
     }
 
     if (errorCount > 0) {
@@ -920,8 +965,12 @@ export default function AddPropertyModal({ isOpen, onClose, onPropertyAdded }: A
             </div>
 
             {/* Image Preview */}
-            {formData.images.length > 0 && (
+            {formData.images.length > 0 ? (
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 sm:gap-4">
+                {(() => {
+                  console.log(`🖼️ Rendering ${formData.images.length} image preview(s)`)
+                  return null
+                })()}
                 {formData.images.map((image, index) => (
                   <div key={index} className="relative group">
                     <img
@@ -943,6 +992,14 @@ export default function AddPropertyModal({ isOpen, onClose, onPropertyAdded }: A
                     </button>
                   </div>
                 ))}
+              </div>
+            ) : (
+              <div className="text-sm text-slate-500 italic p-4 bg-slate-50 rounded-lg border border-slate-200">
+                {(() => {
+                  console.log(`🔍 No images to display. formData.images.length: ${formData.images.length}`)
+                  return null
+                })()}
+                No images selected yet. Click "Select Images" to add photos.
               </div>
             )}
           </div>
