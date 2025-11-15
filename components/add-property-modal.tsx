@@ -900,7 +900,6 @@ export default function AddPropertyModal({ isOpen, onClose, onPropertyAdded }: A
                 id="image-upload"
                 accept="image/*"
                 multiple
-                capture="environment"
                 onChange={handleImageUpload}
                 className="hidden"
               />
