@@ -575,15 +575,19 @@ export default function AddPropertyModal({ isOpen, onClose, onPropertyAdded }: A
     }
   }
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files
     if (!files || files.length === 0) return
+
+    console.log(`📸 Processing ${files.length} file(s)...`)
 
     const validFiles: File[] = []
     const previewUrls: string[] = []
     let errorCount = 0
 
     for (const file of Array.from(files)) {
+      console.log(`🔍 Processing file: ${file.name}, size: ${(file.size / 1024).toFixed(2)}KB, type: ${file.type}`)
+      
       // Validate file size (max 5MB)
       if (file.size > 5 * 1024 * 1024) {
         console.warn(`⚠️ File ${file.name} is too large (${(file.size / 1024 / 1024).toFixed(2)}MB)`)
@@ -599,8 +603,26 @@ export default function AddPropertyModal({ isOpen, onClose, onPropertyAdded }: A
       }
 
       validFiles.push(file)
-      previewUrls.push(URL.createObjectURL(file))
-      console.log(`✅ Added ${file.name} (${(file.size / 1024).toFixed(2)}KB) for upload`)
+      
+      // Create preview URL using FileReader for better mobile compatibility
+      try {
+        const reader = new FileReader()
+        const dataUrl = await new Promise<string>((resolve, reject) => {
+          reader.onload = (e) => {
+            const result = e.target?.result as string
+            resolve(result)
+          }
+          reader.onerror = reject
+          reader.readAsDataURL(file)
+        })
+        
+        previewUrls.push(dataUrl)
+        console.log(`✅ Added ${file.name} (${(file.size / 1024).toFixed(2)}KB) with preview`)
+      } catch (error) {
+        console.error(`❌ Error creating preview for ${file.name}:`, error)
+        // Fallback to blob URL if FileReader fails
+        previewUrls.push(URL.createObjectURL(file))
+      }
     }
 
     if (validFiles.length > 0) {
@@ -615,12 +637,20 @@ export default function AddPropertyModal({ isOpen, onClose, onPropertyAdded }: A
     if (errorCount > 0) {
       alert(`${errorCount} file(s) were skipped (too large or wrong format)`)
     }
+    
+    // Reset input to allow selecting the same file again
+    e.target.value = ''
   }
 
   const removeImage = (index: number) => {
-    // Revoke object URL to free memory
-    if (formData.images[index].startsWith('blob:')) {
-      URL.revokeObjectURL(formData.images[index])
+    // Revoke object URL to free memory (only for blob URLs, not data URLs)
+    const imageUrl = formData.images[index]
+    if (imageUrl && imageUrl.startsWith('blob:')) {
+      try {
+        URL.revokeObjectURL(imageUrl)
+      } catch (error) {
+        console.warn('Failed to revoke blob URL:', error)
+      }
     }
     
     setImageFiles(prev => prev.filter((_, i) => i !== index))
@@ -870,6 +900,7 @@ export default function AddPropertyModal({ isOpen, onClose, onPropertyAdded }: A
                 id="image-upload"
                 accept="image/*"
                 multiple
+                capture="environment"
                 onChange={handleImageUpload}
                 className="hidden"
               />
@@ -885,7 +916,7 @@ export default function AddPropertyModal({ isOpen, onClose, onPropertyAdded }: A
               <p className="text-xs sm:text-sm text-slate-500">
                 {imageFiles.length > 0 
                   ? `${imageFiles.length} image(s) selected (max 5MB each)`
-                  : 'Upload multiple images (JPG, PNG, max 5MB each)'}
+                  : 'Upload or take photos (max 5MB each)'}
               </p>
             </div>
 
@@ -898,11 +929,16 @@ export default function AddPropertyModal({ isOpen, onClose, onPropertyAdded }: A
                       src={image}
                       alt={`Property ${index + 1}`}
                       className="w-full h-28 sm:h-32 object-cover rounded-lg border"
+                      onLoad={() => console.log(`✅ Image ${index + 1} loaded successfully`)}
+                      onError={(e) => {
+                        console.error(`❌ Failed to load image ${index + 1}:`, image.substring(0, 50))
+                        console.error('Error details:', e)
+                      }}
                     />
                     <button
                       type="button"
                       onClick={() => removeImage(index)}
-                      className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                      className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity"
                     >
                       <X className="h-3.5 sm:h-4 w-3.5 sm:w-4" />
                     </button>
