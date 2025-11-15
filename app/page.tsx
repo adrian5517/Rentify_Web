@@ -2033,25 +2033,6 @@ export default function PropertyListingPage() {
         {renderCurrentPage()}
       </main>
 
-      <div className="fixed bottom-6 right-6 z-50">
-        <div className="relative group">
-          <Button
-            size="lg"
-            onClick={handleOpenModal}
-            className="h-16 w-16 rounded-full bg-gradient-to-r from-green-500 via-emerald-500 to-teal-500 hover:from-green-600 hover:via-emerald-600 hover:to-teal-600 shadow-2xl hover:shadow-3xl transition-all duration-300 hover:scale-110 animate-pulse hover:animate-none"
-          >
-            <Plus className="h-7 w-7 text-white" />
-          </Button>
-
-          <div className="absolute inset-0 rounded-full bg-gradient-to-r from-green-400 to-teal-400 animate-ping opacity-20"></div>
-
-          <div className="absolute right-full mr-3 top-1/2 -translate-y-1/2 bg-slate-900 text-white px-3 py-2 rounded-lg text-sm font-medium opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">
-            Add New Property
-            <div className="absolute left-full top-1/2 -translate-y-1/2 border-4 border-transparent border-l-slate-900"></div>
-          </div>
-        </div>
-      </div>
-
       <AddPropertyModal 
         isOpen={showAddPropertyModal} 
         onClose={handleCloseModal} 
