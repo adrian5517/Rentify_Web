@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useAuthStore } from '@/lib/auth-store'
 import { Loader2, Mail, Lock, AlertCircle } from 'lucide-react'
+import ForgotPasswordModal from './forgot-password-modal'
 
 interface LoginModalProps {
   isOpen: boolean
@@ -20,6 +21,7 @@ export default function LoginModal({ isOpen, onClose, onSwitchToSignup }: LoginM
   const [error, setError] = useState('')
   const { login, loginWithFacebook, isLoading } = useAuthStore()
   const [fbLoading, setFbLoading] = useState(false)
+  const [showForgotPassword, setShowForgotPassword] = useState(false)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -86,9 +88,18 @@ export default function LoginModal({ isOpen, onClose, onSwitchToSignup }: LoginM
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="password" className="text-gray-700 font-semibold">
-              Password
-            </Label>
+            <div className="flex items-center justify-between">
+              <Label htmlFor="password" className="text-gray-700 font-semibold">
+                Password
+              </Label>
+              <button
+                type="button"
+                onClick={() => setShowForgotPassword(true)}
+                className="text-xs text-blue-600 hover:text-blue-700 font-semibold hover:underline"
+              >
+                Forgot Password?
+              </button>
+            </div>
             <div className="relative">
               <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
               <Input
@@ -166,6 +177,12 @@ export default function LoginModal({ isOpen, onClose, onSwitchToSignup }: LoginM
           </div>
         </form>
       </DialogContent>
+
+      {/* Forgot Password Modal */}
+      <ForgotPasswordModal
+        isOpen={showForgotPassword}
+        onClose={() => setShowForgotPassword(false)}
+      />
     </Dialog>
   )
 }
