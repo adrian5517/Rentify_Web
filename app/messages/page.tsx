@@ -11,6 +11,7 @@ import {
 } from "@/lib/socket"
 import { 
   fetchUsers,
+  fetchConversations,
   fetchMessages,
   sendMessageAPI,
   deleteMessage,
@@ -228,99 +229,68 @@ function MessagesPage() {
     }
   }, []) // Remove selectedContact from dependency array
 
-  // Fetch contacts and check which ones have conversations
+  // Fetch conversation summaries from the backend (single request)
   useEffect(() => {
-    // Skip if already loaded once
     if (hasLoadedOnce) {
-      console.log('⏭️ Skipping contacts fetch - already loaded once')
+      console.log('⏭️ Skipping conversations fetch - already loaded once')
       setIsInitialLoading(false)
       return
     }
 
-    if (currentUser) {
-      console.log('🔍 Fetching contacts/users...')
-      setIsInitialLoading(true) // Start loading
-      
-      // Try to fetch real users from backend
-      fetchUsers()
-        .then(async (users) => {
-          if (users && users.length > 0) {
-            console.log('✅ Fetched users from backend:', users)
-            console.log('📋 Sample user data:', users[0]) // Log first user to see structure
-            
-            // Filter out current user
-            const otherUsers = users.filter(user => {
-              const userIdToCheck = user._id || user.id
-              const currentUserId = currentUser._id || currentUser.id
-              return userIdToCheck !== currentUserId
-            })
-            
-            // Check which users have conversations with the current user
-            const contactsWithMessages: Contact[] = []
-            
-            for (const user of otherUsers) {
-              try {
-                // Get user ID (handle both _id and id fields)
-                const userIdToCheck = user._id || user.id
-                const currentUserId = currentUser._id || currentUser.id
-                
-                // Skip if IDs are not available
-                if (!userIdToCheck || !currentUserId) continue
-                
-                // Fetch messages for this user
-                const messages = await fetchMessages(currentUserId, userIdToCheck)
-                
-                // Only add to contacts if there are messages
-                if (messages && messages.length > 0) {
-                  const displayName = user.fullName || user.name || user.username || user.email
-                  const latestMessage = messages[messages.length - 1]
-                  const lastMessageTime = new Date(latestMessage.createdAt).getTime()
-                  
-                  contactsWithMessages.push({
-                    id: userIdToCheck,
-                    name: displayName,
-                    avatar: displayName.charAt(0).toUpperCase(),
-                    profilePicture: user.profilePicture, // Add profile picture from user data
-                    unread: 0,
-                    online: false,
-                    lastSeen: "Recently",
-                    lastMessageTime
-                  })
-                  
-                  console.log(`✅ User ${displayName} has ${messages.length} messages, last at ${new Date(lastMessageTime).toLocaleString()}`)
-                }
-              } catch (error) {
-                console.error(`Error fetching messages for user ${user._id}:`, error)
-              }
-            }
-            
-            // Sort by lastMessageTime (most recent first)
-            contactsWithMessages.sort((a, b) => (b.lastMessageTime || 0) - (a.lastMessageTime || 0))
-            
-            console.log('📱 Contacts with conversations:', contactsWithMessages)
-            setContacts(contactsWithMessages)
-            setHasLoadedOnce(true) // Mark as loaded
-            
-            // Select the first contact (most recent conversation)
-            if (contactsWithMessages.length > 0) {
-              setSelectedContact(contactsWithMessages[0].id)
-            }
-          } else {
-            console.log('⚠️ No users from backend, using empty contacts')
-            setContacts([])
-            setHasLoadedOnce(true) // Mark as loaded even if empty
+    if (!currentUser) return
+
+    let isMounted = true
+    setIsInitialLoading(true)
+
+    console.log('🔍 Fetching conversation summaries...')
+    fetchConversations()
+      .then((convos) => {
+        if (!isMounted) return
+
+        if (!convos || convos.length === 0) {
+          console.log('⚠️ No conversations returned from backend')
+          setContacts([])
+          setHasLoadedOnce(true)
+          return
+        }
+
+        // Map backend conversation shape to Contact type used by this component
+        const mapped: Contact[] = convos.map((c: any) => {
+          const participant = c.participant || {}
+          const displayName = participant.fullName || participant.name || participant.username || participant.email || 'User'
+          const id = participant._id || participant.id || c._id || ''
+          const lastMessageTime = c.lastMessageAt ? new Date(c.lastMessageAt).getTime() : (c.lastMessage && c.lastMessage.createdAt ? new Date(c.lastMessage.createdAt).getTime() : Date.now())
+
+          return {
+            id,
+            name: displayName,
+            avatar: (displayName && displayName.charAt) ? displayName.charAt(0).toUpperCase() : 'U',
+            profilePicture: participant.profilePicture,
+            unread: typeof c.unreadCount === 'number' ? c.unreadCount : 0,
+            online: !!participant.online,
+            lastSeen: participant.lastSeen || 'Recently',
+            lastMessageTime
           }
         })
-        .catch((error) => {
-          console.error('❌ Error fetching users:', error)
-          console.log('⚠️ Using empty contacts due to error')
-          setContacts([])
-          setHasLoadedOnce(true) // Mark as loaded even on error
-        })
-        .finally(() => {
-          setIsInitialLoading(false) // End loading
-        })
-    }
+
+        mapped.sort((a, b) => (b.lastMessageTime || 0) - (a.lastMessageTime || 0))
+        setContacts(mapped)
+        setHasLoadedOnce(true)
+
+        if (mapped.length > 0) {
+          setSelectedContact(mapped[0].id)
+        }
+      })
+      .catch(err => {
+        console.error('❌ Error fetching conversations:', err)
+        setContacts([])
+        setHasLoadedOnce(true)
+      })
+      .finally(() => {
+        setIsInitialLoading(false)
+      })
+
+    return () => { isMounted = false }
   }, [currentUser, hasLoadedOnce])
 
   // Handle contact query parameter from URL (e.g., from property page)

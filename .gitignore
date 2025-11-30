@@ -28,3 +28,7 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+#ml_demo
+tools\ml_demo\**\*.ckpt
+tools\ml_demo\**\*.pth

@@ -242,6 +242,40 @@ export const fetchUsers = async (): Promise<UserData[]> => {
   }
 };
 
+// Fetch conversation summaries for current user (single request)
+export const fetchConversations = async (limit = 50, skip = 0): Promise<any[]> => {
+  try {
+    console.log('🔄 Fetching conversation summaries')
+    const token = getAuthToken()
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+    }
+    if (token) headers['Authorization'] = `Bearer ${token}`
+
+    const url = `${API_BASE_URL}/messages/conversations?limit=${Math.min(limit, 100)}&skip=${Math.max(0, skip)}`
+    const response = await fetch(url, { headers })
+
+    if (response.status === 401) {
+      console.error('❌ Unauthorized when fetching conversations')
+      handleUnauthorized()
+      return []
+    }
+
+    if (!response.ok) {
+      const text = await response.text()
+      console.error('❌ Failed to fetch conversations:', response.status, text)
+      return []
+    }
+
+    const data = await response.json()
+    console.log('✅ Fetched conversations:', data)
+    return Array.isArray(data) ? data : []
+  } catch (error) {
+    console.error('❌ Error fetching conversations:', error)
+    return []
+  }
+}
+
 // Forgot Password - Request OTP
 export const requestPasswordReset = async (email: string): Promise<{ success: boolean; message: string }> => {
   try {
