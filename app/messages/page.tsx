@@ -17,6 +17,7 @@ import {
   deleteMessage,
   type MessageData
 } from "@/lib/api"
+import Conversations from '@/components/conversations'
 
 function MessagesPage() {
   // Enhanced message type with MongoDB structure
@@ -248,9 +249,84 @@ function MessagesPage() {
         if (!isMounted) return
 
         if (!convos || convos.length === 0) {
-          console.log('⚠️ No conversations returned from backend')
-          setContacts([])
-          setHasLoadedOnce(true)
+          console.warn('⚠️ No conversations returned from backend — falling back to legacy per-user fetch')
+
+          // Save raw response for debugging
+          try {
+            localStorage.setItem('debug.conversations.raw', JSON.stringify(convos))
+          } catch (e) {
+            // ignore
+          }
+
+          // Fallback: run the legacy per-user fetch (parallel) to rebuild contacts list
+          ;(async () => {
+            try {
+              setIsInitialLoading(true)
+              const users = await fetchUsers()
+              if (!users || users.length === 0) {
+                setContacts([])
+                setHasLoadedOnce(true)
+                return
+              }
+
+              const otherUsers = users.filter((user) => {
+                const userIdToCheck = user._id || user.id
+                const currentUserId = currentUser._id || currentUser.id
+                return userIdToCheck && userIdToCheck !== currentUserId
+              })
+
+              const contactsWithMessages: Contact[] = []
+              const currentUserId = currentUser._id || currentUser.id
+
+              const validUsers = otherUsers
+                .map((u) => ({ user: u, id: u._id || u.id }))
+                .filter((x) => x.id && x.id !== currentUserId)
+
+              const fetchPromises = validUsers.map(({ user, id }) =>
+                fetchMessages(currentUserId as string, id as string)
+                  .then((messages) => ({ user, id, messages }))
+                  .catch((err) => {
+                    console.error('Error fetching messages for user', id, err)
+                    return { user, id, messages: [] }
+                  })
+              )
+
+              const results = await Promise.all(fetchPromises)
+
+              for (const res of results) {
+                const { user, id, messages } = res
+                if (messages && messages.length > 0) {
+                  const displayName = user.fullName || user.name || user.username || user.email
+                  const latestMessage = messages[messages.length - 1]
+                  const lastMessageTime = new Date(latestMessage.createdAt).getTime()
+
+                  contactsWithMessages.push({
+                    id: id as string,
+                    name: displayName,
+                    avatar: (displayName && displayName.charAt) ? displayName.charAt(0).toUpperCase() : 'U',
+                    profilePicture: user.profilePicture,
+                    unread: 0,
+                    online: false,
+                    lastSeen: 'Recently',
+                    lastMessageTime
+                  })
+                }
+              }
+
+              contactsWithMessages.sort((a, b) => (b.lastMessageTime || 0) - (a.lastMessageTime || 0))
+              setContacts(contactsWithMessages)
+              setHasLoadedOnce(true)
+              if (contactsWithMessages.length > 0) {
+                setSelectedContact(contactsWithMessages[0].id)
+              }
+            } catch (err) {
+              console.error('❌ Legacy conversations fallback failed', err)
+              setContacts([])
+              setHasLoadedOnce(true)
+            } finally {
+              setIsInitialLoading(false)
+            }
+          })()
           return
         }
 
@@ -605,9 +681,7 @@ function MessagesPage() {
     }
   }
 
-  const filteredContacts = contacts.filter(contact => 
-    contact.name.toLowerCase().includes(searchQuery.toLowerCase())
-  )
+  // `filteredContacts` removed — Conversations component handles search filtering now
 
   const selectedContactData = contacts.find(c => c.id === selectedContact)
 
@@ -691,82 +765,18 @@ function MessagesPage() {
             </div>
           </div>
           
-          {/* Contacts List */}
+          {/* Contacts List (now using Conversations component) */}
           <div className="flex-1 overflow-y-auto p-2 sm:p-3">
-            {filteredContacts.length === 0 ? (
-              <div className="flex flex-col items-center justify-center h-full text-center p-4 sm:p-6">
-                <div className="w-12 sm:w-14 md:w-16 h-12 sm:h-14 md:h-16 bg-gradient-to-br from-purple-100 to-fuchsia-100 rounded-full flex items-center justify-center mb-3 sm:mb-4">
-                  <MessageCircle className="h-6 sm:h-7 md:h-8 w-6 sm:w-7 md:w-8 text-purple-600" />
-                </div>
-                <h3 className="text-base sm:text-lg font-semibold text-slate-900 mb-2">No Conversations Yet</h3>
-                <p className="text-xs sm:text-sm text-slate-500 max-w-xs">
-                  {searchQuery 
-                    ? `No contacts found matching "${searchQuery}"`
-                    : "Start a conversation by sending a message to a user"}
-                </p>
-              </div>
-            ) : (
-              <div className="space-y-1.5 sm:space-y-2">
-                {filteredContacts.map((contact) => (
-                <button
-                  key={contact.id}
-                  onClick={() => setSelectedContact(contact.id)}
-                  className={`w-full flex items-center gap-2.5 sm:gap-3 p-2.5 sm:p-3 rounded-xl sm:rounded-2xl transition-all duration-200 text-left hover:bg-white/70 ${
-                    selectedContact === contact.id
-                      ? "bg-white shadow-md ring-2 ring-purple-200"
-                      : "hover:shadow-sm"
-                  }`}
-                >
-                  <div className="relative">
-                    {contact.profilePicture ? (
-                      <img 
-                        src={contact.profilePicture.startsWith('http') ? contact.profilePicture : `https://rentify-server-ge0f.onrender.com${contact.profilePicture}`}
-                        alt={contact.name}
-                        className="w-12 h-12 rounded-full object-cover shadow-md"
-                        onError={(e) => {
-                          // Fallback to avatar letter if image fails to load
-                          (e.target as HTMLImageElement).style.display = 'none'
-                          const fallback = (e.target as HTMLImageElement).nextElementSibling as HTMLElement
-                          if (fallback) fallback.style.display = 'flex'
-                        }}
-                      />
-                    ) : null}
-                    <div 
-                      className="w-12 h-12 rounded-full bg-gradient-to-br from-purple-500 to-fuchsia-400 flex items-center justify-center font-bold text-white text-lg shadow-md"
-                      style={{ display: contact.profilePicture ? 'none' : 'flex' }}
-                    >
-                      {contact.avatar}
-                    </div>
-                    {/* Online Status */}
-                    {contact.online && (
-                      <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-green-500 border-2 border-white rounded-full"></div>
-                    )}
-                    {/* Unread Badge */}
-                    {contact.unread > 0 && (
-                      <div className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-xs font-bold rounded-full flex items-center justify-center animate-pulse">
-                        {contact.unread}
-                      </div>
-                    )}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between">
-                      <h3 className="font-semibold text-slate-900 truncate">{contact.name}</h3>
-                      {contact.typing && (
-                        <div className="flex space-x-1">
-                          <div className="w-1 h-1 bg-purple-500 rounded-full animate-bounce"></div>
-                          <div className="w-1 h-1 bg-purple-500 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
-                          <div className="w-1 h-1 bg-purple-500 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
-                        </div>
-                      )}
-                    </div>
-                    <p className="text-sm text-slate-500 truncate">
-                      {contact.online ? "Online" : contact.typing ? "Typing..." : `Last seen ${contact.lastSeen}`}
-                    </p>
-                  </div>
-                </button>
-              ))}
-              </div>
-            )}
+            <Conversations
+              limit={20}
+              search={searchQuery}
+              onSelect={(participant: any) => {
+                const id = participant?._id || participant?.id
+                if (id) {
+                  setSelectedContact(id)
+                }
+              }}
+            />
           </div>
         </aside>
 

@@ -252,7 +252,20 @@ export const fetchConversations = async (limit = 50, skip = 0): Promise<any[]> =
     }
     if (token) headers['Authorization'] = `Bearer ${token}`
 
-    const url = `${API_BASE_URL}/messages/conversations?limit=${Math.min(limit, 100)}&skip=${Math.max(0, skip)}`
+    // Determine current user id from local storage so the local API route can run aggregation server-side
+    let currentUserId: string | null = null
+    try {
+      const authData = localStorage.getItem('auth-storage')
+      if (authData) {
+        const parsed = JSON.parse(authData)
+        const u = parsed.state?.user
+        currentUserId = u?._id || u?.id || null
+      }
+    } catch (e) {
+      // ignore
+    }
+
+    const url = `/api/messages/conversations?limit=${Math.min(limit, 100)}&skip=${Math.max(0, skip)}${currentUserId ? `&userId=${encodeURIComponent(currentUserId)}` : ''}`
     const response = await fetch(url, { headers })
 
     if (response.status === 401) {
