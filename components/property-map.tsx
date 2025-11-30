@@ -303,6 +303,12 @@ export default function PropertyMap({
   const [loadingML, setLoadingML] = useState(false)
   const [routeSteps, setRouteSteps] = useState<RouteStep[]>([])
   const [currentStep, setCurrentStep] = useState(0)
+  const [nearbyResults, setNearbyResults] = useState<any[]>([])
+  const [showNearbyPanel, setShowNearbyPanel] = useState(false)
+  const [nearbyMaxKm, setNearbyMaxKm] = useState<number>(5)
+  const [nearbyMaxPrice, setNearbyMaxPrice] = useState<number>(15000)
+  const [isSearchingNearby, setIsSearchingNearby] = useState(false)
+  const nearbyMarkersRef = useRef<mapboxgl.Marker[]>([])
 
   // Helper function to get owner information from property
   const getOwnerInfo = (property: Property) => {
@@ -928,6 +934,95 @@ export default function PropertyMap({
     console.log(`🗺️ Added ${markersRef.current.length} markers (${filteredProperties.length} properties + ${focusOnProperty ? 0 : (userLocation ? 1 : 0)} user location)`)
   }, [clearMarkers, userLocation, drawDirections, focusOnProperty, enableClustering, mlProperties.length, selectedCluster, navigationMode, onNavigationToggle, getTurnByTurnDirections]) // Added missing callbacks
 
+  // Nearby search helpers (great-value finder)
+  const clearNearbyMarkers = useCallback(() => {
+    try {
+      nearbyMarkersRef.current.forEach(m => m.remove())
+    } catch (e) { /* ignore */ }
+    nearbyMarkersRef.current = []
+    setNearbyResults([])
+  }, [])
+
+  const highlightNearby = useCallback((results: any[]) => {
+    const map = mapInstanceRef.current
+    if (!map) return
+    clearNearbyMarkers()
+
+    results.forEach((r) => {
+      try {
+        const el = document.createElement('div')
+        el.className = 'nearby-marker'
+        el.style.cssText = `
+          width: 54px; height: 54px; border-radius: 50%;
+          background: rgba(255,255,255,0.95); display:flex; align-items:center; justify-content:center;
+          box-shadow: 0 6px 18px rgba(0,0,0,0.12); border: 4px solid rgba(250, 204, 21, 0.95);
+          font-weight:700; color:#111;
+        `
+
+        const inner = document.createElement('div')
+        inner.style.cssText = `width:30px;height:30px;border-radius:50%;background:${'#FBBF24'};display:flex;align-items:center;justify-content:center;color:#fff;font-size:14px;`;
+        inner.textContent = '★'
+        el.appendChild(inner)
+
+        const marker = new mapboxgl.Marker({ element: el })
+          .setLngLat([r.location.longitude, r.location.latitude])
+          .addTo(map)
+
+        const popup = new mapboxgl.Popup({ offset: 12 }).setHTML(`
+          <div style="min-width:160px">
+            <strong>${escapeHTML(r.name || r.title || '')}</strong>
+            <div style="font-size:12px;color:#555">₱${(r.price || 0).toLocaleString()} • ${r.distanceKm?.toFixed(1)} km</div>
+          </div>
+        `)
+        marker.setPopup(popup)
+
+        nearbyMarkersRef.current.push(marker)
+      } catch (e) {
+        console.error('Error creating nearby marker', e)
+      }
+    })
+
+    // Focus map on first result
+    if (results.length > 0) {
+      const first = results[0]
+      try { map.flyTo({ center: [first.location.longitude, first.location.latitude], zoom: 14 }) } catch {}
+    }
+  }, [clearNearbyMarkers])
+
+  const findNearby = useCallback(async () => {
+    setIsSearchingNearby(true)
+    try {
+      let lat = center[1]
+      let lng = center[0]
+
+      // Try browser geolocation if available
+      if (typeof navigator !== 'undefined' && navigator.geolocation) {
+        const pos = await new Promise<GeolocationPosition>((res, rej) => {
+          navigator.geolocation.getCurrentPosition(res, rej, { timeout: 8000 })
+        }).catch(() => null)
+        if (pos && pos.coords) {
+          lat = pos.coords.latitude
+          lng = pos.coords.longitude
+        }
+      }
+
+      const q = new URLSearchParams({ lat: String(lat), lng: String(lng), maxKm: String(nearbyMaxKm), maxPrice: String(nearbyMaxPrice) })
+      const res = await fetch(`/api/properties/find-nearby?${q.toString()}`)
+      if (!res.ok) throw new Error(`Server ${res.status}`)
+      const data = await res.json()
+      const results = data.results || []
+      setNearbyResults(results)
+      highlightNearby(results)
+      setShowNearbyPanel(true)
+    } catch (err) {
+      console.error('Nearby search failed', err)
+      alert('Failed to search nearby properties. Make sure location permission is allowed and try again.')
+    } finally {
+      setIsSearchingNearby(false)
+    }
+  }, [center, nearbyMaxKm, nearbyMaxPrice, highlightNearby])
+
+
   // Initialize map once
   useEffect(() => {
     if (!mapRef.current) { console.log("🚨 Map container ref not available"); return }
@@ -1437,6 +1532,58 @@ export default function PropertyMap({
           ))}
         </div>
       )}
+          {/* Great-value nearby control */}
+          <div className="absolute top-3 right-3 z-30">
+            <div className="relative">
+              <button
+                onClick={() => setShowNearbyPanel(v => !v)}
+                className="modern-button px-3 py-2 rounded-xl bg-yellow-50 text-yellow-800 border border-yellow-100 shadow-md hover:scale-105"
+                title="Find nearby great-value properties"
+              >
+                ⭐ Great value nearby
+              </button>
+
+              {showNearbyPanel && (
+                <div className="mt-2 w-72 bg-white rounded-2xl shadow-xl p-3 border border-slate-100">
+                  <div className="flex items-center gap-2">
+                    <label className="text-xs text-slate-600">Radius (km)</label>
+                    <input value={nearbyMaxKm} onChange={(e) => setNearbyMaxKm(Number(e.target.value || 0))} type="number" min={1} className="ml-auto w-20 text-sm p-1 rounded border" />
+                  </div>
+                  <div className="flex items-center gap-2 mt-2">
+                    <label className="text-xs text-slate-600">Max price (₱)</label>
+                    <input value={nearbyMaxPrice} onChange={(e) => setNearbyMaxPrice(Number(e.target.value || 0))} type="number" min={0} className="ml-auto w-32 text-sm p-1 rounded border" />
+                  </div>
+                  <div className="flex gap-2 mt-3">
+                    <button onClick={() => findNearby()} className="flex-1 px-3 py-2 bg-yellow-500 text-white rounded-lg text-sm">{isSearchingNearby ? 'Searching…' : 'Find'}</button>
+                    <button onClick={() => { clearNearbyMarkers(); setShowNearbyPanel(false); }} className="px-3 py-2 bg-white border rounded-lg text-sm">Clear</button>
+                  </div>
+
+                  <div className="mt-3 max-h-44 overflow-y-auto">
+                    {nearbyResults.length === 0 ? (
+                      <div className="text-xs text-slate-500">No results</div>
+                    ) : (
+                      <ul className="space-y-2">
+                        {nearbyResults.map((r, i) => (
+                          <li key={r.id || r._id || i} className="flex items-center justify-between">
+                            <div>
+                              <div className="font-medium text-sm truncate">{r.name}</div>
+                              <div className="text-xs text-slate-500">₱{(r.price || 0).toLocaleString()} • {r.distanceKm?.toFixed(1)} km</div>
+                            </div>
+                            <div className="flex flex-col items-end">
+                              <button onClick={() => {
+                                try { if (mapInstanceRef.current) mapInstanceRef.current.flyTo({ center: [r.location.longitude, r.location.latitude], zoom: 15 }) } catch {}
+                                setSelectedProperty(r)
+                              }} className="text-xs text-blue-600">View</button>
+                            </div>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
 
       {/* Modern Loading indicator for ML clusters - Hide when focusing on single property */}
       {loadingML && enableClustering && !focusOnProperty && (
