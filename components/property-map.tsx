@@ -788,11 +788,14 @@ export default function PropertyMap({
 
         // Dynamic marker color based on cluster or status
         let markerColor = "#10b981" // Default green
-        if (enableClustering && property.cluster !== undefined && selectedCluster !== 3) {
-          // Use cluster color only if not in "All Properties" view
-          markerColor = staticColors[selectedCluster]
+        if (enableClustering && property.cluster !== undefined) {
+          // When clustering is enabled and the property has a cluster index,
+          // color markers by their cluster regardless of the selectedCluster
+          // (this keeps the "All" view color-coded per cluster).
+          const clusterIdx = Math.max(0, Math.min(property.cluster, staticColors.length - 1))
+          markerColor = staticColors[clusterIdx]
         } else {
-          // In "All Properties" view or when clustering is disabled, use status colors
+          // When clustering is disabled or property has no cluster, fall back to status colors
           markerColor = property.status === "available" ? "#10b981" : 
                        property.status === "For rent" ? "#3b82f6" : 
                        property.status === "For sale" ? "#f59e0b" : 
