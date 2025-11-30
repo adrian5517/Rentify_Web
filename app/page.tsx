@@ -2202,7 +2202,26 @@ export default function PropertyListingPage() {
                       <Phone className="h-4 w-4" />
                       Contact
                     </Button>
-                    <Button className="flex-1 text-sm h-10 sm:h-11 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white">
+                    <Button 
+                      onClick={() => {
+                        const owner = typeof selectedProperty.postedBy === 'object' ? selectedProperty.postedBy : 
+                                     typeof selectedProperty.createdBy === 'object' ? selectedProperty.createdBy : null
+                        const isAvailable = selectedProperty.status === 'available' || selectedProperty.status === 'For rent'
+                        if (!isAvailable) {
+                          alert('This property is not currently available.')
+                          return
+                        }
+                        if (owner && owner._id) {
+                          const prefill = `I want to rent this property: ${selectedProperty.name}`
+                          setCurrentPage('messages')
+                          setSelectedProperty(null)
+                          window.history.pushState({}, '', `/messages?contact=${owner._id}&prefill=${encodeURIComponent(prefill)}`)
+                        } else {
+                          alert('Owner information not available')
+                        }
+                      }}
+                      className="flex-1 text-sm h-10 sm:h-11 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white"
+                    >
                       Rent Now
                     </Button>
                   </div>

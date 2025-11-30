@@ -383,6 +383,10 @@ function MessagesPage() {
       if (contactExists) {
         console.log('✅ Contact found, selecting:', contactExists.name)
         setSelectedContact(contactId)
+        const prefill = urlParams.get('prefill')
+        if (prefill) {
+          setInput(prefill)
+        }
         // Remove query parameter from URL
         window.history.replaceState({}, '', '/messages')
       } else if (contacts.length > 0) {
@@ -425,7 +429,8 @@ function MessagesPage() {
                 return [newContact, ...prev]
               })
               setSelectedContact(contactId)
-              
+              const prefill = urlParams.get('prefill')
+              if (prefill) setInput(prefill)
               // Remove query parameter from URL
               window.history.replaceState({}, '', '/messages')
             } else {
