@@ -100,7 +100,7 @@ export default function Conversations({
               </div>
               <div className="text-sm text-gray-600 truncate">{c.lastMessage?.message || ''}</div>
             </div>
-            {c.unreadCount && c.unreadCount > 0 && (
+            {c.unreadCount > 0 && (
               <span className="ml-2 bg-red-500 text-white text-xs px-2 py-1 rounded-full">{c.unreadCount}</span>
             )}
           </li>
