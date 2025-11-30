@@ -81,28 +81,39 @@ export default function Conversations({
     <div>
       <ul>
         {visibleConvos.map((c) => (
-          <li
-            key={c.participant._id}
-            className="flex items-center gap-3 py-2 hover:bg-gray-50 cursor-pointer"
-            onClick={() => onSelect && onSelect(c.participant)}
-          >
-            <img
-              src={c.participant.profilePicture || '/placeholder-user.jpg'}
-              alt="avatar"
-              width={40}
-              height={40}
-              className="rounded-full object-cover"
-            />
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center justify-between">
-                <strong className="truncate">{c.participant.username || c.participant.fullName || 'Unknown'}</strong>
-                <small className="text-xs text-gray-500">{c.lastMessageAt ? new Date(c.lastMessageAt).toLocaleString() : ''}</small>
+          <li key={c.participant._id}>
+            <button
+              onClick={() => onSelect && onSelect(c.participant)}
+              className={`w-full flex items-center gap-2.5 sm:gap-3 p-2.5 sm:p-3 rounded-xl sm:rounded-2xl transition-all duration-200 text-left hover:bg-white/70`}
+            >
+              <div className="relative">
+                {c.participant.profilePicture ? (
+                  <img
+                    src={c.participant.profilePicture.startsWith('http') ? c.participant.profilePicture : `https://rentify-server-ge0f.onrender.com${c.participant.profilePicture}`}
+                    alt={c.participant.username || c.participant.fullName}
+                    className="w-12 h-12 rounded-full object-cover shadow-md"
+                    onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; const fb = (e.target as HTMLImageElement).nextElementSibling as HTMLElement; if (fb) fb.style.display = 'flex' }}
+                  />
+                ) : null}
+                <div
+                  className="w-12 h-12 rounded-full bg-gradient-to-br from-purple-500 to-fuchsia-400 flex items-center justify-center font-bold text-white text-lg shadow-md"
+                  style={{ display: c.participant.profilePicture ? 'none' : 'flex' }}
+                >
+                  {(c.participant.username || c.participant.fullName || 'U').charAt(0).toUpperCase()}
+                </div>
+                {c.unreadCount > 0 && (
+                  <div className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-xs font-bold rounded-full flex items-center justify-center animate-pulse">{c.unreadCount}</div>
+                )}
               </div>
-              <div className="text-sm text-gray-600 truncate">{c.lastMessage?.message || ''}</div>
-            </div>
-            {c.unreadCount > 0 && (
-              <span className="ml-2 bg-red-500 text-white text-xs px-2 py-1 rounded-full">{c.unreadCount}</span>
-            )}
+
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center justify-between">
+                  <h3 className="font-semibold text-slate-900 truncate text-sm sm:text-base">{c.participant.username || c.participant.fullName || 'Unknown'}</h3>
+                  <div className="text-xs text-slate-500 ml-2 whitespace-nowrap">{c.lastMessageAt ? new Date(c.lastMessageAt).toLocaleString() : ''}</div>
+                </div>
+                <p className="text-sm text-slate-500 truncate">{c.lastMessage?.message || ''}</p>
+              </div>
+            </button>
           </li>
         ))}
       </ul>
