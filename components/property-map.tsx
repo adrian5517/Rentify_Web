@@ -8,6 +8,7 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { escapeHTML, sanitizeInput } from "@/lib/security"
 import { useAuthStore } from "@/lib/auth-store"
+import { sendMessageAPI } from "@/lib/api"
 
 // Modern Design System with Professional Icons
 const modernStyles = `
@@ -1275,6 +1276,62 @@ export default function PropertyMap({
                 aria-label="Close navigation"
               >
                 <span className="icon-close text-sm"></span>
+              </button>
+              {/* Optional single-click Send Now CTA */}
+              <button
+                onClick={async () => {
+                  console.log('🟣 Send Now clicked')
+                  if (!currentUser) {
+                    alert('Please log in to send messages')
+                    return
+                  }
+                  if (!selectedProperty) {
+                    alert('No property selected')
+                    return
+                  }
+
+                  const ownerInfo = getOwnerInfo(selectedProperty)
+                  if (!ownerInfo) {
+                    alert('Owner information unavailable')
+                    return
+                  }
+
+                  const ownerId = ownerInfo.id
+                  if (!ownerId || ownerId === 'unknown') {
+                    alert('Owner ID unavailable — use Contact Owner to view phone/email')
+                    return
+                  }
+
+                  const senderId = (currentUser as any)?._id || (currentUser as any)?.id
+                  if (!senderId) {
+                    alert('Your account ID not found. Please log in again.')
+                    return
+                  }
+
+                  const prefill = `I want to rent this property: ${selectedProperty.name}`
+
+                  try {
+                    // Send via REST API so that message persists and backend can create the conversation
+                    await sendMessageAPI(String(senderId), String(ownerId), prefill)
+
+                    try { localStorage.setItem('messages-contact', String(ownerId)) } catch (e) { /* ignore */ }
+                    // Navigate to messages and let the messages page fetch the new conversation
+                    router.push(`/messages?contact=${ownerId}`)
+                    alert('Message sent to owner. Opened Messages.')
+                  } catch (err) {
+                    console.error('❌ Send Now failed', err)
+                    alert('Failed to send message. Please try again.')
+                  }
+                }}
+                className={`modern-button inline-flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-300 hover:scale-105 hover:shadow-lg ${
+                  (selectedProperty?.status === 'available' || selectedProperty?.status === 'For rent')
+                    ? 'bg-amber-500 hover:bg-amber-600 text-white' 
+                    : 'bg-gray-200 text-gray-500 cursor-not-allowed'
+                }`}
+                disabled={!(selectedProperty?.status === 'available' || selectedProperty?.status === 'For rent')}
+              >
+                <span>📨</span>
+                <span>Send now</span>
               </button>
             </div>
 

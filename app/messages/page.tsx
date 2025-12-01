@@ -45,6 +45,8 @@ function MessagesPage() {
   const [contacts, setContacts] = useState<Contact[]>([])
   const [selectedContact, setSelectedContact] = useState<string | null>(null)
   const [input, setInput] = useState("")
+  // id-based focus target for compose input
+  const MESSAGE_INPUT_ID = 'message-input'
   const [messages, setMessages] = useState<Message[]>([])
   const [searchQuery, setSearchQuery] = useState("")
   const [showEmojiPicker, setShowEmojiPicker] = useState(false)
@@ -398,6 +400,16 @@ function MessagesPage() {
         const prefill = urlParams.get('prefill')
         if (prefill) {
           setInput(prefill)
+          // Focus the compose input so user can immediately send or edit
+          setTimeout(() => {
+            try {
+              const el = document.getElementById(MESSAGE_INPUT_ID) as HTMLInputElement | null
+              if (el) {
+                el.focus()
+                el.setSelectionRange(el.value.length, el.value.length)
+              }
+            } catch (e) { /* ignore */ }
+          }, 50)
         }
         // Remove query parameter from URL
         window.history.replaceState({}, '', '/messages')
@@ -442,7 +454,18 @@ function MessagesPage() {
               })
                 setSelectedContact(contactId)
                 const prefill = urlParams.get('prefill')
-                if (prefill) setInput(prefill)
+                if (prefill) {
+                  setInput(prefill)
+                  setTimeout(() => {
+                    try {
+                      const el = document.getElementById(MESSAGE_INPUT_ID) as HTMLInputElement | null
+                      if (el) {
+                        el.focus()
+                        el.setSelectionRange(el.value.length, el.value.length)
+                      }
+                    } catch (e) { /* ignore */ }
+                  }, 50)
+                }
                 // Remove query parameter from URL
                 window.history.replaceState({}, '', '/messages')
             } else {
@@ -1024,6 +1047,7 @@ function MessagesPage() {
                     setInput(e.target.value)
                     handleTyping()
                   }}
+                  id={MESSAGE_INPUT_ID}
                   placeholder="Type a message..."
                   className="h-10 sm:h-11 md:h-12 rounded-xl sm:rounded-2xl border-slate-300 focus:border-purple-500 focus:ring-purple-500/20 bg-slate-50 focus:bg-white shadow-sm text-sm sm:text-base pr-10 sm:pr-12"
                   onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSend(); }}}
