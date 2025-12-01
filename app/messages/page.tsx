@@ -63,6 +63,10 @@ function MessagesPage() {
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null)
 
+  // Start conversation modal state
+  const [startConfirm, setStartConfirm] = useState<{ prefill: string } | null>(null)
+  const [isStarting, setIsStarting] = useState(false)
+
   // Initialize current user and socket connection
   useEffect(() => {
     console.log('🔵 MessagesPage component mounted')
@@ -575,6 +579,42 @@ function MessagesPage() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages])
 
+  const doStartConversation = async (prefillText?: string) => {
+    if (!currentUser || !selectedContact) return
+    const currentUserId = currentUser._id || currentUser.id
+    if (!currentUserId) return
+
+    setIsStarting(true)
+    try {
+      const sent = await sendMessageAPI(String(currentUserId), String(selectedContact), prefillText)
+      const formatted: Message = {
+        ...sent,
+        fromMe: true,
+        time: 'now',
+        type: sent.imageUrls && sent.imageUrls.length > 0 ? 'image' : 'text'
+      }
+
+      // Update messages and cache
+      setMessages(prev => [...prev, formatted])
+      setMessageCache(prev => new Map(prev).set(selectedContact, [...(prev.get(selectedContact) || []), formatted]))
+      setLoadedConversations(prev => new Set(prev).add(selectedContact))
+
+      // Clear confirm and focus input
+      setStartConfirm(null)
+      setTimeout(() => {
+        try {
+          const el = document.getElementById(MESSAGE_INPUT_ID) as HTMLInputElement | null
+          if (el) { el.focus(); el.setSelectionRange(el.value.length, el.value.length) }
+        } catch (e) {}
+      }, 50)
+    } catch (err) {
+      console.error('❌ Failed to start conversation:', err)
+      alert('Failed to send message. Please try again.')
+    } finally {
+      setIsStarting(false)
+    }
+  }
+
   // Handle typing indicators with debouncing
   const handleTyping = () => {
     if (!currentUser || !selectedContact) return
@@ -821,6 +861,34 @@ function MessagesPage() {
                 }
               }}
             />
+            {/* Start conversation confirmation modal */}
+            {startConfirm && (
+              <div className="fixed inset-0 z-50 flex items-center justify-center">
+                <div className="absolute inset-0 bg-black/40" onClick={() => setStartConfirm(null)}></div>
+                <div className="relative z-10 max-w-md w-full p-4 glass-panel rounded-xl shadow-xl">
+                  <h3 className="text-lg font-semibold mb-2">Confirm message</h3>
+                  <p className="text-sm text-slate-700 mb-3">This message will be sent to the selected contact:</p>
+                  <div className="mb-4 p-3 bg-white/60 rounded text-sm text-slate-800">{startConfirm.prefill}</div>
+                  <div className="flex gap-2 justify-end">
+                    <button
+                      onClick={() => setStartConfirm(null)}
+                      className="px-3 py-2 rounded-lg bg-gray-200 text-sm font-medium"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={async () => {
+                        await doStartConversation(startConfirm.prefill)
+                      }}
+                      disabled={isStarting}
+                      className={`px-3 py-2 rounded-lg text-sm font-medium ${isStarting ? 'bg-purple-300 text-white' : 'bg-purple-600 hover:bg-purple-700 text-white'}`}
+                    >
+                      {isStarting ? 'Sending…' : 'Send now'}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </aside>
 
@@ -908,8 +976,34 @@ function MessagesPage() {
               <div className="flex items-center justify-center h-full">
                 <div className="text-center text-slate-400">
                   <MessageCircle className="h-12 sm:h-14 md:h-16 w-12 sm:w-14 md:w-16 mx-auto mb-3 sm:mb-4 opacity-50" />
-                  <p className="text-sm sm:text-base">No messages yet</p>
-                  <p className="text-xs sm:text-sm">Start the conversation!</p>
+                  <p className="text-sm sm:text-base">No messages yet{selectedContactData ? ` with ${selectedContactData.name}` : ''}</p>
+                  <p className="text-xs sm:text-sm mb-3">Start the conversation</p>
+                  <div className="flex items-center gap-2 justify-center">
+                    <button
+                      onClick={() => {
+                        // Open compose with empty input (focus)
+                        try {
+                          setInput('')
+                          setTimeout(() => {
+                            const el = document.getElementById(MESSAGE_INPUT_ID) as HTMLInputElement | null
+                            if (el) {
+                              el.focus()
+                              el.setSelectionRange(el.value.length, el.value.length)
+                            }
+                          }, 50)
+                        } catch (e) {}
+                      }}
+                      className="px-3 py-2 rounded-lg bg-white border border-slate-200 text-sm"
+                    >
+                      Open compose
+                    </button>
+                    <button
+                      onClick={() => setStartConfirm({ prefill: 'Hi — is this still available?' })}
+                      className="px-3 py-2 rounded-lg bg-purple-600 hover:bg-purple-700 text-white text-sm"
+                    >
+                      Send greeting
+                    </button>
+                  </div>
                 </div>
               </div>
             ) : (
