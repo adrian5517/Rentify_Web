@@ -12,53 +12,6 @@ import { sendMessageAPI } from "@/lib/api"
 
 // Modern Design System with Professional Icons
 const modernStyles = `
-  :root {
-    --primary: #2563eb;
-    --primary-hover: #1d4ed8;
-    --secondary: #64748b;
-    --success: #10b981;
-    --warning: #f59e0b;
-    --error: #ef4444;
-    --surface: #ffffff;
-    --surface-secondary: #f8fafc;
-    --text-primary: #1e293b;
-    --text-secondary: #64748b;
-    --border: #e2e8f0;
-    --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-    --radius: 12px;
-  }
-  
-  .modern-scrollbar {
-    scrollbar-width: thin;
-    scrollbar-color: rgba(203, 213, 225, 0.6) transparent;
-  }
-  
-  .modern-scrollbar::-webkit-scrollbar {
-    width: 4px;
-    height: 4px;
-  }
-  
-  .modern-scrollbar::-webkit-scrollbar-track {
-    background: transparent;
-  }
-  
-  .modern-scrollbar::-webkit-scrollbar-thumb {
-    background: rgba(203, 213, 225, 0.6);
-    border-radius: 8px;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  }
-  
-  .modern-scrollbar::-webkit-scrollbar-thumb:hover {
-    background: rgba(148, 163, 184, 0.8);
-  }
-  
-  .glass-panel {
-    background: rgba(255, 255, 255, 0.95);
-    backdrop-filter: blur(20px) saturate(180%);
-    -webkit-backdrop-filter: blur(20px) saturate(180%);
-    border: 1px solid rgba(255, 255, 255, 0.2);
-  }
-  
   .modern-button {
     position: relative;
     overflow: hidden;
@@ -358,6 +311,32 @@ export default function PropertyMap({
     return null
   }
   const [currentImageIndex, setCurrentImageIndex] = useState(0)
+
+  // Confirmation modal state for Send Now
+  const [confirmPayload, setConfirmPayload] = useState<{
+    ownerId: string
+    senderId: string
+    prefill: string
+  } | null>(null)
+  const [isSendingNow, setIsSendingNow] = useState(false)
+
+  // Perform the actual send when user confirms
+  const doSendNow = async () => {
+    if (!confirmPayload) return
+    setIsSendingNow(true)
+    try {
+      await sendMessageAPI(String(confirmPayload.senderId), String(confirmPayload.ownerId), confirmPayload.prefill)
+      try { localStorage.setItem('messages-contact', String(confirmPayload.ownerId)) } catch (e) { /* ignore */ }
+      router.push(`/messages?contact=${confirmPayload.ownerId}`)
+      alert('Message sent to owner. Opened Messages.')
+    } catch (err) {
+      console.error('❌ Send Now failed', err)
+      alert('Failed to send message. Please try again.')
+    } finally {
+      setIsSendingNow(false)
+      setConfirmPayload(null)
+    }
+  }
 
   const initializedRef = useRef(false)
   const loadedRef = useRef(false)
@@ -1334,6 +1313,33 @@ export default function PropertyMap({
                 <span>Send now</span>
               </button>
             </div>
+
+            {/* Send Now confirmation modal */}
+            {confirmPayload && (
+              <div className="fixed inset-0 z-50 flex items-center justify-center">
+                <div className="absolute inset-0 bg-black/40" onClick={() => setConfirmPayload(null)}></div>
+                <div className="relative z-10 max-w-md w-full p-4 glass-panel rounded-xl shadow-xl">
+                  <h3 className="text-lg font-semibold mb-2">Confirm message</h3>
+                  <p className="text-sm text-slate-700 mb-3">This message will be sent to the owner:</p>
+                  <div className="mb-4 p-3 bg-white/60 rounded text-sm text-slate-800">{confirmPayload.prefill}</div>
+                  <div className="flex gap-2 justify-end">
+                    <button
+                      onClick={() => setConfirmPayload(null)}
+                      className="px-3 py-2 rounded-lg bg-gray-200 text-sm font-medium"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={async () => { await doSendNow() }}
+                      disabled={isSendingNow}
+                      className={`px-3 py-2 rounded-lg text-sm font-medium ${isSendingNow ? 'bg-amber-300 text-white' : 'bg-amber-500 hover:bg-amber-600 text-white'}`}
+                    >
+                      {isSendingNow ? 'Sending…' : 'Send now'}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* Compact Progress Bar */}
             <div className="mb-4">
