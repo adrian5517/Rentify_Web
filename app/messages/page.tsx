@@ -372,8 +372,20 @@ function MessagesPage() {
   // Handle contact query parameter from URL (e.g., from property page)
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search)
-    const contactId = urlParams.get('contact')
+    let contactId = urlParams.get('contact')
     
+    // If contactId not present in URL, check localStorage handoff (set by property click)
+    if (!contactId) {
+      try {
+        const stored = localStorage.getItem('messages-contact')
+        if (stored) {
+          contactId = stored
+          // consume the handoff so it doesn't persist
+          localStorage.removeItem('messages-contact')
+        }
+      } catch (e) { /* ignore */ }
+    }
+
     if (contactId && currentUser) {
       console.log('🔗 Contact ID from URL:', contactId)
       
@@ -420,19 +432,19 @@ function MessagesPage() {
                 lastMessageTime: Date.now()
               }
               
-              // Add to contacts and select
-              setContacts(prev => {
+                // Add to contacts and select
+                setContacts(prev => {
                 // Check if contact was already added (race condition)
                 if (prev.find(c => c.id === contactId)) {
                   return prev
                 }
                 return [newContact, ...prev]
               })
-              setSelectedContact(contactId)
-              const prefill = urlParams.get('prefill')
-              if (prefill) setInput(prefill)
-              // Remove query parameter from URL
-              window.history.replaceState({}, '', '/messages')
+                setSelectedContact(contactId)
+                const prefill = urlParams.get('prefill')
+                if (prefill) setInput(prefill)
+                // Remove query parameter from URL
+                window.history.replaceState({}, '', '/messages')
             } else {
               console.log('❌ User not found in database')
               alert('Unable to find this user. They may not exist or have been deleted.')

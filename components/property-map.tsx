@@ -1868,6 +1868,8 @@ export default function PropertyMap({
                     if (ownerInfo.id && ownerInfo.id !== 'unknown') {
                       console.log('✅ Redirecting to messages with contact:', ownerInfo.id)
                       // Use Next.js router instead of window.location
+                      // store a fallback in localStorage so messages page can pick it up reliably
+                      try { localStorage.setItem('messages-contact', String(ownerInfo.id)) } catch (e) { /* ignore */ }
                       router.push(`/messages?contact=${ownerInfo.id}`)
                     } else if (ownerInfo.phone) {
                       console.log('📱 Showing phone number')
