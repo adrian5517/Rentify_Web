@@ -465,6 +465,8 @@ function MessagesPage() {
     if (currentUser && selectedContact) {
       // Get current user ID (handle both _id and id fields)
       const currentUserId = currentUser._id || currentUser.id
+      console.log('🧭 Debug: about to fetch messages for selected contact', { selectedContact, currentUserId })
+      try { console.log('🧭 Debug: auth-storage', localStorage.getItem('auth-storage')) } catch(e) {}
       
       // Check if we already loaded this conversation from cache
       if (messageCache.has(selectedContact)) {
@@ -487,6 +489,8 @@ function MessagesPage() {
       }
       
       setIsLoading(true)
+      // Extra debug: log fetch URL that will be requested by fetchMessages
+      try { console.log('🧭 Debug: will call fetchMessages with', { userId1: currentUserId, userId2: selectedContact }) } catch(e) {}
       fetchMessages(currentUserId, selectedContact)
         .then((fetchedMessages) => {
           const currentUserId = currentUser._id || currentUser.id
