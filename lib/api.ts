@@ -202,7 +202,19 @@ export const sendMessageAPI = async (
       throw new Error(msg);
     }
 
-    return await response.json();
+    const result = await response.json();
+
+    // Dispatch a DOM event so other client components can react (optimistic UI)
+    try {
+      if (typeof window !== 'undefined' && window?.CustomEvent) {
+        const ev = new CustomEvent('rentify:messageSent', { detail: { message: result } });
+        window.dispatchEvent(ev as Event);
+      }
+    } catch (e) {
+      // ignore dispatch errors
+    }
+
+    return result;
   } catch (error) {
     console.error('Error sending message:', error);
     throw error;

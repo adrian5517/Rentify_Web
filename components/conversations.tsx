@@ -60,8 +60,57 @@ export default function Conversations({
     }
 
     load()
+    // Listen for newly sent messages to update conversation list in realtime
+    const onMessageSent = (e: Event) => {
+      try {
+        const detail = (e as CustomEvent).detail
+        const msg = detail?.message
+        if (!msg) return
+
+        // Determine the other participant id and a summary
+        const currentUserRaw = localStorage.getItem('auth-storage')
+        let currentUserId: string | null = null
+        try {
+          if (currentUserRaw) {
+            const parsed = JSON.parse(currentUserRaw)
+            const u = parsed.state?.user
+            currentUserId = u?._id || u?.id || null
+          }
+        } catch (err) {
+          // ignore
+        }
+
+        const sender = msg.sender || msg.senderId || msg.sender?._id || msg.sender
+        const receiver = msg.receiver || msg.receiverId || msg.receiver?._id || msg.receiver
+        const otherId = String(currentUserId) === String(sender) ? String(receiver) : String(sender)
+
+        setConvos(prev => {
+          const copy = [...prev]
+          const idx = copy.findIndex(c => ((c.participant as any)?._id || (c.participant as any)?.id) === otherId)
+          const summary: ConversationSummary = {
+            participant: { _id: otherId, username: '', fullName: '', profilePicture: '' },
+            lastMessage: { _id: msg._id || msg.id || undefined, message: msg.message || msg.text || '', createdAt: msg.createdAt || new Date().toISOString() },
+            lastMessageAt: msg.createdAt || new Date().toISOString(),
+            unreadCount: 0,
+            totalMessages: (copy[idx]?.totalMessages || 0) + 1,
+          }
+
+          if (idx >= 0) {
+            copy[idx] = { ...copy[idx], ...summary }
+          } else {
+            copy.unshift(summary)
+          }
+          return copy
+        })
+      } catch (err) {
+        console.warn('Error handling rentify:messageSent event', err)
+      }
+    }
+
+    window.addEventListener('rentify:messageSent', onMessageSent as EventListener)
     return () => {
       mounted = false
+      window.removeEventListener('rentify:messageSent', onMessageSent as EventListener)
     }
   }, [limit, page])
 
