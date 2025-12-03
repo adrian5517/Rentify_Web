@@ -141,48 +141,11 @@ export const sendMessageAPI = async (
     if (token) {
       headers['Authorization'] = `Bearer ${token}`;
     }
-    // Debug logging (safe: do not print token value)
-    try {
-      console.groupCollapsed('➡️ sendMessageAPI');
-      console.log('URL:', `${API_BASE_URL}/messages/send`);
-      console.log('senderId:', senderId, 'receiverId:', receiverId, 'hasText:', !!text, 'hasImages:', !!(images && images.length > 0));
-      console.log('Auth present:', !!token);
-      // Log formData keys (avoid printing file binary contents or token)
-      try {
-        const keys: string[] = [];
-        formData.forEach((value, key) => keys.push(key));
-        console.log('formData keys:', keys);
-      } catch (e) {
-        // ignore formData iteration errors in some browsers
-      }
-      console.groupEnd();
-    } catch (e) {
-      // swallow logging errors
-    }
-
     const response = await fetch(`${API_BASE_URL}/messages/send`, {
       method: 'POST',
       headers,
       body: formData,
     });
-
-    // Log response status and body for easier debugging
-    try {
-      const status = response.status;
-      let responseBody: any = null;
-      const contentType = response.headers.get('content-type') || '';
-      if (contentType.includes('application/json')) {
-        responseBody = await response.clone().json().catch(() => null);
-      } else {
-        responseBody = await response.clone().text().catch(() => null);
-      }
-      console.groupCollapsed('⬅️ sendMessageAPI response');
-      console.log('status:', status);
-      console.log('body:', responseBody);
-      console.groupEnd();
-    } catch (e) {
-      // ignore logging errors
-    }
 
     if (response.status === 401) {
       console.error('❌ Unauthorized: Token expired or invalid');
