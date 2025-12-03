@@ -80,15 +80,43 @@ export default function Conversations({
           // ignore
         }
 
-        const sender = msg.sender || msg.senderId || msg.sender?._id || msg.sender
-        const receiver = msg.receiver || msg.receiverId || msg.receiver?._id || msg.receiver
-        const otherId = String(currentUserId) === String(sender) ? String(receiver) : String(sender)
+        const senderRaw = msg.sender || msg.senderId || msg.sender?._id || msg.sender
+        const receiverRaw = msg.receiver || msg.receiverId || msg.receiver?._id || msg.receiver
+
+        const makeUserFrom = (raw: any) => {
+          if (!raw) return null
+          // raw can be string id or object
+          if (typeof raw === 'string') return { _id: raw }
+          if (raw._id || raw.id) {
+            return {
+              _id: raw._id || raw.id,
+              username: raw.username || raw.name || raw.fullName || raw.full_name || '',
+              fullName: raw.fullName || raw.name || raw.full_name || '',
+              profilePicture: raw.profilePicture || raw.avatar || raw.profile_picture || raw.photo || '',
+            }
+          }
+          return null
+        }
+
+        const senderUser = makeUserFrom(msg.sender) || makeUserFrom(msg.senderUser) || makeUserFrom(senderRaw)
+        const receiverUser = makeUserFrom(msg.receiver) || makeUserFrom(msg.receiverUser) || makeUserFrom(receiverRaw)
+
+        const otherUser = String(currentUserId) === String(senderUser?._id || senderRaw)
+          ? receiverUser || { _id: String(receiverRaw) }
+          : senderUser || { _id: String(senderRaw) }
+
+        const otherId = otherUser?._id || String(otherUser)
 
         setConvos(prev => {
           const copy = [...prev]
           const idx = copy.findIndex(c => ((c.participant as any)?._id || (c.participant as any)?.id) === otherId)
           const summary: ConversationSummary = {
-            participant: { _id: otherId, username: '', fullName: '', profilePicture: '' },
+            participant: {
+              _id: otherId,
+              username: otherUser?.username || otherUser?.fullName || '',
+              fullName: otherUser?.fullName || otherUser?.username || '',
+              profilePicture: otherUser?.profilePicture || '',
+            },
             lastMessage: { _id: msg._id || msg.id || undefined, message: msg.message || msg.text || '', createdAt: msg.createdAt || new Date().toISOString() },
             lastMessageAt: msg.createdAt || new Date().toISOString(),
             unreadCount: 0,
