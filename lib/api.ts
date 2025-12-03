@@ -66,12 +66,9 @@ export interface UserData {
 // Fetch messages between two users
 export const fetchMessages = async (userId1: string, userId2: string): Promise<MessageData[]> => {
   try {
-    console.log('🔄 Fetching messages:', { userId1, userId2 });
+    // Fetching messages (details suppressed)
     const url = `${API_BASE_URL}/messages/${userId1}/${userId2}`;
-    console.log('📡 API URL:', url);
-    
     const token = getAuthToken();
-    console.log('🔑 Auth token included:', !!token);
     
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
@@ -82,7 +79,7 @@ export const fetchMessages = async (userId1: string, userId2: string): Promise<M
     }
     
     const response = await fetch(url, { headers });
-    console.log('📥 Response status:', response.status);
+    // Response status available (suppressed)
     
     if (response.status === 401) {
       console.error('❌ Unauthorized: Token expired or invalid');
@@ -96,7 +93,7 @@ export const fetchMessages = async (userId1: string, userId2: string): Promise<M
       
       // If endpoint doesn't exist or returns 404, return empty array
       if (response.status === 404) {
-        console.log('ℹ️ No messages found, returning empty array');
+        // No messages found, returning empty array
         return [];
       }
       
@@ -104,13 +101,13 @@ export const fetchMessages = async (userId1: string, userId2: string): Promise<M
     }
     
     const data = await response.json();
-    console.log('✅ Fetched messages:', data);
+    // Fetched messages (suppressed)
     return data;
   } catch (error) {
     console.error('❌ Error fetching messages:', error);
     
     // Return empty array instead of throwing error to prevent app crash
-    console.log('⚠️ Returning empty messages array due to error');
+    // Returning empty messages array due to error
     return [];
   }
 };
@@ -219,7 +216,7 @@ export const deleteMessage = async (messageId: string): Promise<void> => {
 // Fetch all users (for messaging contacts)
 export const fetchUsers = async (): Promise<UserData[]> => {
   try {
-    console.log('👥 Fetching users from backend...');
+    // Fetching users (suppressed)
     const token = getAuthToken();
     
     if (!token) {
@@ -247,7 +244,7 @@ export const fetchUsers = async (): Promise<UserData[]> => {
     }
     
     const data = await response.json();
-    console.log('✅ Fetched users from backend:', data);
+    // Fetched users (suppressed)
     
     // Handle different response formats
     // Backend might return { users: [...] } or just [...]
@@ -294,7 +291,7 @@ export const fetchUserById = async (id: string): Promise<UserData | null> => {
 // Fetch conversation summaries for current user (single request)
 export const fetchConversations = async (limit = 50, skip = 0): Promise<any[]> => {
   try {
-    console.log('🔄 Fetching conversation summaries')
+    // Fetching conversation summaries (suppressed)
     const token = getAuthToken()
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
@@ -330,7 +327,7 @@ export const fetchConversations = async (limit = 50, skip = 0): Promise<any[]> =
     }
 
     const data = await response.json()
-    console.log('✅ Fetched conversations:', data)
+    // Fetched conversations (suppressed)
     return Array.isArray(data) ? data : []
   } catch (error) {
     console.error('❌ Error fetching conversations:', error)
@@ -341,17 +338,15 @@ export const fetchConversations = async (limit = 50, skip = 0): Promise<any[]> =
 // Forgot Password - Request OTP
 export const requestPasswordReset = async (email: string): Promise<{ success: boolean; message: string }> => {
   try {
-    console.log('📧 Requesting password reset OTP for:', email);
+    // Requesting password reset OTP (suppressed)
     const response = await fetch(`${API_BASE_URL}/auth/forgot-password`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email })
     });
     
-    console.log('📥 Response status:', response.status);
-    
+    // Response status/data suppressed
     const data = await response.json();
-    console.log('📥 Response data:', data);
     
     if (!response.ok) {
       console.error('❌ Backend error:', data);
@@ -373,17 +368,15 @@ export const requestPasswordReset = async (email: string): Promise<{ success: bo
 // Verify OTP
 export const verifyOTP = async (email: string, otp: string): Promise<{ success: boolean; resetToken?: string; message: string }> => {
   try {
-    console.log('🔐 Verifying OTP for:', email);
+    // Verifying OTP (suppressed)
     const response = await fetch(`${API_BASE_URL}/auth/verify-otp`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email, otp })
     });
     
-    console.log('📥 Response status:', response.status);
-    
+    // Response status/data suppressed
     const data = await response.json();
-    console.log('📥 Response data:', data);
     
     if (!response.ok) {
       console.error('❌ Backend error:', data);
@@ -405,17 +398,15 @@ export const verifyOTP = async (email: string, otp: string): Promise<{ success: 
 // Reset Password
 export const resetPassword = async (resetToken: string, newPassword: string): Promise<{ success: boolean; message: string }> => {
   try {
-    console.log('🔑 Resetting password...');
+    // Resetting password (suppressed)
     const response = await fetch(`${API_BASE_URL}/auth/reset-password`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ resetToken, newPassword })
     });
     
-    console.log('📥 Response status:', response.status);
-    
+    // Response status/data suppressed
     const data = await response.json();
-    console.log('📥 Response data:', data);
     
     if (!response.ok) {
       console.error('❌ Backend error:', data);

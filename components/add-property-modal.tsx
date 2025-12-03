@@ -53,19 +53,17 @@ const getCurrentUserId = (): string | null => {
 const getCurrentUserInfo = (): { id: string; fullname: string; email: string } | null => {
   try {
     const authData = localStorage.getItem('auth-storage')
-    console.log('🔍 Auth data from localStorage:', authData)
+    // auth data from localStorage suppressed
     if (authData) {
       const parsed = JSON.parse(authData)
-      console.log('🔍 Parsed auth data:', parsed)
       const user = parsed.state?.user
-      console.log('🔍 User object:', user)
       if (user) {
         const userInfo = {
           id: user._id || user.id || '',
           fullname: user.fullname || user.name || user.fullName || user.username || 'Unknown User',
           email: user.email || 'No email'
         }
-        console.log('✅ Returning user info:', userInfo)
+        // returning user info (suppressed)
         return userInfo
       }
     }
@@ -124,9 +122,8 @@ export default function AddPropertyModal({ isOpen, onClose, onPropertyAdded }: A
   // Load user info when modal opens
   useEffect(() => {
     if (isOpen) {
-      console.log('📋 Modal opened, loading user info...')
+      // Modal opened - user info load (suppressed)
       const userInfo = getCurrentUserInfo()
-      console.log('📋 User info loaded:', userInfo)
       setCurrentUser(userInfo)
     }
   }, [isOpen])
@@ -134,16 +131,15 @@ export default function AddPropertyModal({ isOpen, onClose, onPropertyAdded }: A
   // Initialize map when modal opens
   useEffect(() => {
     if (isOpen && !mapRef.current) {
-      console.log('🎯 Modal opened, checking map container...')
-      console.log('📦 mapContainerRef.current:', mapContainerRef.current)
+      // Modal opened, checking map container (suppressed)
       
       // Wait for container to be ready
       const checkContainer = () => {
         if (mapContainerRef.current) {
-          console.log('✅ Container found, initializing map')
+          // Container found, initializing map (suppressed)
           initializeMap()
         } else {
-          console.log('⏳ Container not ready, retrying...')
+          // Container not ready, retrying (suppressed)
           setTimeout(checkContainer, 100)
         }
       }
@@ -156,7 +152,7 @@ export default function AddPropertyModal({ isOpen, onClose, onPropertyAdded }: A
 
     // Cleanup map on modal close
     if (!isOpen && mapRef.current) {
-      console.log('🧹 Cleaning up map')
+      // Cleaning up map (suppressed)
       mapRef.current.remove()
       mapRef.current = null
       markerRef.current = null
@@ -187,7 +183,7 @@ export default function AddPropertyModal({ isOpen, onClose, onPropertyAdded }: A
       const defaultLng = 123.1815
       const defaultLat = 13.6218
 
-      console.log('🗺️ Creating map instance...')
+      // Creating map instance (suppressed)
 
       // Create basic map
       const map = new mapboxgl.Map({
@@ -202,20 +198,20 @@ export default function AddPropertyModal({ isOpen, onClose, onPropertyAdded }: A
       // Save map ref immediately
       mapRef.current = map
 
-      console.log('📏 Map container size:', mapContainerRef.current.clientWidth, 'x', mapContainerRef.current.clientHeight)
+      // Map container size logged (suppressed)
 
       // Add controls before load event (they'll be ready when map loads)
       map.addControl(new mapboxgl.NavigationControl(), 'top-right')
 
       // Wait for map to load before creating marker
       map.on('load', () => {
-        console.log('✅ Map loaded successfully!')
+      // Map loaded successfully (suppressed)
         
         // Resize map to ensure proper rendering
         setTimeout(() => {
           if (map && mapRef.current) {
             map.resize()
-            console.log('📐 Map resized')
+            // Map resized (suppressed)
           }
         }, 100)
         
@@ -470,7 +466,7 @@ export default function AddPropertyModal({ isOpen, onClose, onPropertyAdded }: A
       if (currentUser) {
         formDataToSend.append('ownerName', currentUser.fullname)
         formDataToSend.append('ownerEmail', currentUser.email)
-        console.log('👤 Adding owner info:', { name: currentUser.fullname, email: currentUser.email })
+        // Owner info appended (suppressed)
       }
       
       // Amenities (append each one separately)
@@ -479,7 +475,7 @@ export default function AddPropertyModal({ isOpen, onClose, onPropertyAdded }: A
       })
       
       // Append images directly as File objects - most reliable method
-      console.log(`📸 Adding ${imageFiles.length} image file(s) to upload...`)
+      // Image file upload count suppressed
       
       if (imageFiles.length > 0) {
         for (let index = 0; index < imageFiles.length; index++) {
@@ -487,26 +483,17 @@ export default function AddPropertyModal({ isOpen, onClose, onPropertyAdded }: A
           try {
             // Append file directly - browser handles multipart/form-data encoding
             formDataToSend.append('images', file)
-            console.log(`  ${index + 1}. ${file.name} added (${(file.size / 1024).toFixed(2)}KB, type: ${file.type})`)
+            // File details suppressed
           } catch (error) {
             console.error(`❌ Error adding ${file.name}:`, error)
           }
         }
       } else {
-        console.log('📸 No images to upload')
+        // No images to upload
       }
 
-      console.log('🏠 Creating property with images...')
-      
-      // Log FormData contents for debugging
-      console.log('📋 FormData contents:')
-      for (const [key, value] of formDataToSend.entries()) {
-        if (value instanceof Blob) {
-          console.log(`  ${key}: [Blob: ${value.size} bytes, type: ${value.type}]`)
-        } else {
-          console.log(`  ${key}: ${value}`)
-        }
-      }
+      // Creating property with images (logs suppressed)
+      // FormData contents suppressed for privacy
 
       const response = await fetch('https://rentify-server-ge0f.onrender.com/api/properties', {
         method: 'POST',
@@ -523,8 +510,7 @@ export default function AddPropertyModal({ isOpen, onClose, onPropertyAdded }: A
         return
       }
 
-      console.log('📡 Response status:', response.status)
-      console.log('📡 Response headers:', Object.fromEntries(response.headers.entries()))
+      // Response status and headers suppressed
 
       if (!response.ok) {
         const contentType = response.headers.get('content-type')
@@ -549,10 +535,7 @@ export default function AddPropertyModal({ isOpen, onClose, onPropertyAdded }: A
       }
 
       const data = await response.json()
-      console.log('✅ Property created successfully!')
-      console.log('📦 Response data:', data)
-      console.log('🖼️ Images in response:', data.property?.images || data.images)
-      console.log('🔗 Image URLs:', data.property?.images?.length || data.images?.length || 0)
+      // Property created successfully (response suppressed)
       
       // Check if images were uploaded to Cloudinary
       if (imageFiles.length > 0) {
@@ -561,12 +544,9 @@ export default function AddPropertyModal({ isOpen, onClose, onPropertyAdded }: A
           console.warn('⚠️ WARNING: Images were sent but none were returned from backend!')
           console.warn('⚠️ Backend may have failed to upload to Cloudinary')
         } else if (uploadedImages.length < imageFiles.length) {
-          console.warn(`⚠️ WARNING: Only ${uploadedImages.length}/${imageFiles.length} images were uploaded`)
+          console.warn('⚠️ WARNING: Partial image upload detected')
         } else {
-          console.log(`✅ All ${uploadedImages.length} images uploaded to Cloudinary successfully`)
-          uploadedImages.forEach((url: string, i: number) => {
-            console.log(`  ${i + 1}. ${url}`)
-          })
+          // All images uploaded (URLs suppressed)
         }
       }
 

@@ -69,25 +69,16 @@ function MessagesPage() {
 
   // Initialize current user and socket connection
   useEffect(() => {
-    console.log('🔵 MessagesPage component mounted')
+    // MessagesPage component mounted (sensitive logs suppressed)
     
     // Get auth data from Zustand store (stored as 'auth-storage')
     const authStorageData = localStorage.getItem("auth-storage")
-    console.log('🔍 Auth storage data:', authStorageData)
     
     if (authStorageData) {
       const authStore = JSON.parse(authStorageData)
       const user = authStore.state?.user
       
-      console.log('👤 Current user from auth store:', user)
-      console.log('🔍 User structure:', {
-        _id: user?._id,
-        id: user?.id,
-        username: user?.username,
-        email: user?.email,
-        name: user?.name,
-        fullName: user?.fullName
-      })
+        // Current user from auth store (details suppressed)
       
       // Handle both regular auth and Facebook auth user structures
       // Facebook auth might have different ID field
@@ -103,13 +94,13 @@ function MessagesPage() {
         setCurrentUser(normalizedUser)
         
         // Initialize WebSocket connection with user ID
-        console.log('🚀 Initializing socket with user ID:', userId)
+        // Initializing socket for user (user ID suppressed)
         const socket = initializeSocket(userId)
         setIsConnected(true)
 
         // Listen for incoming messages
         socket.on('private-message', (newMessage: MessageData) => {
-          console.log('📩 Received new message:', newMessage)
+          // Received new message (details suppressed)
           
           const formattedMessage: Message = {
             ...newMessage,
@@ -186,14 +177,14 @@ function MessagesPage() {
 
         // Listen for typing indicators
         socket.on('typing-start', ({ senderId }: { senderId: string }) => {
-          console.log('⌨️ User is typing:', senderId)
+          // User is typing (senderId suppressed)
           setContacts(prev => prev.map(contact => 
             contact.id === senderId ? { ...contact, typing: true } : contact
           ))
         })
 
         socket.on('typing-stop', ({ senderId }: { senderId: string }) => {
-          console.log('✋ User stopped typing:', senderId)
+          // User stopped typing (senderId suppressed)
           setContacts(prev => prev.map(contact => 
             contact.id === senderId ? { ...contact, typing: false } : contact
           ))
@@ -201,7 +192,7 @@ function MessagesPage() {
 
         // Listen for read receipts
         socket.on('messages-read', ({ readBy, count }: { readBy: string; count: number }) => {
-          console.log(`✓✓ ${count} messages marked as read by:`, readBy)
+          // Messages marked as read (details suppressed)
           
           // Update cache for this contact
           setMessageCache(prev => {
@@ -223,16 +214,15 @@ function MessagesPage() {
         })
 
         return () => {
-          console.log('🔴 MessagesPage unmounting - disconnecting socket')
+          // MessagesPage unmounting - disconnecting socket
           disconnectSocket()
           setIsConnected(false)
         }
       } else {
-        console.log('⚠️ User data incomplete - missing user or user ID')
-        console.log('⚠️ User object:', user)
+        // User data incomplete - not logging user object
       }
     } else {
-      console.log('⚠️ No auth-storage data found in localStorage - user not logged in')
+      // No auth-storage data found in localStorage - user not logged in
     }
   }, []) // Remove selectedContact from dependency array
 
@@ -393,13 +383,13 @@ function MessagesPage() {
     }
 
     if (contactId && currentUser) {
-      console.log('🔗 Contact ID from URL:', contactId)
+      // Contact ID from URL (suppressed)
       
       // Check if contact exists in the list
       const contactExists = contacts.find(c => c.id === contactId)
       
       if (contactExists) {
-        console.log('✅ Contact found, selecting:', contactExists.name)
+        // Contact found, selecting
         setSelectedContact(contactId)
         const prefill = urlParams.get('prefill')
         if (prefill) {
@@ -418,8 +408,7 @@ function MessagesPage() {
         // Remove query parameter from URL
         window.history.replaceState({}, '', '/messages')
       } else if (contacts.length > 0) {
-        // Contact doesn't exist yet - fetch their info and add them
-        console.log('⚠️ Contact not found in list, fetching user info:', contactId)
+        // Contact doesn't exist yet - will fetch their info (id suppressed)
         
         fetchUsers()
           .then(users => {
@@ -428,7 +417,7 @@ function MessagesPage() {
               return userIdToCheck === contactId
             })
             if (user) {
-              console.log('✅ Found user info:', user)
+              // Found user info (suppressed)
               const displayName = user.fullName || user.name || user.username || user.email
               const userIdToUse = user._id || user.id
               
@@ -473,7 +462,7 @@ function MessagesPage() {
                 // Remove query parameter from URL
                 window.history.replaceState({}, '', '/messages')
             } else {
-              console.log('❌ User not found in database')
+              // User not found in database
               alert('Unable to find this user. They may not exist or have been deleted.')
               window.history.replaceState({}, '', '/messages')
             }
@@ -490,14 +479,12 @@ function MessagesPage() {
   // Fetch messages when contact is selected
   useEffect(() => {
     if (currentUser && selectedContact) {
-      // Get current user ID (handle both _id and id fields)
+      // Get current user ID (handle both _id and id fields) - suppressed in logs
       const currentUserId = currentUser._id || currentUser.id
-      console.log('🧭 Debug: about to fetch messages for selected contact', { selectedContact, currentUserId })
-      try { console.log('🧭 Debug: auth-storage', localStorage.getItem('auth-storage')) } catch(e) {}
       
       // Check if we already loaded this conversation from cache
       if (messageCache.has(selectedContact)) {
-        console.log('⏭️ Loading conversation from cache:', selectedContact)
+        // Loading conversation from cache (contact id suppressed)
         setMessages(messageCache.get(selectedContact) || [])
         
         // Reset unread count for selected contact
@@ -507,7 +494,7 @@ function MessagesPage() {
         return
       }
 
-      console.log('📨 Fetching messages for contact:', selectedContact)
+      // Fetching messages for selected contact (ids suppressed)
       
       // Skip if current user ID is not available
       if (!currentUserId) {
@@ -516,8 +503,7 @@ function MessagesPage() {
       }
       
       setIsLoading(true)
-      // Extra debug: log fetch URL that will be requested by fetchMessages
-      try { console.log('🧭 Debug: will call fetchMessages with', { userId1: currentUserId, userId2: selectedContact }) } catch(e) {}
+      // Debug: will call fetchMessages (params suppressed)
       fetchMessages(currentUserId, selectedContact)
         .then((fetchedMessages) => {
           const currentUserId = currentUser._id || currentUser.id

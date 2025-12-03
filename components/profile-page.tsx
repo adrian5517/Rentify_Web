@@ -89,36 +89,22 @@ export default function ProfilePage() {
     setUploadingImage(true)
 
     try {
-      console.log('Step 1: Uploading image to Cloudinary...')
-      console.log('File details:', {
-        name: file.name,
-        type: file.type,
-        size: file.size,
-        sizeInMB: (file.size / 1024 / 1024).toFixed(2) + 'MB'
-      })
+      // Uploading image to Cloudinary (file details suppressed)
       
       // Step 1: Upload image to Cloudinary
       const formDataToSend = new FormData()
       formDataToSend.append('propertyImage', file) // Field name must be 'propertyImage'
 
-      console.log('Sending request to: https://rentify-server-ge0f.onrender.com/upload')
-
+      // Sending upload request to CDN (endpoint suppressed)
       const uploadResponse = await fetch('https://rentify-server-ge0f.onrender.com/upload', {
         method: 'POST',
         body: formDataToSend
       })
-
-      console.log('Upload response status:', uploadResponse.status)
-      console.log('Upload response ok:', uploadResponse.ok)
-
-      // Check if response is JSON
-      const contentType = uploadResponse.headers.get('content-type')
-      console.log('Response content-type:', contentType)
+      // Upload response status and content-type suppressed
 
       let uploadData
       try {
         uploadData = await uploadResponse.json()
-        console.log('Upload response data:', uploadData)
       } catch (parseError) {
         const text = await uploadResponse.text()
         console.error('Failed to parse JSON response:', text.substring(0, 500))
@@ -136,8 +122,7 @@ export default function ProfilePage() {
       }
 
       const imageUrl = uploadData.fileUrl
-      console.log('✅ Upload successful! Image URL:', imageUrl)
-      console.log('Step 2: Updating user profile picture with URL...')
+      // Upload successful - image URL suppressed
 
       // Step 2: Update user profile picture in database
       const updateResponse = await fetch(`https://rentify-server-ge0f.onrender.com/api/auth/users/${user._id}/profile-picture`, {
@@ -149,7 +134,6 @@ export default function ProfilePage() {
       })
 
       const updateData = await updateResponse.json()
-      console.log('Update response:', updateData)
 
       if (!updateResponse.ok || !updateData.success) {
         throw new Error(updateData.message || 'Failed to update profile picture')
@@ -209,8 +193,7 @@ export default function ProfilePage() {
         throw new Error('You must be logged in to update your profile')
       }
 
-      console.log('Updating profile for user:', user._id)
-      console.log('Form data:', formData)
+      // Updating profile for user (suppressed)
       
       // Call backend API
       const response = await fetch(`https://rentify-server-ge0f.onrender.com/api/auth/users/${user._id}`, {
@@ -222,7 +205,6 @@ export default function ProfilePage() {
       })
 
       const data = await response.json()
-      console.log('Response:', data)
 
       if (!response.ok || !data.success) {
         throw new Error(data.message || 'Failed to update profile')
@@ -281,7 +263,7 @@ export default function ProfilePage() {
         }
 
         const data = await response.json()
-        console.log('User properties:', data)
+        // User properties fetched (suppressed)
 
         // Handle different response formats
         let properties: Property[] = []
