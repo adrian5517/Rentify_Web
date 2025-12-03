@@ -298,6 +298,36 @@ export const fetchUsers = async (): Promise<UserData[]> => {
   }
 };
 
+// Fetch a single user by id
+export const fetchUserById = async (id: string): Promise<UserData | null> => {
+  try {
+    if (!id) return null
+    const token = getAuthToken()
+    if (!token) {
+      console.warn('⚠️ No auth token found when fetching user by id')
+      return null
+    }
+
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`,
+    }
+
+    const response = await fetch(`${API_BASE_URL}/auth/users/${encodeURIComponent(id)}`, { headers })
+    if (!response.ok) {
+      console.error('❌ Failed to fetch user by id:', response.status)
+      return null
+    }
+
+    const data = await response.json()
+    // backend may return { user: { ... } } or the user object directly
+    return data.user || data || null
+  } catch (error) {
+    console.error('❌ Error fetching user by id:', error)
+    return null
+  }
+}
+
 // Fetch conversation summaries for current user (single request)
 export const fetchConversations = async (limit = 50, skip = 0): Promise<any[]> => {
   try {

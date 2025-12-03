@@ -1,7 +1,7 @@
 "use client"
 
 import React, { useEffect, useState } from 'react'
-import { fetchConversations } from '../lib/api'
+import { fetchConversations, fetchUserById } from '../lib/api'
 
 export interface Participant {
   _id: string
@@ -130,6 +130,33 @@ export default function Conversations({
           }
           return copy
         })
+
+        // If participant details are incomplete (only id), try to fetch full user info
+        if (otherId && (!otherUser?.username || !otherUser?.profilePicture)) {
+          ;(async () => {
+            try {
+              const u = await fetchUserById(String(otherId))
+              if (!u) return
+
+              setConvos(prev => prev.map(c => {
+                const pid = (c.participant as any)?._id || (c.participant as any)?.id
+                if (!pid) return c
+                if (String(pid) !== String(otherId)) return c
+                return {
+                  ...c,
+                  participant: {
+                    ...c.participant,
+                    username: u.username || u.fullName || u.name || '',
+                    fullName: u.fullName || u.name || u.username || '',
+                    profilePicture: u.profilePicture || u.profilePicture || '',
+                  }
+                }
+              }))
+            } catch (err) {
+              // ignore fetch errors
+            }
+          })()
+        }
       } catch (err) {
         console.warn('Error handling rentify:messageSent event', err)
       }
