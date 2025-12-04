@@ -134,7 +134,13 @@ export const sendMessageAPI = async (
 
     const token = getAuthToken();
     const headers: Record<string, string> = {};
-    
+
+    // Defensive: if there's no auth token, surface a clear error so callers
+    // can prompt the user to log in instead of silently sending an anonymous request.
+    if (!token) {
+      throw new Error('No auth token - user not authenticated')
+    }
+
     if (token) {
       headers['Authorization'] = `Bearer ${token}`;
     }
