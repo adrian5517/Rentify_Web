@@ -12,7 +12,7 @@ const handleUnauthorized = () => {
 };
 
 // Helper function to get auth token from localStorage
-const getAuthToken = (): string | null => {
+export const getAuthToken = (): string | null => {
   try {
     const authData = localStorage.getItem('auth-storage');
     if (authData) {
