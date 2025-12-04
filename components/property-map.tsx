@@ -41,17 +41,16 @@ const modernStyles = `
     overflow: hidden;
   }
   
-  .progress-fill {
-    height: 100%;
-    background: var(--primary);
-    border-radius: 2px;
-    transition: width 0.3s ease;
-  }
-  
-  .step-indicator {
-    width: 32px;
-    height: 32px;
-    border-radius: 50%;
+    // owner info obtained (not logging sensitive details)
+    const getOwnerInfo = (property: Property) => {
+      // Debug: Log property data to see what we have
+      // console.log('Getting owner info for property:', {
+      //   name: property.name,
+      //   postedBy: property.postedBy,
+      //   createdBy: property.createdBy,
+      //   owner: property.owner,
+      //   phoneNumber: property.phoneNumber
+      // })
     background: var(--primary);
     color: white;
     display: flex;
@@ -1922,14 +1921,12 @@ export default function PropertyMap({
                   }
                   
                   const ownerInfo = getOwnerInfo(selectedProperty)
-                  console.log('🔍 Owner Info:', ownerInfo)
-                  console.log('🔍 Owner ID:', ownerInfo?.id)
-                  console.log('🔍 Selected Property:', selectedProperty)
+                  // Owner info available; not logging sensitive details here
                   
                   if (ownerInfo) {
                     // If we have owner ID, redirect to messages
                     if (ownerInfo.id && ownerInfo.id !== 'unknown') {
-                      console.log('✅ Redirecting to messages with contact:', ownerInfo.id)
+                      // Redirecting to messages with contact (id omitted from logs)
                       // Use Next.js router instead of window.location
                       // store a fallback in localStorage so messages page can pick it up reliably
                       try { localStorage.setItem('messages-contact', String(ownerInfo.id)) } catch (e) { /* ignore */ }

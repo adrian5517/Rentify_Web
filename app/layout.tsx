@@ -3,6 +3,7 @@ import { GeistMono } from 'geist/font/mono'
 import { Poppins } from 'next/font/google'
 
 import './globals.css'
+import SocketProvider from '@/components/SocketProvider'
 
 
 export const metadata: Metadata = {
@@ -21,8 +22,9 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${poppins.className} ${GeistMono.variable}`}>
-        {children}
-        
+        <SocketProvider>
+          {children}
+        </SocketProvider>
       </body>
     </html>
   )

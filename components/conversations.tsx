@@ -198,7 +198,7 @@ export default function Conversations({
             <li key={id}>
               <button
                 onClick={() => {
-                  console.log('Conversations: contact clicked', participant)
+                  // contact clicked (details suppressed)
                   onSelect && onSelect(participant as any)
                 }}
                 className="w-full flex items-center gap-2.5 sm:gap-3 p-2.5 sm:p-3 rounded-xl sm:rounded-2xl transition-all duration-200 text-left hover:bg-white/70"

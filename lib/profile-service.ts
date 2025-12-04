@@ -58,11 +58,7 @@ export const profileService = {
       const formData = new FormData()
       formData.append('propertyImage', file) // Field name MUST be 'propertyImage'
 
-      console.log('Uploading to Cloudinary...', {
-        fileName: file.name,
-        fileSize: file.size,
-        fileType: file.type
-      })
+      // Uploading to Cloudinary (file details suppressed)
 
       // DO NOT set Content-Type header - browser will handle it automatically
       const response = await fetch(`${API_BASE_URL}/upload`, {
@@ -83,7 +79,7 @@ export const profileService = {
         throw new Error('Invalid upload response - missing success or fileUrl')
       }
 
-      console.log('Upload successful:', data.fileUrl)
+      // Upload successful (file URL suppressed)
       return data.fileUrl
     } catch (error) {
       console.error('Error uploading to Cloudinary:', error)

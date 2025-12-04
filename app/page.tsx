@@ -763,7 +763,7 @@ export default function PropertyListingPage() {
       }
       
       const data = await response.json()
-      console.log('API Response:', data)
+      // API response suppressed for privacy
       
       // Handle different response formats
       let apiProperties: APIProperty[] = []
@@ -778,7 +778,7 @@ export default function PropertyListingPage() {
         // Success wrapper with properties array
         apiProperties = data.properties
       } else {
-        console.error('Unexpected API response format:', data)
+        // Unexpected API response format (details suppressed)
         throw new Error('Invalid API response format')
       }
       
@@ -895,13 +895,12 @@ export default function PropertyListingPage() {
   }, [])
 
   const handleOpenModal = () => {
-    console.log("[v0] Opening modal, current state:", showAddPropertyModal)
+    // Opening modal (log suppressed)
     setShowAddPropertyModal(true)
-    console.log("[v0] Modal state should now be true")
   }
 
   const handleCloseModal = () => {
-    console.log("[v0] Closing modal")
+    // Closing modal (log suppressed)
     setShowAddPropertyModal(false)
   }
 

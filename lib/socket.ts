@@ -12,15 +12,12 @@ export const initializeSocket = (userId: string) => {
     });
 
     socket.on('connect', () => {
-      console.log('✅ Socket connected successfully!');
-      console.log('📡 Socket ID:', socket?.id);
-      console.log('👤 Registering user:', userId);
+      // Socket connected (sensitive details suppressed)
       socket?.emit('register', userId);
     });
 
     socket.on('disconnect', (reason) => {
-      console.log('❌ Socket disconnected');
-      console.log('🔍 Reason:', reason);
+      // Socket disconnected (reason suppressed)
     });
 
     socket.on('connect_error', (error: Error) => {
@@ -29,11 +26,11 @@ export const initializeSocket = (userId: string) => {
     });
 
     socket.on('reconnect', (attemptNumber) => {
-      console.log('🔄 Socket reconnected after', attemptNumber, 'attempts');
+      // Socket reconnected (attempt number suppressed)
     });
 
     socket.on('reconnect_attempt', (attemptNumber) => {
-      console.log('🔄 Reconnection attempt #', attemptNumber);
+      // Reconnection attempt (details suppressed)
     });
 
     socket.on('reconnect_error', (error: Error) => {
@@ -56,29 +53,29 @@ export const disconnectSocket = () => {
   if (socket) {
     socket.disconnect();
     socket = null;
-    console.log('Socket manually disconnected');
+    // Socket manually disconnected (suppressed)
   }
 };
 
 // Typing indicator functions
 export const emitTyping = (senderId: string, receiverId: string) => {
-  if (socket && socket.connected) {
+    if (socket && socket.connected) {
     socket.emit('typing-start', { senderId, receiverId });
-    console.log('⌨️ Typing indicator sent to:', receiverId);
+    // Typing indicator sent (receiver id suppressed)
   }
 };
 
 export const emitStopTyping = (senderId: string, receiverId: string) => {
-  if (socket && socket.connected) {
+    if (socket && socket.connected) {
     socket.emit('typing-stop', { senderId, receiverId });
-    console.log('✋ Stop typing indicator sent to:', receiverId);
+    // Stop typing indicator sent (receiver id suppressed)
   }
 };
 
 // Read receipts functions
 export const markMessagesAsRead = (userId: string, otherUserId: string) => {
-  if (socket && socket.connected) {
+    if (socket && socket.connected) {
     socket.emit('mark-as-read', { userId, otherUserId });
-    console.log('✓✓ Marking messages as read from:', otherUserId);
+    // Marking messages as read (other user id suppressed)
   }
 };
