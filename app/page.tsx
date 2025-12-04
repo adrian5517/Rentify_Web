@@ -2180,20 +2180,61 @@ export default function PropertyListingPage() {
                   {/* Action Buttons */}
                   <div className="flex flex-col sm:flex-row gap-2 pt-2">
                     <Button 
-                      onClick={() => {
+                      onClick={async () => {
                         // Get owner ID from postedBy or createdBy
                         const owner = typeof selectedProperty.postedBy === 'object' ? selectedProperty.postedBy : 
                                      typeof selectedProperty.createdBy === 'object' ? selectedProperty.createdBy : null
-                        
-                        if (owner && owner._id) {
-                          // Redirect to messages page with owner ID
-                          setCurrentPage('messages')
-                          // Close the modal
-                          setSelectedProperty(null)
-                          // You can pass the owner ID to the messages component via URL or state
-                          window.history.pushState({}, '', `/messages?contact=${owner._id}`)
-                        } else {
+
+                        if (!owner || !owner._id) {
                           alert('Owner information not available')
+                          return
+                        }
+
+                        // Try one-click Send Now behavior: send a greeting and open Messages
+                        // Get current user id from persisted auth (fallback)
+                        let senderId: string | null = null
+                        try {
+                          const authData = localStorage.getItem('auth-storage')
+                          if (authData) {
+                            const parsed = JSON.parse(authData)
+                            const u = parsed.state?.user
+                            senderId = u?._id || u?.id || null
+                          }
+                        } catch (e) {
+                          // ignore parse errors
+                        }
+
+                        if (!senderId) {
+                          // Not logged in or missing id — prompt login
+                          if (confirm('You need to sign in to message the owner. Would you like to sign in now?')) {
+                            setCurrentPage('auth')
+                            setSelectedProperty(null)
+                            window.history.pushState({}, '', '/auth')
+                          }
+                          return
+                        }
+
+                        const ownerId = owner._id
+                        const prefill = `I want to rent this property: ${selectedProperty.name}`
+
+                        try {
+                          await sendMessageAPI(String(senderId), String(ownerId), prefill)
+                          try { localStorage.setItem('messages-contact', String(ownerId)) } catch (e) { /* ignore */ }
+                          setCurrentPage('messages')
+                          setSelectedProperty(null)
+                          window.history.pushState({}, '', `/messages?contact=${ownerId}`)
+                        } catch (err) {
+                          console.error('❌ Send Now failed', err)
+                          const message = err instanceof Error ? err.message : String(err)
+                          if (message.toLowerCase().includes('auth') || message.toLowerCase().includes('token')) {
+                            if (confirm('You need to sign in to message the owner. Would you like to sign in now?')) {
+                              setCurrentPage('auth')
+                              setSelectedProperty(null)
+                              window.history.pushState({}, '', '/auth')
+                            }
+                          } else {
+                            alert('Failed to send message. Please try again.')
+                          }
                         }
                       }}
                       className="flex-1 flex items-center justify-center gap-2 text-sm h-10 sm:h-11 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700"
