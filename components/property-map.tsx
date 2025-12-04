@@ -330,7 +330,16 @@ export default function PropertyMap({
       alert('Message sent to owner. Opened Messages.')
     } catch (err) {
       console.error('❌ Send Now failed', err)
-      alert('Failed to send message. Please try again.')
+      // If the error indicates missing authentication, navigate to login
+      const message = err instanceof Error ? err.message : String(err)
+      if (message.toLowerCase().includes('auth') || message.toLowerCase().includes('token')) {
+        // Friendly prompt and redirect to login/signup
+        if (confirm('You need to sign in to message the owner. Would you like to sign in now?')) {
+          router.push('/auth')
+        }
+      } else {
+        alert('Failed to send message. Please try again.')
+      }
     } finally {
       setIsSendingNow(false)
       setConfirmPayload(null)
