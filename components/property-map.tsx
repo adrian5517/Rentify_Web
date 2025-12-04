@@ -1264,62 +1264,7 @@ export default function PropertyMap({
               >
                 <span className="icon-close text-sm"></span>
               </button>
-              {/* Optional single-click Send Now CTA */}
-              <button
-                onClick={async () => {
-                  console.log('🟣 Send Now clicked')
-                  if (!currentUser) {
-                    alert('Please log in to send messages')
-                    return
-                  }
-                  if (!selectedProperty) {
-                    alert('No property selected')
-                    return
-                  }
-
-                  const ownerInfo = getOwnerInfo(selectedProperty)
-                  if (!ownerInfo) {
-                    alert('Owner information unavailable')
-                    return
-                  }
-
-                  const ownerId = ownerInfo.id
-                  if (!ownerId || ownerId === 'unknown') {
-                    alert('Owner ID unavailable — use Contact Owner to view phone/email')
-                    return
-                  }
-
-                  const senderId = (currentUser as any)?._id || (currentUser as any)?.id
-                  if (!senderId) {
-                    alert('Your account ID not found. Please log in again.')
-                    return
-                  }
-
-                  const prefill = `I want to rent this property: ${selectedProperty.name}`
-
-                  try {
-                    // Send via REST API so that message persists and backend can create the conversation
-                    await sendMessageAPI(String(senderId), String(ownerId), prefill)
-
-                    try { localStorage.setItem('messages-contact', String(ownerId)) } catch (e) { /* ignore */ }
-                    // Navigate to messages and let the messages page fetch the new conversation
-                    router.push(`/messages?contact=${ownerId}`)
-                    alert('Message sent to owner. Opened Messages.')
-                  } catch (err) {
-                    console.error('❌ Send Now failed', err)
-                    alert('Failed to send message. Please try again.')
-                  }
-                }}
-                className={`modern-button inline-flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-300 hover:scale-105 hover:shadow-lg ${
-                  (selectedProperty?.status === 'available' || selectedProperty?.status === 'For rent')
-                    ? 'bg-amber-500 hover:bg-amber-600 text-white' 
-                    : 'bg-gray-200 text-gray-500 cursor-not-allowed'
-                }`}
-                disabled={!(selectedProperty?.status === 'available' || selectedProperty?.status === 'For rent')}
-              >
-                <span>📨</span>
-                <span>Send now</span>
-              </button>
+              {/* (Send Now button removed from Navigation) */}
             </div>
 
             {/* Send Now confirmation modal */}
@@ -1919,43 +1864,67 @@ export default function PropertyMap({
             {/* Compact Action Buttons */}
             <div className="flex gap-2 pt-2 border-t border-gray-200">
               <button 
-                onClick={() => {
+                onClick={async () => {
                   console.log('🔵 Contact Owner button clicked')
-                  
+
                   // Check if user is logged in
                   if (!currentUser) {
                     console.log('❌ User not logged in')
                     alert('Please log in to contact property owners')
                     return
                   }
-                  
+
                   const ownerInfo = getOwnerInfo(selectedProperty)
-                  // Owner info available; not logging sensitive details here
-                  
-                  if (ownerInfo) {
-                    // If we have owner ID, redirect to messages
-                    if (ownerInfo.id && ownerInfo.id !== 'unknown') {
-                      // Redirecting to messages with contact (id omitted from logs)
-                      // Use Next.js router instead of window.location
-                      // store a fallback in localStorage so messages page can pick it up reliably
-                      try { localStorage.setItem('messages-contact', String(ownerInfo.id)) } catch (e) { /* ignore */ }
-                      router.push(`/messages?contact=${ownerInfo.id}`)
-                    } else if (ownerInfo.phone) {
-                      console.log('📱 Showing phone number')
-                      // If we only have phone number, show it
-                      alert(`Contact Owner\n\nPhone: ${ownerInfo.phone}\n\nYou can call or text this number to inquire about the property.`)
-                    } else if (ownerInfo.email) {
-                      console.log('📧 Showing email')
-                      // If we only have email
-                      alert(`Contact Owner\n\nEmail: ${ownerInfo.email}\n\nYou can email to inquire about the property.`)
-                    } else {
-                      console.log('⚠️ No valid contact info')
-                      alert('Owner contact information is available. Please check the property details.')
-                    }
-                  } else {
+
+                  if (!ownerInfo) {
                     console.log('❌ No owner info available')
                     alert('Owner information not available for this property. This may be a demo listing.')
+                    return
                   }
+
+                  // If owner has an ID, attempt one-click send (Send Now behavior)
+                  if (ownerInfo.id && ownerInfo.id !== 'unknown') {
+                    const ownerId = ownerInfo.id
+                    const senderId = (currentUser as any)?._id || (currentUser as any)?.id
+                    if (!senderId) {
+                      alert('Your account ID not found. Please log in again.')
+                      return
+                    }
+
+                    const prefill = `I want to rent this property: ${selectedProperty.name}`
+
+                    try {
+                      await sendMessageAPI(String(senderId), String(ownerId), prefill)
+                      try { localStorage.setItem('messages-contact', String(ownerId)) } catch (e) { /* ignore */ }
+                      router.push(`/messages?contact=${ownerId}`)
+                    } catch (err) {
+                      console.error('❌ Send Now failed', err)
+                      const message = err instanceof Error ? err.message : String(err)
+                      if (message.toLowerCase().includes('auth') || message.toLowerCase().includes('token')) {
+                        if (confirm('You need to sign in to message the owner. Would you like to sign in now?')) {
+                          router.push('/auth')
+                        }
+                      } else {
+                        alert('Failed to send message. Please try again.')
+                      }
+                    }
+                    return
+                  }
+
+                  // Fallbacks: show phone/email if no owner ID
+                  if (ownerInfo.phone) {
+                    console.log('📱 Showing phone number')
+                    alert(`Contact Owner\n\nPhone: ${ownerInfo.phone}\n\nYou can call or text this number to inquire about the property.`)
+                    return
+                  }
+
+                  if (ownerInfo.email) {
+                    console.log('📧 Showing email')
+                    alert(`Contact Owner\n\nEmail: ${ownerInfo.email}\n\nYou can email to inquire about the property.`)
+                    return
+                  }
+
+                  alert('Owner contact information is available. Please check the property details.')
                 }}
                 className="modern-button flex-1 bg-purple-600 hover:bg-purple-700 text-white rounded-lg px-3 py-2 text-sm font-medium transition-all duration-300 hover:scale-105 hover:shadow-lg flex items-center justify-center gap-1"
               >
