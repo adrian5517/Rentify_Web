@@ -37,6 +37,7 @@ import { getRecommendations, clusterProperties } from "@/lib/ml-utils"
 import AddPropertyModal from "@/components/add-property-modal"
 import AuthProtected from "@/components/auth-protected"
 import MessagesPage from "@/app/messages/page"
+import { sendMessageAPI } from "@/lib/api"
 
 // API Property interface matching the API response
 interface APIProperty {
