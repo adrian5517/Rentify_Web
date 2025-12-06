@@ -96,53 +96,66 @@ export default function ProfilePage() {
       // Uploading image to Cloudinary (file details suppressed)
       
       // Step 1: Upload image to Cloudinary
-      // Try a few common field names — server may expect a different form field key.
+      // Try a few common endpoints and field names — server may expose `/api/upload` or `/upload` and expect a different form field key.
+      const endpoints = [
+        '/api/upload',
+        '/upload',
+        'https://rentify-server-ge0f.onrender.com/api/upload',
+        'https://rentify-server-ge0f.onrender.com/upload'
+      ]
       const fieldNames = ['propertyImage', 'file', 'image', 'profileImage']
       let uploadData: any = null
       let imageUrl: string | null = null
 
-      for (const fieldName of fieldNames) {
-        try {
-          const fd = new FormData()
-          fd.append(fieldName, file)
-          const res = await fetch('https://rentify-server-ge0f.onrender.com/upload', {
-            method: 'POST',
-            body: fd
-          })
-
-          // Read body as text first (safe single read), then try to parse JSON.
-          const textBody = await res.text()
-          let parsed: any = null
+      // Iterate endpoints first (prefer `/api/upload`), then try different form field names
+      for (const endpoint of endpoints) {
+        for (const fieldName of fieldNames) {
           try {
-            parsed = JSON.parse(textBody)
-          } catch (parseErr) {
-            console.warn(`Upload response (non-JSON) for field '${fieldName}':`, textBody.substring(0, 300))
-            parsed = { success: false, message: textBody }
-          }
+            const fd = new FormData()
+            fd.append(fieldName, file)
+            const res = await fetch(endpoint, {
+              method: 'POST',
+              body: fd
+            })
 
-          // Save last response (status, headers, body) for debugging UI
-          try {
-            lastUploadInfo = {
-              status: res.status,
-              headers: Object.fromEntries(res.headers.entries ? res.headers.entries() : []),
-              body: parsed,
+            // Read body as text first (safe single read), then try to parse JSON.
+            const textBody = await res.text()
+            let parsed: any = null
+            try {
+              parsed = JSON.parse(textBody)
+            } catch (parseErr) {
+              console.warn(`Upload response (non-JSON) for endpoint '${endpoint}' field '${fieldName}':`, textBody.substring(0, 300))
+              parsed = { success: false, message: textBody }
             }
-          } catch (e) {
-            lastUploadInfo = { status: res.status, body: parsed }
-          }
 
-          if (res.ok && parsed && parsed.success && parsed.fileUrl) {
-            uploadData = parsed
-            imageUrl = parsed.fileUrl
-            break
-          }
+            // Save last response (status, headers, body) for debugging UI
+            try {
+              lastUploadInfo = {
+                endpoint,
+                fieldName,
+                status: res.status,
+                headers: Object.fromEntries(res.headers.entries ? res.headers.entries() : []),
+                body: parsed,
+              }
+            } catch (e) {
+              lastUploadInfo = { endpoint, fieldName, status: res.status, body: parsed }
+            }
 
-          // Not successful — log and try next field name
-          console.warn(`Upload with field '${fieldName}' failed:`, parsed || res.status)
-        } catch (err) {
-          console.warn(`Upload attempt for field '${fieldName}' threw:`, err)
-          lastUploadInfo = String(err)
+            if (res.ok && parsed && parsed.success && (parsed.fileUrl || parsed.url)) {
+              uploadData = parsed
+              imageUrl = parsed.fileUrl || parsed.url
+              break
+            }
+
+            // Not successful — log and try next field name
+            console.warn(`Upload to '${endpoint}' with field '${fieldName}' failed:`, parsed || res.status)
+          } catch (err) {
+            console.warn(`Upload attempt to '${endpoint}' for field '${fieldName}' threw:`, err)
+            lastUploadInfo = String(err)
+          }
         }
+
+        if (imageUrl) break
       }
 
       if (!imageUrl) {
