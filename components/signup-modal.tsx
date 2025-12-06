@@ -40,8 +40,12 @@ export default function SignupModal({ isOpen, onClose, onSwitchToLogin }: Signup
       return
     }
 
-    if (password.length < 6) {
-      setError('Password must be at least 6 characters')
+    // Password complexity is enforced: min 8 chars, at least one uppercase, one number, one symbol
+    const passwordRegex = /^(?=.*[A-Z])(?=.*\d)(?=.*[^\w\s]).{8,}$/
+    const SUGGESTED_MSG = 'Password does not meet complexity requirements. It must be at least 8 characters long and include at least one uppercase letter, one number, and one symbol.'
+
+    if (!passwordRegex.test(password)) {
+      setError(SUGGESTED_MSG)
       return
     }
 
@@ -77,7 +81,7 @@ export default function SignupModal({ isOpen, onClose, onSwitchToLogin }: Signup
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[425px] bg-gradient-to-br from-white to-indigo-50 border-2 border-indigo-100">
+      <DialogContent className="z-60 w-[calc(100%-1rem)] sm:max-w-[425px] bg-gradient-to-br from-white to-indigo-50 border-2 border-indigo-100 max-h-[92vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-2xl font-bold text-center bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
             Create Account
@@ -158,6 +162,26 @@ export default function SignupModal({ isOpen, onClose, onSwitchToLogin }: Signup
                   disabled={isLoading}
                 />
               </div>
+              {/* Helper + live-check */}
+              <p id="pw-helper" className="text-sm text-gray-600 mt-2">Use at least 8 characters, including an uppercase letter, a number, and a symbol.</p>
+              <ul className="mt-2 space-y-1 text-sm">
+                <li className={`flex items-center gap-2 ${password.length >= 8 ? 'text-green-600' : 'text-gray-500'}`}>
+                  {password.length >= 8 ? <CheckCircle2 className="w-4 h-4" /> : <AlertCircle className="w-4 h-4" />}
+                  <span>At least 8 characters</span>
+                </li>
+                <li className={`flex items-center gap-2 ${/[A-Z]/.test(password) ? 'text-green-600' : 'text-gray-500'}`}>
+                  {/[A-Z]/.test(password) ? <CheckCircle2 className="w-4 h-4" /> : <AlertCircle className="w-4 h-4" />}
+                  <span>Contains an uppercase letter (A-Z)</span>
+                </li>
+                <li className={`flex items-center gap-2 ${/\d/.test(password) ? 'text-green-600' : 'text-gray-500'}`}>
+                  {/\d/.test(password) ? <CheckCircle2 className="w-4 h-4" /> : <AlertCircle className="w-4 h-4" />}
+                  <span>Contains a number (0-9)</span>
+                </li>
+                <li className={`flex items-center gap-2 ${/[^\w\s]/.test(password) ? 'text-green-600' : 'text-gray-500'}`}>
+                  {/[^\w\s]/.test(password) ? <CheckCircle2 className="w-4 h-4" /> : <AlertCircle className="w-4 h-4" />}
+                  <span>Contains a symbol (e.g. !@#$%)</span>
+                </li>
+              </ul>
             </div>
 
             <div className="space-y-2">
@@ -181,7 +205,8 @@ export default function SignupModal({ isOpen, onClose, onSwitchToLogin }: Signup
             <Button
               type="submit"
               className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-semibold py-6 rounded-lg shadow-lg hover:shadow-xl transition-all duration-300"
-              disabled={isLoading}
+              disabled={isLoading || !/^(?=.*[A-Z])(?=.*\d)(?=.*[^\w\s]).{8,}$/.test(password) || password !== confirmPassword}
+              aria-disabled={isLoading || !/^(?=.*[A-Z])(?=.*\d)(?=.*[^\w\s]).{8,}$/.test(password) || password !== confirmPassword}
             >
               {isLoading ? (
                 <>

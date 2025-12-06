@@ -142,21 +142,21 @@ export default function Navbar({ currentPage, onPageChange }: NavbarProps) {
         </div>
       </div>
 
-      {/* Mobile: hamburger button and dropdown aligned to right */}
-      <div className="md:hidden">
+      {/* Mobile: hamburger button (aligned like List Property) */}
+      <div className="md:hidden absolute left-1 top-1/2 -translate-y-1/2 z-50">
         <Button
           variant="ghost"
           size="sm"
           onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-          className="p-2"
+          className="h-9 w-9 rounded-xl flex items-center justify-center shadow-md bg-white p-0"
           aria-label="Toggle navigation menu"
           aria-expanded={isMobileMenuOpen}
         >
-          {isMobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+          {isMobileMenuOpen ? <X className="h-5 w-5 text-slate-700" /> : <Menu className="h-5 w-5 text-slate-700" />}
         </Button>
 
         {isMobileMenuOpen && (
-          <div className="absolute right-0 top-full mt-2 w-56 bg-white border border-slate-200 shadow-xl rounded-xl z-50">
+            <div className="fixed left-1.5 top-16 w-56 max-w-[90vw] bg-white border border-slate-200 shadow-xl rounded-xl z-50">
             <div className="py-2">
               {navItems.map((item) => {
                 const Icon = item.icon
@@ -179,7 +179,7 @@ export default function Navbar({ currentPage, onPageChange }: NavbarProps) {
               })}
               
               {/* Mobile auth buttons */}
-              <div className="border-t border-slate-200 mt-2 pt-2 px-4 pb-2 space-y-2">
+                <div className="border-t border-slate-200 mt-3 pt-2 px-4 pb-2 space-y-2">
                 {user ? (
                   <>
                     {/* Mobile Profile Button - Click to go to profile */}

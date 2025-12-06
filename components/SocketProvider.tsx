@@ -37,6 +37,17 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     }
     window.addEventListener('beforeunload', onBeforeUnload)
 
+    const onSocketErrorEvent = (e: Event) => {
+      try {
+        const detail = (e as CustomEvent)?.detail
+        console.warn('Socket event reported error:', detail?.message || e)
+      } catch (err) {
+        // ignore
+      }
+      setConnected(false)
+    }
+    window.addEventListener('rentify:socketError', onSocketErrorEvent as EventListener)
+
     return () => {
       if (s) {
         try { s.off('connect', onConnect) } catch (e) { /* ignore */ }
@@ -44,6 +55,7 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       }
       document.removeEventListener('visibilitychange', handleVisibility)
       window.removeEventListener('beforeunload', onBeforeUnload)
+      window.removeEventListener('rentify:socketError', onSocketErrorEvent as EventListener)
       // Do not disconnect socket here so it survives client transitions if provider remains mounted
     }
   }, [])

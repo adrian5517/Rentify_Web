@@ -1229,7 +1229,7 @@ export default function PropertyListingPage() {
 
   return (
     <div className="min-h-screen bg-slate-50">
-      <header className="bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/90 border-b border-slate-200 sticky top-0 z-40 shadow-sm">
+      <header className="relative bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/90 border-b border-slate-200 sticky top-0 z-40 shadow-sm">
         <div className="container mx-auto px-2 sm:px-4 py-3 sm:py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2 sm:gap-4">
@@ -1238,6 +1238,7 @@ export default function PropertyListingPage() {
                 alt="Rentify - Find Your Perfect Home"
                 width={80}
                 height={24}
+                priority
                 className="h-12 sm:h-14 md:h-17 w-auto"
                 loading="eager"
               />
@@ -1254,7 +1255,8 @@ export default function PropertyListingPage() {
                   <div className="relative group">
                     <button
                       onClick={handleOpenModal}
-                      className="flex items-center gap-2 px-3 sm:px-5 h-9 sm:h-11 rounded-xl bg-gradient-to-r from-purple-600 to-blue-600 text-white hover:from-purple-700 hover:to-blue-700 transition-all duration-300 font-semibold shadow-lg hover:shadow-xl hover:scale-105"
+                      aria-label="List your property"
+                      className="flex items-center gap-2 px-2 sm:px-3 md:px-5 h-9 sm:h-11 rounded-xl bg-gradient-to-r from-purple-600 to-blue-600 text-white hover:from-purple-700 hover:to-blue-700 transition-all duration-300 font-semibold shadow-lg hover:shadow-xl hover:scale-105"
                     >
                       <Plus className="h-4 w-4" />
                       <span className="hidden md:inline">List Property</span>

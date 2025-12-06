@@ -51,7 +51,7 @@ export default function LoginModal({ isOpen, onClose, onSwitchToSignup }: LoginM
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[425px] bg-gradient-to-br from-white to-blue-50 border-2 border-blue-100">
+      <DialogContent className="z-60 w-[calc(100%-1rem)] sm:max-w-[425px] bg-gradient-to-br from-white to-blue-50 border-2 border-blue-100 max-h-[92vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-2xl font-bold text-center bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
             Welcome Back

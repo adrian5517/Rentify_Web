@@ -44,6 +44,14 @@ export const useAuthStore = create<AuthState>()(
       setUser: (user) => set({ user }),
 
       register: async (username, email, password) => {
+        // Client-side password complexity check (same as server)
+        const passwordRegex = /^(?=.*[A-Z])(?=.*\d)(?=.*[^\w\s]).{8,}$/
+        const SUGGESTED_MSG = 'Password does not meet complexity requirements. It must be at least 8 characters long and include at least one uppercase letter, one number, and one symbol.'
+
+        if (!passwordRegex.test(password)) {
+          return { success: false, error: SUGGESTED_MSG }
+        }
+
         set({ isLoading: true })
 
         try {
@@ -62,7 +70,11 @@ export const useAuthStore = create<AuthState>()(
           clearTimeout(timeoutId)
 
           const data = await response.json()
-          if (!response.ok) throw new Error(data.message || "Something went wrong")
+          if (!response.ok) {
+            // Keep server messages neutral for password complexity issues
+            const msg = (response.status === 400 && data?.message && /password/i.test(data.message)) ? SUGGESTED_MSG : (data.message || "Something went wrong")
+            throw new Error(msg)
+          }
 
           set({
             token: data.token,
@@ -134,11 +146,13 @@ export const useAuthStore = create<AuthState>()(
       },
 
       logout: () => {
-        set({ user: null, token: null, profilePicture: null })
+        set({ user: null, token: null, profilePicture: null, isLoading: false })
       },
     }),
     {
       name: 'auth-storage',
+      // do not persist transient loading state to avoid 'stuck' loading
+      partialize: (state) => ({ user: state.user, token: state.token, profilePicture: state.profilePicture }),
     }
   )
 )

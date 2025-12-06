@@ -17,18 +17,34 @@ export function createSocket(token?: string) {
   currentToken = token || null
 
   socket = io(SERVER_URL, {
-    transports: ['websocket'],
+    // Prefer websocket first; if that fails the client may fallback to polling.
+    // Some servers or proxies reject polling requests (400). Preferring websocket
+    // avoids immediately triggering polling-related 400s in those environments.
+    transports: ['websocket', 'polling'],
+    // Pass token via auth for handshake-based auth on server
     auth: { token: token || null },
+    // Keep reconnection enabled with backoff
     reconnection: true,
     reconnectionAttempts: Infinity,
     reconnectionDelay: 500,
     reconnectionDelayMax: 60000,
     randomizationFactor: 0.5,
+    // Increase the connect timeout (ms) so slow networks don't immediately timeout
+    timeout: 20000,
     autoConnect: true,
   })
 
   socket.on('connect_error', (err) => {
-    console.error('Socket connect_error', err?.message || err)
+    // Friendly logging: avoid noisy stack traces in the console while keeping useful info.
+    const msg = err?.message || String(err)
+    console.warn('Socket connect_error:', msg)
+    // Dispatch a DOM event so UI code can show a user-friendly toast/notification if desired
+    try {
+      const ev = new CustomEvent('rentify:socketError', { detail: { message: msg } })
+      window.dispatchEvent(ev)
+    } catch (e) {
+      // ignore (non-browser environments)
+    }
   })
 
   return socket

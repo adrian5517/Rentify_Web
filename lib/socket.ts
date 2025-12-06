@@ -5,10 +5,12 @@ let socket: Socket | null = null;
 export const initializeSocket = (userId: string) => {
   if (!socket) {
     socket = io('https://rentify-server-ge0f.onrender.com', {
-      transports: ['websocket', 'polling'],
+      // Polling first helps in environments that block websocket upgrades
+      transports: ['polling', 'websocket'],
       reconnection: true,
       reconnectionAttempts: 5,
       reconnectionDelay: 1000,
+      timeout: 20000,
     });
 
     socket.on('connect', () => {
@@ -21,8 +23,14 @@ export const initializeSocket = (userId: string) => {
     });
 
     socket.on('connect_error', (error: Error) => {
-      console.error('❌ Socket connection error:', error.message);
-      console.error('🔍 Full error:', error);
+      const msg = error?.message || String(error)
+      console.warn('Socket connection error:', msg)
+      try {
+        const ev = new CustomEvent('rentify:socketError', { detail: { message: msg } })
+        window.dispatchEvent(ev)
+      } catch (e) {
+        // ignore
+      }
     });
 
     socket.on('reconnect', (attemptNumber) => {
@@ -34,11 +42,11 @@ export const initializeSocket = (userId: string) => {
     });
 
     socket.on('reconnect_error', (error: Error) => {
-      console.error('❌ Reconnection error:', error.message);
+      console.warn('Reconnection error:', error?.message || error)
     });
 
     socket.on('reconnect_failed', () => {
-      console.error('❌ Reconnection failed after all attempts');
+      console.warn('Reconnection failed after all attempts')
     });
   }
 

@@ -624,7 +624,9 @@ export default function AddPropertyModal({ isOpen, onClose, onPropertyAdded }: A
         })
         
         previewUrls.push(dataUrl)
-        console.log(`✅ Added ${file.name} (${(file.size / 1024).toFixed(2)}KB) with preview`)
+        if (process.env.NODE_ENV === 'development') {
+          console.log(`✅ Added ${file.name} (${(file.size / 1024).toFixed(2)}KB) with preview`)
+        }
       } catch (error) {
         console.error(`❌ Error creating preview for ${file.name}:`, error)
         // Fallback to blob URL if FileReader fails
@@ -633,19 +635,21 @@ export default function AddPropertyModal({ isOpen, onClose, onPropertyAdded }: A
     }
 
     if (validFiles.length > 0) {
-      console.log(`📸 Adding ${validFiles.length} valid files to state...`)
-      console.log(`📸 Preview URLs created:`, previewUrls.length)
-      console.log(`📸 First preview URL (truncated):`, previewUrls[0]?.substring(0, 50))
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`📸 Adding ${validFiles.length} valid files to state...`)
+        console.log(`📸 Preview URLs created:`, previewUrls.length)
+        console.log(`📸 First preview URL (truncated):`, previewUrls[0]?.substring(0, 50))
+      }
       
       setImageFiles(prev => {
         const newFiles = [...prev, ...validFiles]
-        console.log(`📸 Total files in state: ${newFiles.length}`)
+        if (process.env.NODE_ENV === 'development') console.log(`📸 Total files in state: ${newFiles.length}`)
         return newFiles
       })
       
       setFormData(prev => {
         const newImages = [...prev.images, ...previewUrls]
-        console.log(`📸 Total images in formData: ${newImages.length}`)
+        if (process.env.NODE_ENV === 'development') console.log(`📸 Total images in formData: ${newImages.length}`)
         return {
           ...prev,
           images: newImages
@@ -654,8 +658,10 @@ export default function AddPropertyModal({ isOpen, onClose, onPropertyAdded }: A
       
       // Log final state after a short delay
       setTimeout(() => {
-        console.log(`📸 Final check - imageFiles count: ${imageFiles.length + validFiles.length}`)
-        console.log(`📸 Final check - formData.images count:`, formData.images.length + previewUrls.length)
+        if (process.env.NODE_ENV === 'development') {
+          console.log(`📸 Final check - imageFiles count: ${imageFiles.length + validFiles.length}`)
+          console.log(`📸 Final check - formData.images count:`, formData.images.length + previewUrls.length)
+        }
       }, 100)
     }
 
@@ -948,7 +954,7 @@ export default function AddPropertyModal({ isOpen, onClose, onPropertyAdded }: A
             {formData.images.length > 0 ? (
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 sm:gap-4">
                 {(() => {
-                  console.log(`🖼️ Rendering ${formData.images.length} image preview(s)`)
+                  if (process.env.NODE_ENV === 'development') console.log(`🖼️ Rendering ${formData.images.length} image preview(s)`)
                   return null
                 })()}
                 {formData.images.map((image, index) => (
@@ -957,10 +963,14 @@ export default function AddPropertyModal({ isOpen, onClose, onPropertyAdded }: A
                       src={image}
                       alt={`Property ${index + 1}`}
                       className="w-full h-28 sm:h-32 object-cover rounded-lg border"
-                      onLoad={() => console.log(`✅ Image ${index + 1} loaded successfully`)}
+                      onLoad={() => {
+                        if (process.env.NODE_ENV === 'development') console.log(`✅ Image ${index + 1} loaded successfully`)
+                      }}
                       onError={(e) => {
-                        console.error(`❌ Failed to load image ${index + 1}:`, image.substring(0, 50))
-                        console.error('Error details:', e)
+                        if (process.env.NODE_ENV === 'development') {
+                          console.error(`❌ Failed to load image ${index + 1}:`, image.substring(0, 50))
+                          console.error('Error details:', e)
+                        }
                       }}
                     />
                     <button
@@ -975,11 +985,7 @@ export default function AddPropertyModal({ isOpen, onClose, onPropertyAdded }: A
               </div>
             ) : (
               <div className="text-sm text-slate-500 italic p-4 bg-slate-50 rounded-lg border border-slate-200">
-                {(() => {
-                  console.log(`🔍 No images to display. formData.images.length: ${formData.images.length}`)
-                  return null
-                })()}
-                No images selected yet. Click "Select Images" to add photos.
+                
               </div>
             )}
           </div>
