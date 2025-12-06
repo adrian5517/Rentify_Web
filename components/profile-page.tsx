@@ -110,17 +110,26 @@ export default function ProfilePage() {
             body: fd
           })
 
+          // Read body as text first (safe single read), then try to parse JSON.
+          const textBody = await res.text()
           let parsed: any = null
           try {
-            parsed = await res.json()
+            parsed = JSON.parse(textBody)
           } catch (parseErr) {
-            const txt = await res.text()
-            console.warn(`Upload response (non-JSON) for field '${fieldName}':`, txt.substring(0, 300))
-            parsed = { success: false, message: txt }
+            console.warn(`Upload response (non-JSON) for field '${fieldName}':`, textBody.substring(0, 300))
+            parsed = { success: false, message: textBody }
           }
 
-          // Save last response for debugging UI
-          lastUploadInfo = parsed
+          // Save last response (status, headers, body) for debugging UI
+          try {
+            lastUploadInfo = {
+              status: res.status,
+              headers: Object.fromEntries(res.headers.entries ? res.headers.entries() : []),
+              body: parsed,
+            }
+          } catch (e) {
+            lastUploadInfo = { status: res.status, body: parsed }
+          }
 
           if (res.ok && parsed && parsed.success && parsed.fileUrl) {
             uploadData = parsed
