@@ -17,10 +17,10 @@ export function createSocket(token?: string) {
   currentToken = token || null
 
   socket = io(SERVER_URL, {
-    // Prefer websocket first; if that fails the client may fallback to polling.
-    // Some servers or proxies reject polling requests (400). Preferring websocket
-    // avoids immediately triggering polling-related 400s in those environments.
-    transports: ['websocket', 'polling'],
+    // Force websocket transport only to avoid XHR polling errors in environments
+    // where the server or proxy rejects polling (returns HTTP 400).
+    // This is a temporary client-side workaround — ensure server supports websockets.
+    transports: ['websocket'],
     // Pass token via auth for handshake-based auth on server
     auth: { token: token || null },
     // Keep reconnection enabled with backoff

@@ -5,8 +5,9 @@ let socket: Socket | null = null;
 export const initializeSocket = (userId: string) => {
   if (!socket) {
     socket = io('https://rentify-server-ge0f.onrender.com', {
-      // Polling first helps in environments that block websocket upgrades
-      transports: ['polling', 'websocket'],
+      // Force websocket-only transport to avoid polling XHR failures (400)
+      // in environments where polling is rejected by a proxy or server.
+      transports: ['websocket'],
       reconnection: true,
       reconnectionAttempts: 5,
       reconnectionDelay: 1000,

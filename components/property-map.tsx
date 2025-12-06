@@ -1795,13 +1795,20 @@ export default function PropertyMap({
                           alt={ownerInfo.name} 
                           className="w-full h-full object-cover"
                           onError={(e) => {
-                            const target = e.target as HTMLImageElement;
-                            target.style.display = 'none';
-                            // Create fallback element safely without innerHTML
-                            const fallback = document.createElement('div');
-                            fallback.className = 'w-full h-full flex items-center justify-center text-purple-600 font-bold text-lg';
-                            fallback.textContent = ownerInfo.name.charAt(0).toUpperCase();
-                            target.parentElement!.appendChild(fallback);
+                            try {
+                              const target = e.target as HTMLImageElement;
+                              target.style.display = 'none';
+                              const parent = target.parentElement
+                              if (parent) {
+                                // Create fallback element safely without innerHTML
+                                const fallback = document.createElement('div');
+                                fallback.className = 'w-full h-full flex items-center justify-center text-purple-600 font-bold text-lg';
+                                fallback.textContent = ownerInfo.name.charAt(0).toUpperCase();
+                                parent.appendChild(fallback);
+                              }
+                            } catch (err) {
+                              console.warn('Owner image fallback failed:', err)
+                            }
                           }}
                         />
                       ) : (

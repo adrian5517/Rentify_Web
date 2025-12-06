@@ -92,10 +92,20 @@ export default function Navbar({ currentPage, onPageChange }: NavbarProps) {
                       alt={user.username || user.name || 'User'} 
                       className="w-full h-full object-cover"
                       onError={(e) => {
-                        // Fallback to initials if image fails to load
-                        (e.target as HTMLImageElement).style.display = 'none';
-                        (e.target as HTMLImageElement).parentElement!.textContent = 
-                          (user.username || user.name || 'U').charAt(0).toUpperCase();
+                        try {
+                          const img = e.target as HTMLImageElement
+                          img.style.display = 'none'
+                          const parent = img.parentElement
+                          const fallbackText = (user.username || user.name || 'U').charAt(0).toUpperCase()
+                          if (parent) {
+                            // Clear any existing content then set text safely
+                            parent.textContent = ''
+                            parent.textContent = fallbackText
+                          }
+                        } catch (err) {
+                          // Don't let a UI fallback error crash the app
+                          console.warn('Profile image fallback failed:', err)
+                        }
                       }}
                     />
                   ) : (
@@ -202,10 +212,19 @@ export default function Navbar({ currentPage, onPageChange }: NavbarProps) {
                             alt={user.username || user.name || 'User'} 
                             className="w-full h-full object-cover"
                             onError={(e) => {
-                              (e.target as HTMLImageElement).style.display = 'none';
-                              (e.target as HTMLImageElement).parentElement!.textContent = 
-                                (user.username || user.name || 'U').charAt(0).toUpperCase();
-                            }}
+                                  try {
+                                    const img = e.target as HTMLImageElement
+                                    img.style.display = 'none'
+                                    const parent = img.parentElement
+                                    const fallback = (user.username || user.name || 'U').charAt(0).toUpperCase()
+                                    if (parent) {
+                                      parent.textContent = ''
+                                      parent.textContent = fallback
+                                    }
+                                  } catch (err) {
+                                    console.warn('Mobile profile image fallback failed:', err)
+                                  }
+                                }}
                           />
                         ) : (
                           (user.username || user.name || 'U').charAt(0).toUpperCase()

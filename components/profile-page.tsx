@@ -33,6 +33,7 @@ export default function ProfilePage() {
   const [isEditing, setIsEditing] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const [uploadingImage, setUploadingImage] = useState(false)
+  const [uploadErrorRaw, setUploadErrorRaw] = useState<string | null>(null)
   const [showSuccessModal, setShowSuccessModal] = useState(false)
   const [successMessage, setSuccessMessage] = useState('')
   const [showEditComingSoonModal, setShowEditComingSoonModal] = useState(false)
@@ -88,41 +89,59 @@ export default function ProfilePage() {
 
     setUploadingImage(true)
 
+    // Track the last server response (parsed or text) so we can show it in debug UI
+    let lastUploadInfo: any = null
+
     try {
       // Uploading image to Cloudinary (file details suppressed)
       
       // Step 1: Upload image to Cloudinary
-      const formDataToSend = new FormData()
-      formDataToSend.append('propertyImage', file) // Field name must be 'propertyImage'
+      // Try a few common field names — server may expect a different form field key.
+      const fieldNames = ['propertyImage', 'file', 'image', 'profileImage']
+      let uploadData: any = null
+      let imageUrl: string | null = null
 
-      // Sending upload request to CDN (endpoint suppressed)
-      const uploadResponse = await fetch('https://rentify-server-ge0f.onrender.com/upload', {
-        method: 'POST',
-        body: formDataToSend
-      })
-      // Upload response status and content-type suppressed
+      for (const fieldName of fieldNames) {
+        try {
+          const fd = new FormData()
+          fd.append(fieldName, file)
+          const res = await fetch('https://rentify-server-ge0f.onrender.com/upload', {
+            method: 'POST',
+            body: fd
+          })
 
-      let uploadData
-      try {
-        uploadData = await uploadResponse.json()
-      } catch (parseError) {
-        const text = await uploadResponse.text()
-        console.error('Failed to parse JSON response:', text.substring(0, 500))
-        throw new Error('Server returned invalid response. Check console for details.')
+          let parsed: any = null
+          try {
+            parsed = await res.json()
+          } catch (parseErr) {
+            const txt = await res.text()
+            console.warn(`Upload response (non-JSON) for field '${fieldName}':`, txt.substring(0, 300))
+            parsed = { success: false, message: txt }
+          }
+
+          // Save last response for debugging UI
+          lastUploadInfo = parsed
+
+          if (res.ok && parsed && parsed.success && parsed.fileUrl) {
+            uploadData = parsed
+            imageUrl = parsed.fileUrl
+            break
+          }
+
+          // Not successful — log and try next field name
+          console.warn(`Upload with field '${fieldName}' failed:`, parsed || res.status)
+        } catch (err) {
+          console.warn(`Upload attempt for field '${fieldName}' threw:`, err)
+          lastUploadInfo = String(err)
+        }
       }
 
-      if (!uploadResponse.ok) {
-        throw new Error(uploadData.message || uploadData.error || `Upload failed with status ${uploadResponse.status}`)
+      if (!imageUrl) {
+        console.error('All upload attempts failed. Last response:', lastUploadInfo)
+        // Save last server response so the debug UI can display it
+        try { setUploadErrorRaw(typeof lastUploadInfo === 'string' ? lastUploadInfo : JSON.stringify(lastUploadInfo, null, 2)) } catch(e) { setUploadErrorRaw(String(lastUploadInfo)) }
+        throw new Error('Upload failed: server did not accept the file. Check server logs or try again.')
       }
-
-      // Check for success field and fileUrl
-      if (!uploadData.success || !uploadData.fileUrl) {
-        console.error('Response missing success or fileUrl:', uploadData)
-        throw new Error('Failed to upload image to Cloudinary - invalid response format')
-      }
-
-      const imageUrl = uploadData.fileUrl
-      // Upload successful - image URL suppressed
 
       // Step 2: Update user profile picture in database
       const updateResponse = await fetch(`https://rentify-server-ge0f.onrender.com/api/auth/users/${user._id}/profile-picture`, {
@@ -153,7 +172,11 @@ export default function ProfilePage() {
       
       // Show detailed error message
       const errorMessage = error instanceof Error ? error.message : 'Failed to upload profile picture'
-      alert(`Upload failed: ${errorMessage}\n\nCheck browser console for details.`)
+      // Ensure debug UI has something useful if not already set
+      try {
+        if (!uploadErrorRaw) setUploadErrorRaw(error instanceof Error ? error.message : String(error))
+      } catch (e) { /* ignore */ }
+      alert(`Upload failed: ${errorMessage}\n\nCheck browser console for details. You can also view the server response below.`)
       
       // Optional: Offer fallback to base64 storage
       if (confirm('Would you like to try saving the image locally instead? (Note: Image will not be uploaded to cloud)')) {
@@ -361,6 +384,14 @@ export default function ProfilePage() {
                   onChange={handleFileChange}
                   className="hidden"
                 />
+                {uploadErrorRaw && (
+                  <div className="mt-2">
+                    <details className="bg-red-50 border border-red-100 rounded p-2 text-xs text-red-800">
+                      <summary className="font-semibold cursor-pointer">Upload error — view server response</summary>
+                      <pre className="whitespace-pre-wrap max-h-40 overflow-auto mt-2 text-[11px] leading-snug">{uploadErrorRaw}</pre>
+                    </details>
+                  </div>
+                )}
               </div>
               
               <div className="pb-0 sm:pb-1 md:pb-2">
