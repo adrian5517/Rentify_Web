@@ -1,7 +1,9 @@
 // Frontend upload helpers
 // Provides robust helpers to upload files and update profile picture
 
-const API_BASE = (process.env.NEXT_PUBLIC_API_BASE || '').replace(/\/$/, '')
+import config from './config'
+
+const API_BASE = (config.API_API || '').replace(/\/$/, '')
 
 export async function uploadFiles(files: File[], token?: string) {
   if (!files || files.length === 0) throw new Error('No files provided')

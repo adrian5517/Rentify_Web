@@ -31,9 +31,9 @@ interface Property {
 }
 
 export default function ProfilePage() {
-  // Use NEXT_PUBLIC_API_BASE to avoid hard-coding backend host in client code
-  // Set this in Vercel or your environment to e.g. https://rentify-server-ge0f.onrender.com
-  const API_BASE: string = config.API_API
+  // Use `config.API_API` (runtime/build-time) to always target the backend host.
+  // Normalize to remove trailing slash so concatenation is consistent.
+  const API_BASE: string = (config.API_API || '').replace(/\/$/, '')
   const { user, token, logout } = useAuthStore()
   const [isEditing, setIsEditing] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
@@ -175,8 +175,8 @@ export default function ProfilePage() {
         throw new Error('Upload failed: server did not accept the file. Check server logs or try again.')
       }
 
-      // Step 2: Update user profile picture in database
-      const profileUpdateUrl = API_BASE ? `${API_BASE}/api/auth/users/${user._id}/profile-picture` : `/api/auth/users/${user._id}/profile-picture`
+      // Step 2: Update user profile picture in database (always use backend base)
+      const profileUpdateUrl = `${API_BASE}/api/auth/users/${user._id}/profile-picture`
       const headers: Record<string, string> = {
         'Content-Type': 'application/json',
       }
@@ -268,7 +268,7 @@ export default function ProfilePage() {
       // Updating profile for user (suppressed)
       
       // Call backend API
-      const profileUrl = API_BASE ? `${API_BASE}/api/auth/users/${user._id}` : `/api/auth/users/${user._id}`
+      const profileUrl = `${API_BASE}/api/auth/users/${user._id}`
       const headers: Record<string, string> = {
         'Content-Type': 'application/json',
       }
@@ -342,7 +342,7 @@ export default function ProfilePage() {
 
       try {
         setLoadingProperties(true)
-        const propsUrl = `${API_BASE.replace(/\/$/, '')}/api/properties/user/${user._id}`
+        const propsUrl = `${API_BASE}/api/properties/user/${user._id}`
         const headers: Record<string, string> = {}
         if (token) headers['Authorization'] = `Bearer ${token}`
         const response = await fetch(propsUrl, { headers })
@@ -381,7 +381,7 @@ export default function ProfilePage() {
     }
 
     try {
-      const deleteUrl = `${API_BASE.replace(/\/$/, '')}/api/properties/${propertyId}`
+      const deleteUrl = `${API_BASE}/api/properties/${propertyId}`
       const response = await fetch(deleteUrl, {
         method: 'DELETE',
         headers: {
