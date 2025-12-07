@@ -193,24 +193,32 @@ export default function MyListingsPage() {
     if (!ok) return
     setLoading(true)
     try {
-      const endpoints = [`/api/properties/${id}`, `${API_BASE}/api/properties/${id}`]
-      let res: Response | null = null
-      for (const ep of endpoints) {
-        try {
-          res = await fetch(ep, {
-            method: 'DELETE',
-            headers: {
-              'Content-Type': 'application/json',
-              ...(token ? { Authorization: `Bearer ${token}` } : {})
-            }
-          })
-          if (res.ok) break
-        } catch (e) {
-          // try next
-        }
-      }
+      const FALLBACK_API = process.env.NEXT_PUBLIC_FALLBACK_API || 'https://rentify-server-ge0f.onrender.com'
+      const originBase = API_BASE || FALLBACK_API
+      const ep = `${originBase.replace(/\/$/, '')}/api/properties/${id}`
+      if (process.env.NODE_ENV === 'development') console.log('🗑️ Deleting via:', ep)
 
-      if (!res || !res.ok) throw new Error('Failed to delete listing')
+      const res = await fetch(ep, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {})
+        }
+      })
+
+      if (!res || !res.ok) {
+        let msg = `Failed to delete listing (status ${res?.status ?? 'unknown'})`
+        try {
+          const txt = await res.text()
+          if (txt) {
+            if (process.env.NODE_ENV === 'development') console.error('🗑️ Delete error body:', txt.substring(0, 2000))
+            msg = txt
+          }
+        } catch (readErr) {
+          if (process.env.NODE_ENV === 'development') console.error('🗑️ Failed to read delete error body:', readErr)
+        }
+        throw new Error(msg)
+      }
       // Refresh list
       await fetchMyListings()
     } catch (err: any) {

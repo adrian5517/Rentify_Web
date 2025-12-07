@@ -38,7 +38,9 @@ export default function EditListingForm({ propertyId }: EditListingFormProps) {
 
   const [initialData, setInitialData] = useState<any>(null)
 
-  const API_BASE: string = (process.env.NEXT_PUBLIC_API_BASE ?? '').replace(/\/$/, '')
+  const ENV_API_BASE = (process.env.NEXT_PUBLIC_API_BASE ?? '').replace(/\/$/, '')
+  const FALLBACK_API = process.env.NEXT_PUBLIC_FALLBACK_API || 'https://rentify-server-ge0f.onrender.com'
+  const API_BASE: string = ENV_API_BASE || FALLBACK_API
   // Mapbox token fallback
   mapboxgl.accessToken = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN || mapboxgl.accessToken || 'pk.eyJ1IjoiYWRyaWFuNTUxNyIsImEiOiJjbWZkdTg4dmIwMThpMnFyNG10cWJwZjRhIn0.JLRzE6qmyDfePYgSs11ALg'
 
@@ -52,25 +54,24 @@ export default function EditListingForm({ propertyId }: EditListingFormProps) {
       setLoading(true)
       setError(null)
       try {
-        const endpoints = [
-          `/api/properties/${propertyId}`,
-          `${API_BASE}/api/properties/${propertyId}`
-        ]
-
+        // Prefer absolute backend API endpoint to avoid hitting Next origin (which may return HTML)
+        const ep = `${API_BASE.replace(/\/$/, '')}/api/properties/${propertyId}`
         let res: Response | null = null
         let data: any = null
-        for (const ep of endpoints) {
+        try {
+          res = await fetch(ep)
+          if (!res || !res.ok) throw new Error(`Fetch failed (${res?.status})`)
+          data = await res.json()
+        } catch (e) {
+          // Try relative as a last resort
           try {
-            res = await fetch(ep)
-            if (!res.ok) continue
+            res = await fetch(`/api/properties/${propertyId}`)
+            if (!res || !res.ok) throw new Error('Failed to fetch property')
             data = await res.json()
-            break
-          } catch (e) {
-            // try next
+          } catch (err) {
+            throw err
           }
         }
-
-        if (!res || !res.ok) throw new Error('Failed to fetch property')
 
         const property = data.property || data
         if (!mounted) return

@@ -284,6 +284,10 @@ export default function AddPropertyModal({ isOpen, onClose, onPropertyAdded }: A
   // Maximum allowed monthly price for listings (in PHP)
   const MAX_PRICE = 50000
 
+  const ENV_API_BASE = (process.env.NEXT_PUBLIC_API_BASE ?? '').replace(/\/$/, '')
+  const FALLBACK_API = process.env.NEXT_PUBLIC_FALLBACK_API || 'https://rentify-server-ge0f.onrender.com'
+  const API_BASE: string = ENV_API_BASE || FALLBACK_API
+
   // Derived validation state for price (must be a positive number and not exceed MAX)
   const priceNumber = Number(formData.price || 0)
   const isPriceValid = !isNaN(priceNumber) && priceNumber > 0 && priceNumber <= MAX_PRICE
@@ -508,8 +512,10 @@ export default function AddPropertyModal({ isOpen, onClose, onPropertyAdded }: A
 
       // Creating property with images (logs suppressed)
       // FormData contents suppressed for privacy
+      const endpoint = API_BASE ? `${API_BASE.replace(/\/$/, '')}/api/properties` : '/api/properties'
+      if (process.env.NODE_ENV === 'development') console.log('📡 Creating property via:', endpoint)
 
-      const response = await fetch('https://rentify-server-ge0f.onrender.com/api/properties', {
+      const response = await fetch(endpoint, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -528,23 +534,31 @@ export default function AddPropertyModal({ isOpen, onClose, onPropertyAdded }: A
 
       if (!response.ok) {
         const contentType = response.headers.get('content-type')
-        let errorMessage = 'Failed to create property'
-        
+        let errorMessage = `Failed to create property (status ${response.status})`
+        let fullBody = ''
+
         try {
+          // Read full body as text for better debugging (safe even if JSON)
+          fullBody = await response.text()
           if (contentType && contentType.includes('application/json')) {
-            const errorData = await response.json()
-            errorMessage = errorData.message || errorMessage
-            console.error('❌ Server error (JSON):', errorData)
+            try {
+              const parsed = JSON.parse(fullBody)
+              if (parsed.message) errorMessage = parsed.message
+              console.error('❌ Server error (JSON parsed):', parsed)
+            } catch (jsonParseErr) {
+              console.error('❌ Server responded with JSON-like content but JSON.parse failed:', jsonParseErr)
+            }
           } else {
-            const errorText = await response.text()
-            console.error('❌ Server error (Text/HTML):', errorText.substring(0, 500))
-            errorMessage = `Server error (${response.status}): ${errorText.substring(0, 100)}`
+            console.error('❌ Server error (Text/HTML):', fullBody.substring(0, 2000))
           }
-        } catch (parseError) {
-          console.error('❌ Could not parse error response:', parseError)
-          errorMessage = `Server returned ${response.status} error`
+        } catch (readErr) {
+          console.error('❌ Failed to read error response body:', readErr)
         }
-        
+
+        if (process.env.NODE_ENV === 'development' && fullBody) {
+          errorMessage = `${errorMessage}: ${fullBody.substring(0, 1000)}`
+        }
+
         throw new Error(errorMessage)
       }
 
