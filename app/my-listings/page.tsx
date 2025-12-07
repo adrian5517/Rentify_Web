@@ -37,30 +37,26 @@ export default function MyListingsPage() {
     setError(null)
     setServerFilteredNotice(false)
     try {
-      // Prefer absolute backend URL first to avoid Next dev proxy returning app HTML or broad lists
-      const endpoints = [
-        `${API_BASE}/api/properties/user/${user._id}`,
-        `/api/properties/user/${user._id}`,
-      ]
+      // Build an absolute API URL (prefer NEXT_PUBLIC_API_BASE, otherwise use current origin).
+      // This avoids accidentally hitting a relative proxy route that returns the global list.
+      const originBase = API_BASE || (typeof window !== 'undefined' ? window.location.origin : '')
+      if (!originBase) throw new Error('API base URL not available')
 
-      let res: Response | null = null
-      let data: any = null
-      for (const ep of endpoints) {
-        try {
-          res = await fetch(ep, {
-            headers: {
-              ...(token ? { Authorization: `Bearer ${token}` } : {})
-            }
-          })
-          if (!res.ok) continue
-          data = await res.json()
-          break
-        } catch (e) {
-          // try next
+      const ep = `${originBase}/api/properties/user/${user._id}`
+      const res = await fetch(ep, {
+        headers: {
+          ...(token ? { Authorization: `Bearer ${token}` } : {})
         }
+      })
+
+      if (!res || !res.ok) {
+        // Surface server response if available
+        let msg = 'Failed to fetch your listings'
+        try { const txt = await res.text(); msg = txt || msg } catch (e) {}
+        throw new Error(msg)
       }
 
-      if (!res || !res.ok) throw new Error('Failed to fetch your listings')
+      const data = await res.json()
 
       const results: PropertyItem[] = Array.isArray(data) ? data : (data.properties || data.results || [])
       // capture server results for debugging if needed
