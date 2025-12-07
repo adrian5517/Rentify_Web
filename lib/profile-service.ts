@@ -2,8 +2,9 @@
 // Handles all profile-related API calls
 
 import { getAuthToken } from './api'
+import config from './config'
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://rentify-server-ge0f.onrender.com'
+const API_BASE_URL = config.API_API
 
 export interface ProfileUpdateData {
   name?: string
