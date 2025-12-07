@@ -7,6 +7,7 @@ import { useAuthStore } from '@/lib/auth-store'
 export default function ProfilePictureUploader({ onDone }: { onDone?: (user: any) => void }) {
   const { user, token } = useAuthStore()
   const [selected, setSelected] = useState<File | null>(null)
+  const [profilePicture, setProfilePicture] = useState<string | null>(user?.profilePicture || null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -58,7 +59,7 @@ export default function ProfilePictureUploader({ onDone }: { onDone?: (user: any
   return (
     <div className="space-y-2">
       <div className="flex items-center gap-3">
-        <img src={user.profilePicture || '/placeholder-user.jpg'} alt="profile" className="w-12 h-12 rounded-full object-cover" />
+        <img src={profilePicture || user.profilePicture || '/placeholder-user.jpg'} alt="profile" className="w-12 h-12 rounded-full object-cover" />
         <div>
           <label className="text-sm font-medium">Profile Picture</label>
           <div className="text-xs text-slate-500">PNG, JPG, WEBP — max 5MB</div>
