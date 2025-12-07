@@ -246,6 +246,7 @@ export default function MyListingsPage() {
               </div>
             ))}
           </div>
+          </>
         )}
 
         {/* Add Property Modal */}
