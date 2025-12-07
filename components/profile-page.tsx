@@ -29,6 +29,9 @@ interface Property {
 }
 
 export default function ProfilePage() {
+  // Use NEXT_PUBLIC_API_BASE to avoid hard-coding backend host in client code
+  // Set this in Vercel or your environment to e.g. https://rentify-server-ge0f.onrender.com
+  const API_BASE: string = (process.env.NEXT_PUBLIC_API_BASE ?? '').replace(/\/$/, '')
   const { user, token, logout } = useAuthStore()
   const [isEditing, setIsEditing] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
@@ -113,7 +116,9 @@ export default function ProfilePage() {
           try {
             const fd = new FormData()
             fd.append(fieldName, file)
-            const res = await fetch(endpoint, {
+            // If endpoint is relative and API_BASE is set, prefer the absolute API_BASE-prefixed URL
+            const resolvedEndpoint = endpoint.startsWith('/') && API_BASE ? `${API_BASE}${endpoint}` : endpoint
+            const res = await fetch(resolvedEndpoint, {
               method: 'POST',
               body: fd
             })
@@ -131,14 +136,14 @@ export default function ProfilePage() {
             // Save last response (status, headers, body) for debugging UI
             try {
               lastUploadInfo = {
-                endpoint,
+                endpoint: resolvedEndpoint,
                 fieldName,
                 status: res.status,
                 headers: Object.fromEntries(res.headers.entries ? res.headers.entries() : []),
                 body: parsed,
               }
             } catch (e) {
-              lastUploadInfo = { endpoint, fieldName, status: res.status, body: parsed }
+              lastUploadInfo = { endpoint: resolvedEndpoint, fieldName, status: res.status, body: parsed }
             }
 
             if (res.ok && parsed && parsed.success && (parsed.fileUrl || parsed.url)) {
@@ -166,7 +171,8 @@ export default function ProfilePage() {
       }
 
       // Step 2: Update user profile picture in database
-      const updateResponse = await fetch(`https://rentify-server-ge0f.onrender.com/api/auth/users/${user._id}/profile-picture`, {
+      const profileUpdateUrl = API_BASE ? `${API_BASE}/api/auth/users/${user._id}/profile-picture` : `/api/auth/users/${user._id}/profile-picture`
+      const updateResponse = await fetch(profileUpdateUrl, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -241,7 +247,8 @@ export default function ProfilePage() {
       // Updating profile for user (suppressed)
       
       // Call backend API
-      const response = await fetch(`https://rentify-server-ge0f.onrender.com/api/auth/users/${user._id}`, {
+      const profileUrl = API_BASE ? `${API_BASE}/api/auth/users/${user._id}` : `/api/auth/users/${user._id}`
+      const response = await fetch(profileUrl, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -301,7 +308,8 @@ export default function ProfilePage() {
 
       try {
         setLoadingProperties(true)
-        const response = await fetch(`https://rentify-server-ge0f.onrender.com/api/properties/user/${user._id}`)
+        const propsUrl = API_BASE ? `${API_BASE}/api/properties/user/${user._id}` : `/api/properties/user/${user._id}`
+        const response = await fetch(propsUrl)
         
         if (!response.ok) {
           throw new Error('Failed to fetch properties')
@@ -337,7 +345,8 @@ export default function ProfilePage() {
     }
 
     try {
-      const response = await fetch(`https://rentify-server-ge0f.onrender.com/api/properties/${propertyId}`, {
+      const deleteUrl = API_BASE ? `${API_BASE}/api/properties/${propertyId}` : `/api/properties/${propertyId}`
+      const response = await fetch(deleteUrl, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`
@@ -360,7 +369,9 @@ export default function ProfilePage() {
 
   const getImageUrl = (imagePath: string) => {
     if (!imagePath) return 'https://via.placeholder.com/400x300?text=No+Image'
-    return imagePath.startsWith('http') ? imagePath : `https://rentify-server-ge0f.onrender.com${imagePath.startsWith('/') ? imagePath : '/' + imagePath}`
+    if (imagePath.startsWith('http')) return imagePath
+    const prefix = API_BASE || ''
+    return `${prefix}${imagePath.startsWith('/') ? imagePath : '/' + imagePath}`
   }
 
   return (

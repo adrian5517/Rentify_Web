@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import { authenticateWithFacebook, verifyFacebookToken } from './facebook-auth'
+import { API_API } from './config'
 
 interface User {
   _id: string
@@ -58,7 +59,7 @@ export const useAuthStore = create<AuthState>()(
           const controller = new AbortController()
           const timeoutId = setTimeout(() => controller.abort(), 30000) // 30 second timeout
 
-          const response = await fetch("https://rentify-server-ge0f.onrender.com/api/auth/signup", {
+          const response = await fetch(`${API_API}/auth/signup`, {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
@@ -100,7 +101,7 @@ export const useAuthStore = create<AuthState>()(
           const controller = new AbortController()
           const timeoutId = setTimeout(() => controller.abort(), 30000) // 30 second timeout
 
-          const response = await fetch("https://rentify-server-ge0f.onrender.com/api/auth/login", {
+          const response = await fetch(`${API_API}/auth/login`, {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
