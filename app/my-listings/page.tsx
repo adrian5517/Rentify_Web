@@ -38,12 +38,14 @@ export default function MyListingsPage() {
     setError(null)
     setServerFilteredNotice(false)
     try {
-      // Build an absolute API URL (prefer NEXT_PUBLIC_API_BASE, otherwise use current origin).
-      // This avoids accidentally hitting a relative proxy route that returns the global list.
-      const originBase = API_BASE || (typeof window !== 'undefined' ? window.location.origin : '')
+      // Build an absolute API URL. Prefer explicit `NEXT_PUBLIC_API_BASE`.
+      // If that's not set, prefer a known backend host fallback (the production API),
+      // and avoid defaulting to the Next.js origin which returns the app HTML (causing the HTML 404 issue).
+      const FALLBACK_API = process.env.NEXT_PUBLIC_FALLBACK_API || 'https://rentify-server-ge0f.onrender.com'
+      const originBase = API_BASE || FALLBACK_API
       if (!originBase) throw new Error('API base URL not available')
 
-      const ep = `${originBase}/api/properties/user/${user._id}`
+      const ep = `${originBase.replace(/\/$/, '')}/api/properties/user/${user._id}`
       // Save the request URL for dev-only debugging
       setRequestUrl(ep)
       const res = await fetch(ep, {
@@ -233,6 +235,69 @@ export default function MyListingsPage() {
     )
   }
 
+  // Helper to check ownership again at render time (extra safety)
+  const isPropertyOwned = (prop: any) => {
+    try {
+      const ownerIdCandidates = new Set<string>()
+      if (prop.postedBy) {
+        if (typeof prop.postedBy === 'string') ownerIdCandidates.add(prop.postedBy)
+        else if (prop.postedBy._id) ownerIdCandidates.add(prop.postedBy._id)
+        else if (prop.postedBy.id) ownerIdCandidates.add(prop.postedBy.id)
+      }
+      if (prop.createdBy) {
+        if (typeof prop.createdBy === 'string') ownerIdCandidates.add(prop.createdBy)
+        else if (prop.createdBy._id) ownerIdCandidates.add(prop.createdBy._id)
+        else if (prop.createdBy.id) ownerIdCandidates.add(prop.createdBy.id)
+      }
+      if (prop.owner) {
+        if (typeof prop.owner === 'string') ownerIdCandidates.add(prop.owner)
+        else if (prop.owner._id) ownerIdCandidates.add(prop.owner._id)
+        else if (prop.owner.id) ownerIdCandidates.add(prop.owner.id)
+      }
+      if (prop.ownerId) ownerIdCandidates.add(prop.ownerId)
+      if (prop.userId) ownerIdCandidates.add(prop.userId)
+      if (prop.poster) ownerIdCandidates.add(prop.poster)
+
+      const userIds = new Set<string>()
+      if (user?._id) userIds.add(user._id)
+      if ((user as any)?.id) userIds.add((user as any).id)
+
+      for (const uid of userIds) if (ownerIdCandidates.has(uid)) return true
+
+      // fallback to email/name matching if no id candidates
+      if (ownerIdCandidates.size === 0) {
+        try {
+          const userEmail = (user && (user.email || (user as any)?.userEmail)) || null
+          if (userEmail) {
+            if ((prop.postedBy && typeof prop.postedBy !== 'string' && prop.postedBy.email === userEmail) ||
+                (prop.createdBy && typeof prop.createdBy !== 'string' && prop.createdBy.email === userEmail) ||
+                (prop.ownerEmail && prop.ownerEmail === userEmail) ||
+                (prop.email && prop.email === userEmail) ||
+                (prop.posterEmail && prop.posterEmail === userEmail)) {
+              return true
+            }
+          }
+        } catch {}
+
+        try {
+          const userNames = new Set<string>()
+          if ((user as any)?.name) userNames.add(((user as any).name as string).toLowerCase())
+          if ((user as any)?.fullName) userNames.add(((user as any).fullName as string).toLowerCase())
+          if ((user as any)?.username) userNames.add(((user as any).username as string).toLowerCase())
+
+          const ownerName = (prop.ownerName || prop.owner?.name || prop.postedBy?.name || prop.createdBy?.name || '') as string
+          if (ownerName && userNames.size > 0 && userNames.has(ownerName.toLowerCase())) return true
+        } catch {}
+      }
+
+      return false
+    } catch (e) {
+      return false
+    }
+  }
+
+  const ownedProperties = properties.filter(isPropertyOwned)
+
   return (
     <main className="min-h-screen bg-gradient-to-b from-white via-slate-50 to-slate-50 py-10">
       <div className="container mx-auto px-4">
@@ -255,7 +320,7 @@ export default function MyListingsPage() {
           </div>
         ) : error ? (
           <div className="p-4 bg-red-50 border border-red-200 rounded text-sm text-red-600">{error}</div>
-        ) : properties.length === 0 ? (
+        ) : ownedProperties.length === 0 ? (
           <div className="p-8 bg-white rounded-2xl shadow-2xl text-center">
             <div className="max-w-3xl mx-auto flex flex-col md:flex-row items-center gap-6">
               <div className="flex-1 text-left">
@@ -297,7 +362,7 @@ export default function MyListingsPage() {
                   <div>
                     <strong>Note:</strong> Server returned a broader list — showing only your properties.
                     {serverResultsCount !== null && (
-                      <div className="text-xs text-yellow-800 mt-1">Server results: {serverResultsCount} — Showing: {properties.length}</div>
+                      <div className="text-xs text-yellow-800 mt-1">Server results: {serverResultsCount} — Showing: {ownedProperties.length}</div>
                     )}
                   </div>
 
@@ -316,7 +381,7 @@ export default function MyListingsPage() {
               </div>
             )}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {properties.map((p) => (
+            {ownedProperties.map((p) => (
               <div key={p._id} className="relative bg-white rounded-2xl shadow-xl overflow-hidden group">
                 <div className="relative h-56 sm:h-64 lg:h-56 overflow-hidden">
                   <img src={p.images && p.images.length ? p.images[0] : '/placeholder.jpg'} alt={p.name} className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-400" />

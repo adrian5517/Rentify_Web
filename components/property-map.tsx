@@ -41,16 +41,6 @@ const modernStyles = `
     overflow: hidden;
   }
   
-    // owner info obtained (not logging sensitive details)
-    const getOwnerInfo = (property: Property) => {
-      // Debug: Log property data to see what we have
-      // console.log('Getting owner info for property:', {
-      //   name: property.name,
-      //   postedBy: property.postedBy,
-      //   createdBy: property.createdBy,
-      //   owner: property.owner,
-      //   phoneNumber: property.phoneNumber
-      // })
     background: var(--primary);
     color: white;
     display: flex;
@@ -787,7 +777,14 @@ export default function PropertyMap({
     }
 
     // Property markers
+    const skipped: string[] = []
     validProperties.forEach((property: MLProperty) => {
+      const latNum = Number(property?.location?.latitude)
+      const lngNum = Number(property?.location?.longitude)
+      if (!isFinite(latNum) || !isFinite(lngNum)) {
+        skipped.push(property?._id || property?.id || property?.name || 'unknown')
+        return
+      }
       try {
         let distanceText = ""
         let distanceKm = 0
@@ -934,7 +931,7 @@ export default function PropertyMap({
         console.error(`Error adding marker for ${property.name}:`, err)
       }
     })
-
+    if (skipped.length > 0) console.warn('Skipped properties with invalid coords:', skipped)
     console.log(`🗺️ Added ${markersRef.current.length} markers (${filteredProperties.length} properties + ${focusOnProperty ? 0 : (userLocation ? 1 : 0)} user location)`)
   }, [clearMarkers, userLocation, drawDirections, focusOnProperty, enableClustering, mlProperties.length, selectedCluster, navigationMode, onNavigationToggle, getTurnByTurnDirections]) // Added missing callbacks
 
