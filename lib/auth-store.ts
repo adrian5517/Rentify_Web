@@ -59,7 +59,7 @@ export const useAuthStore = create<AuthState>()(
           const controller = new AbortController()
           const timeoutId = setTimeout(() => controller.abort(), 30000) // 30 second timeout
 
-          const response = await fetch(`${API_API}/auth/signup`, {
+          const response = await fetch(`${API_API}/api/auth/signup`, {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
@@ -70,7 +70,21 @@ export const useAuthStore = create<AuthState>()(
 
           clearTimeout(timeoutId)
 
-          const data = await response.json()
+          // Try to parse JSON if server sent it; otherwise read text (HTML/error page)
+          let data: any = null
+          const contentType = response.headers.get('content-type') || ''
+          if (contentType.includes('application/json')) {
+            data = await response.json()
+          } else {
+            // Non-JSON response (could be HTML error page or redirect). Read text to surface a helpful message.
+            const text = await response.text()
+            // If the response looks like HTML, return a generic error to avoid exposing HTML in the UI
+            if (text && text.trim().startsWith('<')) {
+              throw new Error('Server returned an unexpected HTML response. Check the backend or inspect network response for details.')
+            }
+            // Otherwise use the text as the message
+            data = { message: text }
+          }
           if (!response.ok) {
             // Keep server messages neutral for password complexity issues
             const msg = (response.status === 400 && data?.message && /password/i.test(data.message)) ? SUGGESTED_MSG : (data.message || "Something went wrong")
@@ -101,7 +115,7 @@ export const useAuthStore = create<AuthState>()(
           const controller = new AbortController()
           const timeoutId = setTimeout(() => controller.abort(), 30000) // 30 second timeout
 
-          const response = await fetch(`${API_API}/auth/login`, {
+          const response = await fetch(`${API_API}/api/auth/login`, {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
@@ -112,7 +126,18 @@ export const useAuthStore = create<AuthState>()(
 
           clearTimeout(timeoutId)
 
-          const data = await response.json()
+          // Safely parse JSON or fallback to text when server returns HTML/error pages
+          let data: any = null
+          const contentType = response.headers.get('content-type') || ''
+          if (contentType.includes('application/json')) {
+            data = await response.json()
+          } else {
+            const text = await response.text()
+            if (text && text.trim().startsWith('<')) {
+              throw new Error('Server returned an unexpected HTML response. Check the backend or inspect network response for details.')
+            }
+            data = { message: text }
+          }
           if (!response.ok) throw new Error(data.message || "Something went wrong")
 
           set({
