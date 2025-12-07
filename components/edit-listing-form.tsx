@@ -1,6 +1,7 @@
 "use client"
 
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState, useRef } from 'react'
+import mapboxgl from 'mapbox-gl'
 import { useAuthStore } from '@/lib/auth-store'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -38,6 +39,12 @@ export default function EditListingForm({ propertyId }: EditListingFormProps) {
   const [initialData, setInitialData] = useState<any>(null)
 
   const API_BASE: string = (process.env.NEXT_PUBLIC_API_BASE ?? '').replace(/\/$/, '')
+  // Mapbox token fallback
+  mapboxgl.accessToken = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN || mapboxgl.accessToken || 'pk.eyJ1IjoiYWRyaWFuNTUxNyIsImEiOiJjbWZkdTg4dmIwMThpMnFyNG10cWJwZjRhIn0.JLRzE6qmyDfePYgSs11ALg'
+
+  const mapContainerRef = useRef<HTMLDivElement | null>(null)
+  const mapRef = useRef<mapboxgl.Map | null>(null)
+  const markerRef = useRef<mapboxgl.Marker | null>(null)
 
   useEffect(() => {
     let mounted = true
@@ -93,6 +100,66 @@ export default function EditListingForm({ propertyId }: EditListingFormProps) {
     return () => { mounted = false }
   }, [propertyId, API_BASE])
 
+  // Initialize map and marker after data is loaded
+  useEffect(() => {
+    if (loading) return
+    // ensure we have numeric coordinates or use default center
+    const lat = Number(formData.latitude) || 13.6218
+    const lng = Number(formData.longitude) || 123.1815
+
+    if (!mapContainerRef.current) return
+
+    // Create map only once
+    if (!mapRef.current) {
+      try {
+        const map = new mapboxgl.Map({
+          container: mapContainerRef.current,
+          style: 'mapbox://styles/mapbox/streets-v11',
+          center: [lng, lat],
+          zoom: 13
+        })
+        mapRef.current = map
+
+        // add controls
+        map.addControl(new mapboxgl.NavigationControl())
+
+        map.on('click', (e) => {
+          const { lng: clickLng, lat: clickLat } = e.lngLat
+          // move marker
+          if (markerRef.current) markerRef.current.setLngLat([clickLng, clickLat])
+          else {
+            markerRef.current = new mapboxgl.Marker({ draggable: true }).setLngLat([clickLng, clickLat]).addTo(map)
+            markerRef.current.on('dragend', () => {
+              const ll = markerRef.current!.getLngLat()
+              handleChange('latitude', String(ll.lat))
+              handleChange('longitude', String(ll.lng))
+            })
+          }
+          handleChange('latitude', String(clickLat))
+          handleChange('longitude', String(clickLng))
+        })
+
+        // create marker
+        markerRef.current = new mapboxgl.Marker({ draggable: true }).setLngLat([lng, lat]).addTo(map)
+        markerRef.current.on('dragend', () => {
+          const ll = markerRef.current!.getLngLat()
+          handleChange('latitude', String(ll.lat))
+          handleChange('longitude', String(ll.lng))
+        })
+      } catch (e) {
+        console.warn('Mapbox init failed', e)
+      }
+    } else {
+      // update center/marker position
+      try {
+        const map = mapRef.current!
+        map.setCenter([lng, lat])
+        if (markerRef.current) markerRef.current.setLngLat([lng, lat])
+      } catch (e) { }
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loading, formData.latitude, formData.longitude])
+
   const handleChange = (field: string, value: any) => {
     setFormData((p) => ({ ...p, [field]: value }))
   }
@@ -117,8 +184,8 @@ export default function EditListingForm({ propertyId }: EditListingFormProps) {
         description: formData.description,
         price: Number(formData.price || 0),
         address: formData.address,
-        latitude: formData.latitude,
-        longitude: formData.longitude,
+        latitude: formData.latitude !== '' ? Number(formData.latitude) : undefined,
+        longitude: formData.longitude !== '' ? Number(formData.longitude) : undefined,
         propertyType: formData.propertyType,
         amenities: formData.amenities,
         phoneNumber: formData.phoneNumber,
@@ -228,6 +295,23 @@ export default function EditListingForm({ propertyId }: EditListingFormProps) {
             <div>
               <Label className="text-xs font-semibold">Contact Phone</Label>
               <Input value={formData.phoneNumber} onChange={(e) => handleChange('phoneNumber', e.target.value)} />
+            </div>
+          </div>
+
+          {/* Map + Coordinates Editor */}
+          <div className="md:col-span-2 mt-6">
+            <Label className="text-xs font-semibold mb-2">Location (click map or drag marker)</Label>
+            <div ref={mapContainerRef} className="w-full h-64 rounded-lg overflow-hidden border border-slate-200" />
+
+            <div className="grid grid-cols-2 gap-3 mt-3">
+              <div>
+                <Label className="text-xs font-semibold">Latitude</Label>
+                <Input value={formData.latitude} onChange={(e) => handleChange('latitude', e.target.value)} />
+              </div>
+              <div>
+                <Label className="text-xs font-semibold">Longitude</Label>
+                <Input value={formData.longitude} onChange={(e) => handleChange('longitude', e.target.value)} />
+              </div>
             </div>
           </div>
 
