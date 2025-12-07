@@ -25,6 +25,12 @@ export default function MyListingsPage() {
   const [properties, setProperties] = useState<PropertyItem[]>([])
   const [isAddOpen, setIsAddOpen] = useState(false)
   const [serverFilteredNotice, setServerFilteredNotice] = useState(false)
+  const [serverResultsCount, setServerResultsCount] = useState<number | null>(null)
+  const [serverResultsSample, setServerResultsSample] = useState<any[] | null>(null)
+  const [showRawServerResults, setShowRawServerResults] = useState(false)
+  const [lastServerResults, setLastServerResults] = useState<any[] | null>(null)
+  const [lastFilteredResults, setLastFilteredResults] = useState<any[] | null>(null)
+  const [showAllServerResults, setShowAllServerResults] = useState(false)
 
   const API_BASE: string = (process.env.NEXT_PUBLIC_API_BASE ?? '').replace(/\/$/, '')
 
@@ -59,9 +65,27 @@ export default function MyListingsPage() {
       if (!res || !res.ok) throw new Error('Failed to fetch your listings')
 
       const results: PropertyItem[] = Array.isArray(data) ? data : (data.properties || data.results || [])
+      // capture server results for debugging if needed
+      setServerResultsCount(Array.isArray(results) ? results.length : null)
+      try {
+        setServerResultsSample(Array.isArray(results) ? (results as any[]).slice(0, 6).map(r => ({
+          _id: r._id,
+          name: r.name,
+          postedBy: (r as any).postedBy,
+          createdBy: (r as any).createdBy,
+          owner: (r as any).owner,
+          ownerId: (r as any).ownerId,
+          userId: (r as any).userId,
+        })) : null)
+      } catch (e) {
+        // ignore
+      }
+      // store raw server results for toggle/view
+      setLastServerResults(Array.isArray(results) ? (results as any[]) : null)
 
       // If the API returned a broad set (or the server ignored the user filter),
       // ensure we only show properties belonging to the current user as a fallback.
+      // Strict filtering: only accept properties that explicitly list the current user's id
       const filtered = results.filter((prop: any) => {
         const ownerIdCandidates = new Set<string>()
 
@@ -89,28 +113,70 @@ export default function MyListingsPage() {
         if (prop.userId) ownerIdCandidates.add(prop.userId)
         if (prop.poster) ownerIdCandidates.add(prop.poster)
 
-        // If the API populated user objects with emails, try matching by email as a fallback
-        try {
-          if (user?.email) {
-            if (prop.postedBy && typeof prop.postedBy !== 'string' && prop.postedBy.email === user.email) ownerIdCandidates.add(user._id)
-            if (prop.createdBy && typeof prop.createdBy !== 'string' && prop.createdBy.email === user.email) ownerIdCandidates.add(user._id)
+        // If no owner info exists, try fallback matching by email or owner name
+        if (ownerIdCandidates.size === 0) {
+          // try email match
+          try {
+            const userEmail = (user && (user.email || (user as any)?.userEmail)) || null
+            if (userEmail) {
+              if ((prop.postedBy && typeof prop.postedBy !== 'string' && prop.postedBy.email === userEmail) ||
+                  (prop.createdBy && typeof prop.createdBy !== 'string' && prop.createdBy.email === userEmail) ||
+                  (prop.ownerEmail && prop.ownerEmail === userEmail) ||
+                  (prop.email && prop.email === userEmail) ||
+                  (prop.posterEmail && prop.posterEmail === userEmail)) {
+                return true
+              }
+            }
+          } catch (e) {
+            // ignore
           }
-        } catch (e) {
-          // ignore
+
+          // try name match (case-insensitive, minimal risk)
+          try {
+            const userNames = new Set<string>()
+            if ((user as any)?.name) userNames.add(((user as any).name as string).toLowerCase())
+            if ((user as any)?.fullName) userNames.add(((user as any).fullName as string).toLowerCase())
+            if ((user as any)?.username) userNames.add(((user as any).username as string).toLowerCase())
+
+            const ownerName = (prop.ownerName || prop.owner?.name || prop.postedBy?.name || prop.createdBy?.name || '') as string
+            if (ownerName && userNames.size > 0 && userNames.has(ownerName.toLowerCase())) {
+              return true
+            }
+          } catch (e) {
+            // ignore
+          }
+
+          return false
         }
 
-        // If no owner info exists, assume it's not owned by user
-        if (ownerIdCandidates.size === 0) return false
+        // match against user's id fields (strict equality only)
+        const userIds = new Set<string>()
+        if (user?._id) userIds.add(user._id)
+        if ((user as any)?.id) userIds.add((user as any).id)
 
-        return ownerIdCandidates.has(user._id)
+        for (const uid of userIds) {
+          if (ownerIdCandidates.has(uid)) return true
+        }
+
+        return false
       })
+
+      // keep last filtered snapshot for toggling back and forth
+      setLastFilteredResults(filtered)
 
       // If server returned extra results (i.e., filtering happened client-side), show a small notice
       if (results.length > filtered.length) {
         setServerFilteredNotice(true)
       }
 
-      setProperties(filtered)
+      // If the user has asked to view all server results, honour that (temporary unsafe view)
+      if (showAllServerResults && Array.isArray(lastServerResults)) {
+        setProperties(lastServerResults)
+      } else {
+        setProperties(filtered)
+      }
+      // if server returned results but none matched the user, keep serverFilteredNotice on
+      if (results.length > 0 && filtered.length === 0) setServerFilteredNotice(true)
     } catch (err: any) {
       setError(err?.message || 'Failed to load listings')
     } finally {
@@ -230,13 +296,34 @@ export default function MyListingsPage() {
         ) : (
           <>
             {serverFilteredNotice && (
-              <div className="mb-4 p-3 rounded-lg bg-yellow-50 border border-yellow-200 text-sm text-yellow-800 flex items-start justify-between gap-4">
-                <div>
-                  <strong>Note:</strong> Server returned a broader list — showing only your properties.
+              <div className="mb-4 p-3 rounded-lg bg-yellow-50 border border-yellow-200 text-sm text-yellow-800">
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <strong>Note:</strong> Server returned a broader list — showing only your properties.
+                    {serverResultsCount !== null && (
+                      <div className="text-xs text-yellow-800 mt-1">Server results: {serverResultsCount} — Showing: {properties.length}</div>
+                    )}
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                      <button onClick={() => setShowRawServerResults(prev => !prev)} className="text-xs underline text-yellow-800">{showRawServerResults ? 'Hide' : 'Show'} sample</button>
+                      <button onClick={() => setShowAllServerResults(prev => {
+                        const next = !prev
+                        // toggle properties view immediately
+                        if (next && lastServerResults) setProperties(lastServerResults)
+                        else if (!next && lastFilteredResults) setProperties(lastFilteredResults)
+                        return next
+                      })} className="text-xs underline text-yellow-800">{showAllServerResults ? 'Hide server items' : 'Show server items (unsafe)'}</button>
+                      <button onClick={() => { setServerFilteredNotice(false); setShowRawServerResults(false) }} className="text-xs underline text-yellow-800">Dismiss</button>
+                    </div>
                 </div>
-                <div>
-                  <button onClick={() => setServerFilteredNotice(false)} className="text-xs underline text-yellow-800">Dismiss</button>
-                </div>
+
+                {showRawServerResults && serverResultsSample && (
+                  <div className="mt-3 bg-white rounded p-3 border border-yellow-100 text-xs text-slate-700">
+                    <div className="font-medium text-yellow-800 mb-2">Server sample (first {serverResultsSample.length}):</div>
+                    <pre className="whitespace-pre-wrap break-words text-[12px]">{JSON.stringify(serverResultsSample, null, 2)}</pre>
+                  </div>
+                )}
               </div>
             )}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
