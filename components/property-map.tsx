@@ -707,6 +707,27 @@ export default function PropertyMap({
 
     console.log(`🗺️ Displaying ${filteredProperties.length} properties for cluster: ${staticLabels[selectedCluster] || selectedCluster}`)
 
+    // Filter out properties without valid numeric coordinates to avoid map errors
+    const invalidCoords: string[] = []
+    const validProperties = filteredProperties.filter((p: any) => {
+      try {
+        const lat = p?.location?.latitude
+        const lng = p?.location?.longitude
+        const nLat = Number(lat)
+        const nLng = Number(lng)
+        const ok = Number.isFinite(nLat) && Number.isFinite(nLng)
+        if (!ok) invalidCoords.push(`${p._id || p.id || p.name || 'unknown'}`)
+        return ok
+      } catch (e) {
+        invalidCoords.push(`${p._id || p.id || p.name || 'unknown'}`)
+        return false
+      }
+    })
+
+    if (invalidCoords.length > 0) {
+      console.warn('Some properties have invalid or missing coordinates and will be skipped on the map:', invalidCoords)
+    }
+
     // Only add user marker if not focusing on a single property
     if (!focusOnProperty) {
       // User marker with custom person icon
@@ -766,7 +787,7 @@ export default function PropertyMap({
     }
 
     // Property markers
-    filteredProperties.forEach((property: MLProperty) => {
+    validProperties.forEach((property: MLProperty) => {
       try {
         let distanceText = ""
         let distanceKm = 0
