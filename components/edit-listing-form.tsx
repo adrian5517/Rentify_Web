@@ -14,7 +14,7 @@ interface EditListingFormProps {
   propertyId: string
 }
 
-const MIN_PRICE = 20000
+const MAX_PRICE = 50000
 
 export default function EditListingForm({ propertyId }: EditListingFormProps) {
   const { token } = useAuthStore()
@@ -103,14 +103,14 @@ export default function EditListingForm({ propertyId }: EditListingFormProps) {
   }
 
   const priceNumber = Number(formData.price || 0)
-  const isPriceValid = !isNaN(priceNumber) && priceNumber >= MIN_PRICE
+  const isPriceValid = !isNaN(priceNumber) && priceNumber > 0 && priceNumber <= MAX_PRICE
 
   const handleSave = async () => {
     setSaving(true)
     setError(null)
     setSuccessMessage(null)
     try {
-      if (!isPriceValid) throw new Error(`Price must be at least ₱${MIN_PRICE.toLocaleString()}`)
+      if (!isPriceValid) throw new Error(`Price must be at most ₱${MAX_PRICE.toLocaleString()}`)
 
       const body = {
         name: formData.name,
@@ -197,7 +197,7 @@ export default function EditListingForm({ propertyId }: EditListingFormProps) {
               <Label className="text-xs font-semibold">Monthly Rent (₱)</Label>
               <Input type="number" value={formData.price} onChange={(e) => handleChange('price', e.target.value)} />
               {!isPriceValid && formData.price !== '' && (
-                <p className="text-xs text-red-600 mt-1">Price must be at least ₱{MIN_PRICE.toLocaleString()}</p>
+                <p className="text-xs text-red-600 mt-1">Price must be at most ₱{MAX_PRICE.toLocaleString()}</p>
               )}
             </div>
 

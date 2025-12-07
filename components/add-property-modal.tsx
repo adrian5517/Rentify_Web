@@ -281,12 +281,12 @@ export default function AddPropertyModal({ isOpen, onClose, onPropertyAdded }: A
     }
   }
 
-  // Minimum allowed monthly price for listings (in PHP)
-  const MIN_PRICE = 50000
+  // Maximum allowed monthly price for listings (in PHP)
+  const MAX_PRICE = 50000
 
-  // Derived validation state for price
+  // Derived validation state for price (must be a positive number and not exceed MAX)
   const priceNumber = Number(formData.price || 0)
-  const isPriceValid = !isNaN(priceNumber) && priceNumber >= MIN_PRICE
+  const isPriceValid = !isNaN(priceNumber) && priceNumber > 0 && priceNumber <= MAX_PRICE
 
   // Reverse geocoding function to get address from coordinates
   const reverseGeocode = async (lng: number, lat: number) => {
@@ -431,10 +431,10 @@ export default function AddPropertyModal({ isOpen, onClose, onPropertyAdded }: A
     setSubmitError(null)
 
     try {
-      // Validate minimum price before sending
+      // Validate price before sending (must be positive and not exceed MAX_PRICE)
       const priceVal = Number(formData.price)
-      if (isNaN(priceVal) || priceVal < MIN_PRICE) {
-        setSubmitError(`Price must be at least ₱${MIN_PRICE.toLocaleString()}.`)
+      if (isNaN(priceVal) || priceVal <= 0 || priceVal > MAX_PRICE) {
+        setSubmitError(`Price must be at most ₱${MAX_PRICE.toLocaleString()}.`)
         setIsSubmitting(false)
         return
       }
@@ -775,7 +775,7 @@ export default function AddPropertyModal({ isOpen, onClose, onPropertyAdded }: A
                 className="h-10 sm:h-11 text-sm sm:text-base"
               />
               {!isPriceValid && formData.price !== "" && (
-                <p className="text-xs text-red-600 mt-1">Price must be at least ₱{MIN_PRICE.toLocaleString()}</p>
+                <p className="text-xs text-red-600 mt-1">Price must be at most ₱{MAX_PRICE.toLocaleString()}</p>
               )}
             </div>
           </div>
