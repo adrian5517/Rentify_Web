@@ -282,7 +282,7 @@ export default function AddPropertyModal({ isOpen, onClose, onPropertyAdded }: A
   }
 
   // Minimum allowed monthly price for listings (in PHP)
-  const MIN_PRICE = 20000
+  const MIN_PRICE = 50000
 
   // Derived validation state for price
   const priceNumber = Number(formData.price || 0)
