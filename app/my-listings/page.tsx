@@ -28,9 +28,6 @@ export default function MyListingsPage() {
   const [serverResultsCount, setServerResultsCount] = useState<number | null>(null)
   const [serverResultsSample, setServerResultsSample] = useState<any[] | null>(null)
   const [showRawServerResults, setShowRawServerResults] = useState(false)
-  const [lastServerResults, setLastServerResults] = useState<any[] | null>(null)
-  const [lastFilteredResults, setLastFilteredResults] = useState<any[] | null>(null)
-  const [showAllServerResults, setShowAllServerResults] = useState(false)
 
   const API_BASE: string = (process.env.NEXT_PUBLIC_API_BASE ?? '').replace(/\/$/, '')
 
@@ -81,8 +78,7 @@ export default function MyListingsPage() {
       } catch (e) {
         // ignore
       }
-      // store raw server results for toggle/view
-      setLastServerResults(Array.isArray(results) ? (results as any[]) : null)
+      // don't store raw server results in UI state
 
       // If the API returned a broad set (or the server ignored the user filter),
       // ensure we only show properties belonging to the current user as a fallback.
@@ -162,20 +158,13 @@ export default function MyListingsPage() {
         return false
       })
 
-      // keep last filtered snapshot for toggling back and forth
-      setLastFilteredResults(filtered)
-
       // If server returned extra results (i.e., filtering happened client-side), show a small notice
       if (results.length > filtered.length) {
         setServerFilteredNotice(true)
       }
 
-      // If the user has asked to view all server results, honour that (temporary unsafe view)
-      if (showAllServerResults && Array.isArray(lastServerResults)) {
-        setProperties(lastServerResults)
-      } else {
-        setProperties(filtered)
-      }
+      // Always show only filtered results (strict mode)
+      setProperties(filtered)
       // if server returned results but none matched the user, keep serverFilteredNotice on
       if (results.length > 0 && filtered.length === 0) setServerFilteredNotice(true)
     } catch (err: any) {
@@ -307,16 +296,9 @@ export default function MyListingsPage() {
                   </div>
 
                   <div className="flex items-center gap-2">
-                      <button onClick={() => setShowRawServerResults(prev => !prev)} className="text-xs underline text-yellow-800">{showRawServerResults ? 'Hide' : 'Show'} sample</button>
-                      <button onClick={() => setShowAllServerResults(prev => {
-                        const next = !prev
-                        // toggle properties view immediately
-                        if (next && lastServerResults) setProperties(lastServerResults)
-                        else if (!next && lastFilteredResults) setProperties(lastFilteredResults)
-                        return next
-                      })} className="text-xs underline text-yellow-800">{showAllServerResults ? 'Hide server items' : 'Show server items (unsafe)'}</button>
-                      <button onClick={() => { setServerFilteredNotice(false); setShowRawServerResults(false) }} className="text-xs underline text-yellow-800">Dismiss</button>
-                    </div>
+                    <button onClick={() => setShowRawServerResults(prev => !prev)} className="text-xs underline text-yellow-800">{showRawServerResults ? 'Hide' : 'Show'} sample</button>
+                    <button onClick={() => { setServerFilteredNotice(false); setShowRawServerResults(false) }} className="text-xs underline text-yellow-800">Dismiss</button>
+                  </div>
                 </div>
 
                 {showRawServerResults && serverResultsSample && (
