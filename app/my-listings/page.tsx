@@ -40,9 +40,10 @@ export default function MyListingsPage() {
     setError(null)
     setServerFilteredNotice(false)
     try {
+      // Prefer absolute backend URL first to avoid Next dev proxy returning app HTML or broad lists
       const endpoints = [
+        `${API_BASE}/api/properties/user/${user._id}`,
         `/api/properties/user/${user._id}`,
-        `${API_BASE}/api/properties/user/${user._id}`
       ]
 
       let res: Response | null = null
