@@ -51,6 +51,8 @@ export async function uploadProfilePicture(file: File, token: string | undefined
 
   // Fallback: upload to /api/upload then call PUT with JSON { imageUrl }
   const uploadResult = await uploadFiles([file], token)
+  // DEBUG: log the upload result so frontend can be verified against profile update
+  console.log('DEBUG uploadResult for profile update:', uploadResult)
   const fileUrl = uploadResult.fileUrl || (uploadResult.files && uploadResult.files[0] && (uploadResult.files[0].url || uploadResult.files[0].fileUrl))
   if (!fileUrl) throw new Error('Upload succeeded but no fileUrl returned')
 
