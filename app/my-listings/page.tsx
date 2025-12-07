@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { useAuthStore } from '@/lib/auth-store'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -18,6 +19,7 @@ interface PropertyItem {
 
 export default function MyListingsPage() {
   const { user, token } = useAuthStore()
+  const router = useRouter()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [properties, setProperties] = useState<PropertyItem[]>([])
@@ -60,26 +62,42 @@ export default function MyListingsPage() {
 
       // If the API returned a broad set (or the server ignored the user filter),
       // ensure we only show properties belonging to the current user as a fallback.
-      const filtered = results.filter((prop) => {
+      const filtered = results.filter((prop: any) => {
         const ownerIdCandidates = new Set<string>()
-        // postedBy can be a string id or populated object
-        if ((prop as any).postedBy) {
-          const pb = (prop as any).postedBy
-          if (typeof pb === 'string') ownerIdCandidates.add(pb)
-          else if (pb && pb._id) ownerIdCandidates.add(pb._id)
-        }
-        if ((prop as any).createdBy) {
-          const cb = (prop as any).createdBy
-          if (typeof cb === 'string') ownerIdCandidates.add(cb)
-          else if (cb && cb._id) ownerIdCandidates.add(cb._id)
-        }
-        // legacy owner field
-        if ((prop as any).owner && (prop as any).owner.id) {
-          ownerIdCandidates.add((prop as any).owner.id)
+
+        // postedBy may be an id or populated object
+        if (prop.postedBy) {
+          if (typeof prop.postedBy === 'string') ownerIdCandidates.add(prop.postedBy)
+          else if (prop.postedBy._id) ownerIdCandidates.add(prop.postedBy._id)
+          else if (prop.postedBy.id) ownerIdCandidates.add(prop.postedBy.id)
         }
 
-        // also check top-level postedBy/createdBy strings named differently
-        if ((prop as any).ownerId) ownerIdCandidates.add((prop as any).ownerId)
+        // createdBy may be an id or populated object
+        if (prop.createdBy) {
+          if (typeof prop.createdBy === 'string') ownerIdCandidates.add(prop.createdBy)
+          else if (prop.createdBy._id) ownerIdCandidates.add(prop.createdBy._id)
+          else if (prop.createdBy.id) ownerIdCandidates.add(prop.createdBy.id)
+        }
+
+        // owner / ownerId / userId legacy fields
+        if (prop.owner) {
+          if (typeof prop.owner === 'string') ownerIdCandidates.add(prop.owner)
+          else if (prop.owner._id) ownerIdCandidates.add(prop.owner._id)
+          else if (prop.owner.id) ownerIdCandidates.add(prop.owner.id)
+        }
+        if (prop.ownerId) ownerIdCandidates.add(prop.ownerId)
+        if (prop.userId) ownerIdCandidates.add(prop.userId)
+        if (prop.poster) ownerIdCandidates.add(prop.poster)
+
+        // If the API populated user objects with emails, try matching by email as a fallback
+        try {
+          if (user?.email) {
+            if (prop.postedBy && typeof prop.postedBy !== 'string' && prop.postedBy.email === user.email) ownerIdCandidates.add(user._id)
+            if (prop.createdBy && typeof prop.createdBy !== 'string' && prop.createdBy.email === user.email) ownerIdCandidates.add(user._id)
+          }
+        } catch (e) {
+          // ignore
+        }
 
         // If no owner info exists, assume it's not owned by user
         if (ownerIdCandidates.size === 0) return false
@@ -104,6 +122,14 @@ export default function MyListingsPage() {
     fetchMyListings()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?._id, token, API_BASE])
+
+  // Redirect unauthenticated users away from this page so it's not viewable
+  useEffect(() => {
+    if (!user) {
+      // push to homepage (or sign-in route if you prefer)
+      router.push('/')
+    }
+  }, [user, router])
 
   const handleDelete = async (id: string) => {
     const ok = confirm('Are you sure you want to delete this listing? This cannot be undone.')
@@ -175,11 +201,30 @@ export default function MyListingsPage() {
         ) : error ? (
           <div className="p-4 bg-red-50 border border-red-200 rounded text-sm text-red-600">{error}</div>
         ) : properties.length === 0 ? (
-          <div className="p-8 bg-white rounded-2xl shadow-lg text-center">
-            <h2 className="text-xl font-semibold">No Listings Yet</h2>
-            <p className="text-sm text-slate-600 mt-2">You haven't listed any properties. Click the button below to create your first premium listing.</p>
-            <div className="mt-6 flex items-center justify-center">
-              <Button onClick={() => setIsAddOpen(true)} className="bg-gradient-to-r from-indigo-600 to-blue-600 text-white hover:from-indigo-700 hover:to-blue-700 shadow">Add Your First Property</Button>
+          <div className="p-8 bg-white rounded-2xl shadow-2xl text-center">
+            <div className="max-w-3xl mx-auto flex flex-col md:flex-row items-center gap-6">
+              <div className="flex-1 text-left">
+                <h2 className="text-2xl md:text-3xl font-extrabold">You don't have any listings yet</h2>
+                <p className="text-sm text-slate-600 mt-3">Create a premium listing to showcase your property. Upload photos, set a price, and edit details anytime from this dashboard.</p>
+
+                <div className="mt-6 flex flex-col sm:flex-row items-center gap-3">
+                  <Button onClick={() => setIsAddOpen(true)} className="flex items-center gap-2 bg-gradient-to-r from-indigo-600 to-blue-600 text-white hover:from-indigo-700 hover:to-blue-700 shadow-lg">
+                    <Plus className="w-4 h-4" /> Add Property
+                  </Button>
+
+                  <Link href="/" className="w-full sm:w-auto">
+                    <Button variant="outline" className="w-full sm:w-auto">Browse Listings</Button>
+                  </Link>
+                </div>
+
+                <p className="text-xs text-slate-500 mt-4">Tip: You can also scroll the homepage to see live listings and inspiration before creating your own.</p>
+              </div>
+
+              <div className="w-full md:w-1/3">
+                <div className="bg-gradient-to-br from-slate-50 to-white rounded-xl p-4 shadow-inner flex items-center justify-center">
+                  <img src="/placeholder-logo.svg" alt="No listings" className="w-32 h-32 object-contain opacity-80" />
+                </div>
+              </div>
             </div>
           </div>
         ) : (
@@ -207,10 +252,10 @@ export default function MyListingsPage() {
 
                   {/* Action buttons overlay */}
                   <div className="absolute top-4 right-4 flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <Link href={`/listings/${p._id}`} className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-white/90 shadow hover:bg-white">
+                    <Link href={`/listings/${p._id}/edit`} className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-white/90 shadow hover:bg-white" aria-label={`Edit ${p.name}`}>
                       <Edit className="w-4 h-4 text-slate-700" />
                     </Link>
-                    <button onClick={() => handleDelete(p._id)} className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-rose-600 hover:bg-rose-700 text-white shadow">
+                    <button onClick={() => handleDelete(p._id)} disabled={loading} aria-disabled={loading} className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-rose-600 hover:bg-rose-700 text-white shadow">
                       <Trash2 className="w-4 h-4" />
                     </button>
                   </div>
@@ -230,12 +275,12 @@ export default function MyListingsPage() {
 
                   <div className="mt-4 flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                      <Link href={`/listings/${p._id}`}>
-                        <Button variant="ghost" className="flex items-center gap-2">
+                      <Link href={`/listings/${p._id}/edit`}>
+                        <Button variant="ghost" className="flex items-center gap-2" disabled={loading} aria-disabled={loading} aria-label={`Edit ${p.name}`}>
                           <Edit className="w-4 h-4" /> Edit
                         </Button>
                       </Link>
-                      <Button onClick={() => handleDelete(p._id)} variant="destructive" className="flex items-center gap-2">
+                      <Button onClick={() => handleDelete(p._id)} variant="destructive" className="flex items-center gap-2" disabled={loading} aria-disabled={loading}>
                         <Trash2 className="w-4 h-4" /> Delete
                       </Button>
                     </div>
