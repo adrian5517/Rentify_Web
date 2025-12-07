@@ -3,6 +3,7 @@
 import React, { useEffect, useState, useRef } from 'react'
 import mapboxgl from 'mapbox-gl'
 import { useAuthStore } from '@/lib/auth-store'
+import config from '@/lib/config'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
@@ -38,9 +39,7 @@ export default function EditListingForm({ propertyId }: EditListingFormProps) {
 
   const [initialData, setInitialData] = useState<any>(null)
 
-  const ENV_API_BASE = (process.env.NEXT_PUBLIC_API_BASE ?? '').replace(/\/$/, '')
-  const FALLBACK_API = process.env.NEXT_PUBLIC_FALLBACK_API || 'https://rentify-server-ge0f.onrender.com'
-  const API_BASE: string = ENV_API_BASE || FALLBACK_API
+  const API_BASE: string = config.API_API
   // Mapbox token fallback
   mapboxgl.accessToken = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN || mapboxgl.accessToken || 'pk.eyJ1IjoiYWRyaWFuNTUxNyIsImEiOiJjbWZkdTg4dmIwMThpMnFyNG10cWJwZjRhIn0.JLRzE6qmyDfePYgSs11ALg'
 
@@ -54,24 +53,11 @@ export default function EditListingForm({ propertyId }: EditListingFormProps) {
       setLoading(true)
       setError(null)
       try {
-        // Prefer absolute backend API endpoint to avoid hitting Next origin (which may return HTML)
+        // Use absolute backend API endpoint to avoid hitting Next origin (which may return HTML)
         const ep = `${API_BASE.replace(/\/$/, '')}/api/properties/${propertyId}`
-        let res: Response | null = null
-        let data: any = null
-        try {
-          res = await fetch(ep)
-          if (!res || !res.ok) throw new Error(`Fetch failed (${res?.status})`)
-          data = await res.json()
-        } catch (e) {
-          // Try relative as a last resort
-          try {
-            res = await fetch(`/api/properties/${propertyId}`)
-            if (!res || !res.ok) throw new Error('Failed to fetch property')
-            data = await res.json()
-          } catch (err) {
-            throw err
-          }
-        }
+        const res = await fetch(ep)
+        if (!res || !res.ok) throw new Error(`Fetch failed (${res?.status})`)
+        const data = await res.json()
 
         const property = data.property || data
         if (!mounted) return
@@ -192,7 +178,7 @@ export default function EditListingForm({ propertyId }: EditListingFormProps) {
         phoneNumber: formData.phoneNumber,
       }
 
-      const endpoint = API_BASE ? `${API_BASE}/api/properties/${propertyId}` : `/api/properties/${propertyId}`
+      const endpoint = `${API_BASE.replace(/\/$/, '')}/api/properties/${propertyId}`
 
       const res = await fetch(endpoint, {
         method: 'PUT',

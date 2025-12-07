@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
 import { useAuthStore } from "@/lib/auth-store"
+import config from '@/lib/config'
 
 // Property interface
 interface Property {
@@ -31,7 +32,7 @@ interface Property {
 export default function ProfilePage() {
   // Use NEXT_PUBLIC_API_BASE to avoid hard-coding backend host in client code
   // Set this in Vercel or your environment to e.g. https://rentify-server-ge0f.onrender.com
-  const API_BASE: string = (process.env.NEXT_PUBLIC_API_BASE ?? '').replace(/\/$/, '')
+  const API_BASE: string = config.API_API
   const { user, token, logout } = useAuthStore()
   const [isEditing, setIsEditing] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
@@ -308,7 +309,7 @@ export default function ProfilePage() {
 
       try {
         setLoadingProperties(true)
-        const propsUrl = API_BASE ? `${API_BASE}/api/properties/user/${user._id}` : `/api/properties/user/${user._id}`
+        const propsUrl = `${API_BASE.replace(/\/$/, '')}/api/properties/user/${user._id}`
         const response = await fetch(propsUrl)
         
         if (!response.ok) {
@@ -345,7 +346,7 @@ export default function ProfilePage() {
     }
 
     try {
-      const deleteUrl = API_BASE ? `${API_BASE}/api/properties/${propertyId}` : `/api/properties/${propertyId}`
+      const deleteUrl = `${API_BASE.replace(/\/$/, '')}/api/properties/${propertyId}`
       const response = await fetch(deleteUrl, {
         method: 'DELETE',
         headers: {

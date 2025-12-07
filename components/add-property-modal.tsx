@@ -12,6 +12,7 @@ import { Badge } from "@/components/ui/badge"
 import { X, Upload, MapPin, Home, DollarSign, FileText, Camera, Tag, Loader2, Navigation, CheckCircle2 } from "lucide-react"
 import mapboxgl from 'mapbox-gl'
 import 'mapbox-gl/dist/mapbox-gl.css'
+import config from '@/lib/config'
 
 interface AddPropertyModalProps {
   isOpen: boolean
@@ -284,9 +285,7 @@ export default function AddPropertyModal({ isOpen, onClose, onPropertyAdded }: A
   // Maximum allowed monthly price for listings (in PHP)
   const MAX_PRICE = 50000
 
-  const ENV_API_BASE = (process.env.NEXT_PUBLIC_API_BASE ?? '').replace(/\/$/, '')
-  const FALLBACK_API = process.env.NEXT_PUBLIC_FALLBACK_API || 'https://rentify-server-ge0f.onrender.com'
-  const API_BASE: string = ENV_API_BASE || FALLBACK_API
+  const API_BASE: string = config.API_API
 
   // Derived validation state for price (must be a positive number and not exceed MAX)
   const priceNumber = Number(formData.price || 0)
@@ -512,7 +511,7 @@ export default function AddPropertyModal({ isOpen, onClose, onPropertyAdded }: A
 
       // Creating property with images (logs suppressed)
       // FormData contents suppressed for privacy
-      const endpoint = API_BASE ? `${API_BASE.replace(/\/$/, '')}/api/properties` : '/api/properties'
+      const endpoint = `${API_BASE.replace(/\/$/, '')}/api/properties`
       if (process.env.NODE_ENV === 'development') console.log('📡 Creating property via:', endpoint)
 
       const response = await fetch(endpoint, {

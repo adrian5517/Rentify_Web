@@ -4,6 +4,7 @@ import React, { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useAuthStore } from '@/lib/auth-store'
+import config from '@/lib/config'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Loader2, Edit, Trash2, Plus } from 'lucide-react'
@@ -30,7 +31,7 @@ export default function MyListingsPage() {
   const [showRawServerResults, setShowRawServerResults] = useState(false)
   const [requestUrl, setRequestUrl] = useState<string | null>(null)
 
-  const API_BASE: string = (process.env.NEXT_PUBLIC_API_BASE ?? '').replace(/\/$/, '')
+  const API_BASE: string = config.API_API
 
   const fetchMyListings = async () => {
     if (!user?._id) return

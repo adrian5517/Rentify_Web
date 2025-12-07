@@ -33,26 +33,14 @@ export default function EditListingPage() {
       setLoading(true)
       setError(null)
       try {
-        const endpoints = [`/api/properties/${id}`, `${API_BASE}/api/properties/${id}`]
-        let res: Response | null = null
-        let data: any = null
-        for (const ep of endpoints) {
-          try {
-            res = await fetch(ep, {
-              headers: {
-                ...(token ? { Authorization: `Bearer ${token}` } : {})
-              }
-            })
-            if (!res.ok) continue
-            data = await res.json()
-            break
-          } catch (e) {
-            // try next
+        const ep = `${API_BASE.replace(/\/$/, '')}/api/properties/${id}`
+        const res = await fetch(ep, {
+          headers: {
+            ...(token ? { Authorization: `Bearer ${token}` } : {})
           }
-        }
-
+        })
         if (!res || !res.ok) throw new Error('Failed to load property')
-
+        const data = await res.json()
         const prop = Array.isArray(data) ? data[0] : (data.property || data || null)
         setProperty(prop)
         // load image previews if present
@@ -77,9 +65,8 @@ export default function EditListingPage() {
     setSaving(true)
     setError(null)
     try {
-      const endpoints = [`/api/properties/${id}`, `${API_BASE}/api/properties/${id}`]
+      const ep = `${API_BASE.replace(/\/$/, '')}/api/properties/${id}`
       let res: Response | null = null
-
       // Use FormData to allow image uploads
       const fd = new FormData()
       fd.append('name', property.name || '')
@@ -97,20 +84,17 @@ export default function EditListingPage() {
         fd.append('images', file)
       }
 
-      for (const ep of endpoints) {
-        try {
-          res = await fetch(ep, {
-            method: 'PUT',
-            headers: {
-              ...(token ? { Authorization: `Bearer ${token}` } : {})
-              // do NOT set Content-Type for FormData
-            },
-            body: fd
-          })
-          if (res.ok) break
-        } catch (e) {
-          // try next
-        }
+      try {
+        res = await fetch(ep, {
+          method: 'PUT',
+          headers: {
+            ...(token ? { Authorization: `Bearer ${token}` } : {})
+            // do NOT set Content-Type for FormData
+          },
+          body: fd
+        })
+      } catch (e) {
+        // network error
       }
 
       if (!res || !res.ok) {
@@ -131,21 +115,18 @@ export default function EditListingPage() {
     if (!confirm('Are you sure you want to delete this property? This cannot be undone.')) return
     setSaving(true)
     try {
-      const endpoints = [`/api/properties/${id}`, `${API_BASE}/api/properties/${id}`]
+      const delEp = `${API_BASE.replace(/\/$/, '')}/api/properties/${id}`
       let res: Response | null = null
-      for (const ep of endpoints) {
-        try {
-          res = await fetch(ep, {
-            method: 'DELETE',
-            headers: {
-              'Content-Type': 'application/json',
-              ...(token ? { Authorization: `Bearer ${token}` } : {})
-            }
-          })
-          if (res.ok) break
-        } catch (e) {
-          // try next
-        }
+      try {
+        res = await fetch(delEp, {
+          method: 'DELETE',
+          headers: {
+            'Content-Type': 'application/json',
+            ...(token ? { Authorization: `Bearer ${token}` } : {})
+          }
+        })
+      } catch (e) {
+        // network error
       }
       if (!res || !res.ok) throw new Error('Failed to delete property')
       router.push('/my-listings')

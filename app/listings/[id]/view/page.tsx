@@ -5,7 +5,9 @@ interface PageProps {
   params: { id: string }
 }
 
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE || 'https://rentify-server-ge0f.onrender.com'
+import config from '@/lib/config'
+
+const API_BASE = config.API_API
 
 async function fetchProperty(id: string) {
   const res = await fetch(`${API_BASE}/api/properties/${id}`, { cache: 'no-store' })
