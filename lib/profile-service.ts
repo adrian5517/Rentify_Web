@@ -81,7 +81,7 @@ export const profileService = {
       const headers: Record<string, string> = {}
       if (token) headers['Authorization'] = `Bearer ${token}`
 
-      const response = await fetch(`${API_BASE_URL}/upload`, {
+      const response = await fetch(`${API_BASE_URL}/api/upload`, {
         method: 'POST',
         headers,
         body: formData
@@ -105,12 +105,17 @@ export const profileService = {
         throw new Error(data.message || 'Upload failed')
       }
 
-      // Validate response has success and fileUrl
-      if (!data.success || !data.fileUrl) {
-        throw new Error('Invalid upload response - missing success or fileUrl')
+      // Validate response and extract file URL from common shapes
+      if (!data.success) {
+        throw new Error(data.message || 'Upload failed')
       }
 
-      return data.fileUrl
+      const fileUrl = data.fileUrl || (data.files && data.files[0] && (data.files[0].secure_url || data.files[0].url || data.files[0].fileUrl))
+      if (!fileUrl) {
+        throw new Error('Invalid upload response - missing file URL')
+      }
+
+      return fileUrl
     } catch (error) {
       console.error('Error uploading to Cloudinary:', error)
       throw error
