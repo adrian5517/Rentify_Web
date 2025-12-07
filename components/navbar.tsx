@@ -2,6 +2,7 @@
 
 import { Navigation, List, MessageCircle, User, Home, Menu, X, LogOut } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { useRouter } from 'next/navigation'
 import { Badge } from "@/components/ui/badge"
 import { useState } from "react"
 import { useAuthStore } from "@/lib/auth-store"
@@ -20,6 +21,8 @@ export default function Navbar({ currentPage, onPageChange }: NavbarProps) {
   
   const { user, logout } = useAuthStore()
 
+  const router = useRouter()
+
   const navItems = [
     { id: "home", label: "Home", icon: Home },
     { id: "my-listings", label: "My Listings", icon: List },
@@ -31,6 +34,13 @@ export default function Navbar({ currentPage, onPageChange }: NavbarProps) {
   ]
 
   const handleNavigation = (page: string) => {
+    // For certain pages that have their own route, navigate there instead
+    if (page === 'my-listings') {
+      try { router.push('/my-listings') } catch (e) { /* fallback */ onPageChange(page) }
+      setIsMobileMenuOpen(false)
+      return
+    }
+
     onPageChange(page)
     setIsMobileMenuOpen(false)
   }
@@ -53,7 +63,7 @@ export default function Navbar({ currentPage, onPageChange }: NavbarProps) {
               key={item.id}
               variant="ghost"
               size="sm"
-              onClick={() => onPageChange(item.id)}
+              onClick={() => handleNavigation(item.id)}
               className={`relative rounded-full px-3 py-2 text-sm font-medium transition-colors ${
                 isActive
                   ? "bg-purple-600/10 text-purple-700"
