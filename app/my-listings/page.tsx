@@ -5,7 +5,8 @@ import Link from 'next/link'
 import { useAuthStore } from '@/lib/auth-store'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Loader2, Edit } from 'lucide-react'
+import { Loader2, Edit, Trash2, Plus } from 'lucide-react'
+import AddPropertyModal from '@/components/add-property-modal'
 
 interface PropertyItem {
   _id: string
@@ -20,53 +21,121 @@ export default function MyListingsPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [properties, setProperties] = useState<PropertyItem[]>([])
+  const [isAddOpen, setIsAddOpen] = useState(false)
+  const [serverFilteredNotice, setServerFilteredNotice] = useState(false)
 
   const API_BASE: string = (process.env.NEXT_PUBLIC_API_BASE ?? '').replace(/\/$/, '')
 
-  useEffect(() => {
-    let mounted = true
-    async function fetchMyListings() {
-      if (!user?._id) return
-      setLoading(true)
-      setError(null)
-      try {
-        const endpoints = [
-          `/api/properties/user/${user._id}`,
-          `${API_BASE}/api/properties/user/${user._id}`
-        ]
+  const fetchMyListings = async () => {
+    if (!user?._id) return
+    setLoading(true)
+    setError(null)
+    setServerFilteredNotice(false)
+    try {
+      const endpoints = [
+        `/api/properties/user/${user._id}`,
+        `${API_BASE}/api/properties/user/${user._id}`
+      ]
 
-        let res: Response | null = null
-        let data: any = null
-        for (const ep of endpoints) {
-          try {
-            res = await fetch(ep, {
-              headers: {
-                ...(token ? { Authorization: `Bearer ${token}` } : {})
-              }
-            })
-            if (!res.ok) continue
-            data = await res.json()
-            break
-          } catch (e) {
-            // try next
-          }
+      let res: Response | null = null
+      let data: any = null
+      for (const ep of endpoints) {
+        try {
+          res = await fetch(ep, {
+            headers: {
+              ...(token ? { Authorization: `Bearer ${token}` } : {})
+            }
+          })
+          if (!res.ok) continue
+          data = await res.json()
+          break
+        } catch (e) {
+          // try next
+        }
+      }
+
+      if (!res || !res.ok) throw new Error('Failed to fetch your listings')
+
+      const results: PropertyItem[] = Array.isArray(data) ? data : (data.properties || data.results || [])
+
+      // If the API returned a broad set (or the server ignored the user filter),
+      // ensure we only show properties belonging to the current user as a fallback.
+      const filtered = results.filter((prop) => {
+        const ownerIdCandidates = new Set<string>()
+        // postedBy can be a string id or populated object
+        if ((prop as any).postedBy) {
+          const pb = (prop as any).postedBy
+          if (typeof pb === 'string') ownerIdCandidates.add(pb)
+          else if (pb && pb._id) ownerIdCandidates.add(pb._id)
+        }
+        if ((prop as any).createdBy) {
+          const cb = (prop as any).createdBy
+          if (typeof cb === 'string') ownerIdCandidates.add(cb)
+          else if (cb && cb._id) ownerIdCandidates.add(cb._id)
+        }
+        // legacy owner field
+        if ((prop as any).owner && (prop as any).owner.id) {
+          ownerIdCandidates.add((prop as any).owner.id)
         }
 
-        if (!res || !res.ok) throw new Error('Failed to fetch your listings')
+        // also check top-level postedBy/createdBy strings named differently
+        if ((prop as any).ownerId) ownerIdCandidates.add((prop as any).ownerId)
 
-        const results: PropertyItem[] = Array.isArray(data) ? data : (data.properties || data.results || [])
-        if (!mounted) return
-        setProperties(results)
-      } catch (err: any) {
-        setError(err?.message || 'Failed to load listings')
-      } finally {
-        if (mounted) setLoading(false)
+        // If no owner info exists, assume it's not owned by user
+        if (ownerIdCandidates.size === 0) return false
+
+        return ownerIdCandidates.has(user._id)
+      })
+
+      // If server returned extra results (i.e., filtering happened client-side), show a small notice
+      if (results.length > filtered.length) {
+        setServerFilteredNotice(true)
       }
-    }
 
+      setProperties(filtered)
+    } catch (err: any) {
+      setError(err?.message || 'Failed to load listings')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
     fetchMyListings()
-    return () => { mounted = false }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?._id, token, API_BASE])
+
+  const handleDelete = async (id: string) => {
+    const ok = confirm('Are you sure you want to delete this listing? This cannot be undone.')
+    if (!ok) return
+    setLoading(true)
+    try {
+      const endpoints = [`/api/properties/${id}`, `${API_BASE}/api/properties/${id}`]
+      let res: Response | null = null
+      for (const ep of endpoints) {
+        try {
+          res = await fetch(ep, {
+            method: 'DELETE',
+            headers: {
+              'Content-Type': 'application/json',
+              ...(token ? { Authorization: `Bearer ${token}` } : {})
+            }
+          })
+          if (res.ok) break
+        } catch (e) {
+          // try next
+        }
+      }
+
+      if (!res || !res.ok) throw new Error('Failed to delete listing')
+      // Refresh list
+      await fetchMyListings()
+    } catch (err: any) {
+      alert(err?.message || 'Failed to delete listing')
+    } finally {
+      setLoading(false)
+    }
+  }
 
   if (!user) {
     return (
@@ -84,51 +153,103 @@ export default function MyListingsPage() {
   }
 
   return (
-    <main className="min-h-screen bg-slate-50 py-8">
+    <main className="min-h-screen bg-gradient-to-b from-white via-slate-50 to-slate-50 py-10">
       <div className="container mx-auto px-4">
-        <div className="mb-6 flex items-center justify-between">
-          <h1 className="text-2xl font-bold">My Listings</h1>
-          <p className="text-sm text-slate-600">Manage your rental listings and edit details</p>
+        <div className="mb-8 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div>
+            <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight">My Listings</h1>
+            <p className="text-sm text-slate-600 mt-2">Premium dashboard — manage, edit, and publish your rental properties.</p>
+          </div>
+
+          <div className="flex items-center gap-4">
+            <Button onClick={() => setIsAddOpen(true)} className="flex items-center gap-2 bg-gradient-to-r from-indigo-600 to-blue-600 text-white hover:from-indigo-700 hover:to-blue-700 shadow-lg">
+              <Plus className="w-4 h-4" /> Add Property
+            </Button>
+          </div>
         </div>
 
         {loading ? (
           <div className="p-8 flex items-center justify-center">
-            <Loader2 className="animate-spin h-6 w-6 text-blue-600" />
+            <Loader2 className="animate-spin h-8 w-8 text-indigo-600" />
           </div>
         ) : error ? (
           <div className="p-4 bg-red-50 border border-red-200 rounded text-sm text-red-600">{error}</div>
         ) : properties.length === 0 ? (
-          <div className="p-6 bg-white rounded shadow text-center">
-            <p className="text-sm text-slate-700">You have no active listings yet.</p>
-            <Link href="/">
-              <Button className="mt-4">Create a Listing</Button>
-            </Link>
+          <div className="p-8 bg-white rounded-2xl shadow-lg text-center">
+            <h2 className="text-xl font-semibold">No Listings Yet</h2>
+            <p className="text-sm text-slate-600 mt-2">You haven't listed any properties. Click the button below to create your first premium listing.</p>
+            <div className="mt-6 flex items-center justify-center">
+              <Button onClick={() => setIsAddOpen(true)} className="bg-gradient-to-r from-indigo-600 to-blue-600 text-white hover:from-indigo-700 hover:to-blue-700 shadow">Add Your First Property</Button>
+            </div>
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {properties.map((p) => (
-              <Card key={p._id} className="hover:shadow-lg transition-shadow">
-                <div className="h-44 bg-slate-100 rounded-t overflow-hidden">
-                  <img src={p.images && p.images.length ? p.images[0] : '/placeholder.jpg'} alt={p.name} className="w-full h-full object-cover" />
+          <>
+            {serverFilteredNotice && (
+              <div className="mb-4 p-3 rounded-lg bg-yellow-50 border border-yellow-200 text-sm text-yellow-800 flex items-start justify-between gap-4">
+                <div>
+                  <strong>Note:</strong> Server returned a broader list — showing only your properties.
                 </div>
-                <div className="p-4">
-                  <h3 className="font-semibold text-lg truncate">{p.name}</h3>
-                  <p className="text-sm text-slate-600 mt-1">{p.location?.address || ''}</p>
-                  <div className="mt-3 flex items-center justify-between">
-                    <div>
-                      <p className="text-sm text-slate-700 font-semibold">₱{Number(p.price).toLocaleString()}</p>
-                    </div>
-                    <Link href={`/listings/${p._id}`}>
-                      <Button className="flex items-center gap-2" variant="outline">
-                        <Edit className="w-4 h-4" /> Edit
-                      </Button>
+                <div>
+                  <button onClick={() => setServerFilteredNotice(false)} className="text-xs underline text-yellow-800">Dismiss</button>
+                </div>
+              </div>
+            )}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {properties.map((p) => (
+              <div key={p._id} className="relative bg-white rounded-2xl shadow-xl overflow-hidden group">
+                <div className="relative h-56 sm:h-64 lg:h-56 overflow-hidden">
+                  <img src={p.images && p.images.length ? p.images[0] : '/placeholder.jpg'} alt={p.name} className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-400" />
+
+                  {/* Price badge */}
+                  <div className="absolute top-4 left-4 bg-white/90 backdrop-blur-sm rounded-full px-4 py-2 shadow">
+                    <p className="text-sm text-slate-700 font-semibold">₱{Number(p.price).toLocaleString()}</p>
+                  </div>
+
+                  {/* Action buttons overlay */}
+                  <div className="absolute top-4 right-4 flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <Link href={`/listings/${p._id}`} className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-white/90 shadow hover:bg-white">
+                      <Edit className="w-4 h-4 text-slate-700" />
                     </Link>
+                    <button onClick={() => handleDelete(p._id)} className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-rose-600 hover:bg-rose-700 text-white shadow">
+                      <Trash2 className="w-4 h-4" />
+                    </button>
                   </div>
                 </div>
-              </Card>
+
+                <div className="p-5 border-t">
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="flex-1">
+                      <h3 className="text-lg font-semibold text-slate-900 truncate">{p.name}</h3>
+                      <p className="text-sm text-slate-600 mt-1 truncate">{p.location?.address || ''}</p>
+                    </div>
+
+                    <div className="hidden sm:flex sm:flex-col items-end">
+                      <p className="text-sm text-slate-700 font-semibold">₱{Number(p.price).toLocaleString()}</p>
+                    </div>
+                  </div>
+
+                  <div className="mt-4 flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <Link href={`/listings/${p._id}`}>
+                        <Button variant="ghost" className="flex items-center gap-2">
+                          <Edit className="w-4 h-4" /> Edit
+                        </Button>
+                      </Link>
+                      <Button onClick={() => handleDelete(p._id)} variant="destructive" className="flex items-center gap-2">
+                        <Trash2 className="w-4 h-4" /> Delete
+                      </Button>
+                    </div>
+
+                    <Link href={`/listings/${p._id}`} className="text-sm text-indigo-600 hover:underline">View Details</Link>
+                  </div>
+                </div>
+              </div>
             ))}
           </div>
         )}
+
+        {/* Add Property Modal */}
+        <AddPropertyModal isOpen={isAddOpen} onClose={() => setIsAddOpen(false)} onPropertyAdded={async () => { setIsAddOpen(false); await fetchMyListings() }} />
       </div>
     </main>
   )

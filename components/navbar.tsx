@@ -22,6 +22,7 @@ export default function Navbar({ currentPage, onPageChange }: NavbarProps) {
 
   const navItems = [
     { id: "home", label: "Home", icon: Home },
+    { id: "my-listings", label: "My Listings", icon: List },
     // { id: "nearby", label: "Nearby", icon: Navigation },
     // { id: "list", label: "List", icon: List },
     { id: "messages", label: "Messages", icon: MessageCircle, badge: 3 },
