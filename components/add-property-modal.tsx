@@ -281,6 +281,13 @@ export default function AddPropertyModal({ isOpen, onClose, onPropertyAdded }: A
     }
   }
 
+  // Minimum allowed monthly price for listings (in PHP)
+  const MIN_PRICE = 20000
+
+  // Derived validation state for price
+  const priceNumber = Number(formData.price || 0)
+  const isPriceValid = !isNaN(priceNumber) && priceNumber >= MIN_PRICE
+
   // Reverse geocoding function to get address from coordinates
   const reverseGeocode = async (lng: number, lat: number) => {
     try {
@@ -424,6 +431,13 @@ export default function AddPropertyModal({ isOpen, onClose, onPropertyAdded }: A
     setSubmitError(null)
 
     try {
+      // Validate minimum price before sending
+      const priceVal = Number(formData.price)
+      if (isNaN(priceVal) || priceVal < MIN_PRICE) {
+        setSubmitError(`Price must be at least ₱${MIN_PRICE.toLocaleString()}.`)
+        setIsSubmitting(false)
+        return
+      }
       const token = getAuthToken()
       if (!token) {
         setSubmitError('You must be logged in to add a property')
@@ -760,6 +774,9 @@ export default function AddPropertyModal({ isOpen, onClose, onPropertyAdded }: A
                 required
                 className="h-10 sm:h-11 text-sm sm:text-base"
               />
+              {!isPriceValid && formData.price !== "" && (
+                <p className="text-xs text-red-600 mt-1">Price must be at least ₱{MIN_PRICE.toLocaleString()}</p>
+              )}
             </div>
           </div>
 
@@ -1053,8 +1070,9 @@ export default function AddPropertyModal({ isOpen, onClose, onPropertyAdded }: A
             </Button>
             <Button
               type="submit"
-              disabled={isSubmitting || !formData.name || !formData.price || !formData.address}
+              disabled={isSubmitting || !formData.name || !formData.price || !formData.address || !isPriceValid}
               className="flex-1 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 disabled:opacity-50 h-10 sm:h-11 text-sm sm:text-base"
+              aria-disabled={isSubmitting || !formData.name || !formData.price || !formData.address || !isPriceValid}
             >
               {isSubmitting ? (
                 <>
