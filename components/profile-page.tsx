@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
 import { useAuthStore } from "@/lib/auth-store"
 import config from '@/lib/config'
+import ProfilePictureUploader from '@/components/profile-picture-uploader'
 
 // Property interface
 interface Property {
@@ -119,8 +120,11 @@ export default function ProfilePage() {
             fd.append(fieldName, file)
             // If endpoint is relative and API_BASE is set, prefer the absolute API_BASE-prefixed URL
             const resolvedEndpoint = endpoint.startsWith('/') && API_BASE ? `${API_BASE}${endpoint}` : endpoint
+            const uploadHeaders: Record<string, string> = {}
+            if (token) uploadHeaders['Authorization'] = `Bearer ${token}`
             const res = await fetch(resolvedEndpoint, {
               method: 'POST',
+              headers: uploadHeaders,
               body: fd
             })
 
@@ -173,15 +177,31 @@ export default function ProfilePage() {
 
       // Step 2: Update user profile picture in database
       const profileUpdateUrl = API_BASE ? `${API_BASE}/api/auth/users/${user._id}/profile-picture` : `/api/auth/users/${user._id}/profile-picture`
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+      }
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`
+      }
+
       const updateResponse = await fetch(profileUpdateUrl, {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers,
         body: JSON.stringify({ imageUrl })
       })
 
-      const updateData = await updateResponse.json()
+      // Parse JSON safely, fall back to text for HTML/error pages
+      const contentType = updateResponse.headers.get('content-type') || ''
+      let updateData: any = null
+      if (contentType.includes('application/json')) {
+        updateData = await updateResponse.json()
+      } else {
+        const text = await updateResponse.text()
+        if (text && text.trim().startsWith('<')) {
+          throw new Error('Server returned an unexpected HTML response. Check API_BASE and server logs for details.')
+        }
+        updateData = { message: text }
+      }
 
       if (!updateResponse.ok || !updateData.success) {
         throw new Error(updateData.message || 'Failed to update profile picture')
@@ -249,15 +269,28 @@ export default function ProfilePage() {
       
       // Call backend API
       const profileUrl = API_BASE ? `${API_BASE}/api/auth/users/${user._id}` : `/api/auth/users/${user._id}`
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+      }
+      if (token) headers['Authorization'] = `Bearer ${token}`
+
       const response = await fetch(profileUrl, {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers,
         body: JSON.stringify(formData)
       })
 
-      const data = await response.json()
+      const contentType = response.headers.get('content-type') || ''
+      let data: any = null
+      if (contentType.includes('application/json')) {
+        data = await response.json()
+      } else {
+        const text = await response.text()
+        if (text && text.trim().startsWith('<')) {
+          throw new Error('Server returned an unexpected HTML response. Check API_BASE and server logs for details.')
+        }
+        data = { message: text }
+      }
 
       if (!response.ok || !data.success) {
         throw new Error(data.message || 'Failed to update profile')
@@ -310,7 +343,9 @@ export default function ProfilePage() {
       try {
         setLoadingProperties(true)
         const propsUrl = `${API_BASE.replace(/\/$/, '')}/api/properties/user/${user._id}`
-        const response = await fetch(propsUrl)
+        const headers: Record<string, string> = {}
+        if (token) headers['Authorization'] = `Bearer ${token}`
+        const response = await fetch(propsUrl, { headers })
         
         if (!response.ok) {
           throw new Error('Failed to fetch properties')
@@ -436,6 +471,17 @@ export default function ProfilePage() {
                   <Mail className="w-3.5 sm:w-4 h-3.5 sm:h-4" />
                   {user?.email}
                 </p>
+                {isEditing && (
+                  <div className="mt-3">
+                    <ProfilePictureUploader onDone={(updatedUser: any) => {
+                      try {
+                        if (updatedUser && updatedUser.profilePicture) setProfilePicture(updatedUser.profilePicture)
+                        // update auth store as well
+                        useAuthStore.setState({ user: updatedUser })
+                      } catch (e) { /* ignore */ }
+                    }} />
+                  </div>
+                )}
               </div>
             </div>
 

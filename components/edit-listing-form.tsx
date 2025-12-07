@@ -55,7 +55,9 @@ export default function EditListingForm({ propertyId }: EditListingFormProps) {
       try {
         // Use absolute backend API endpoint to avoid hitting Next origin (which may return HTML)
         const ep = `${API_BASE.replace(/\/$/, '')}/api/properties/${propertyId}`
-        const res = await fetch(ep)
+        const headers: Record<string, string> = {}
+        if (token) headers['Authorization'] = `Bearer ${token}`
+        const res = await fetch(ep, { headers })
         if (!res || !res.ok) throw new Error(`Fetch failed (${res?.status})`)
         const data = await res.json()
 

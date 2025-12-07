@@ -1,6 +1,8 @@
 // Profile API Service
 // Handles all profile-related API calls
 
+import { getAuthToken } from './api'
+
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://rentify-server-ge0f.onrender.com'
 
 export interface ProfileUpdateData {
@@ -27,16 +29,30 @@ export const profileService = {
    */
   async updateProfile(userId: string, profileData: ProfileUpdateData) {
     try {
+      const token = getAuthToken()
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json'
+      }
+      if (token) headers['Authorization'] = `Bearer ${token}`
+
       const response = await fetch(`${API_BASE_URL}/api/auth/users/${userId}`, {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers,
         body: JSON.stringify(profileData)
       })
 
-      const data = await response.json()
-      
+      const contentType = response.headers.get('content-type') || ''
+      let data: any = null
+      if (contentType.includes('application/json')) {
+        data = await response.json()
+      } else {
+        const text = await response.text()
+        if (text && text.trim().startsWith('<')) {
+          throw new Error('Server returned unexpected HTML. Check API_BASE and server logs.')
+        }
+        data = { message: text }
+      }
+
       if (!response.ok || !data.success) {
         throw new Error(data.message || 'Failed to update profile')
       }
@@ -61,25 +77,39 @@ export const profileService = {
       // Uploading to Cloudinary (file details suppressed)
 
       // DO NOT set Content-Type header - browser will handle it automatically
+      const token = getAuthToken()
+      const headers: Record<string, string> = {}
+      if (token) headers['Authorization'] = `Bearer ${token}`
+
       const response = await fetch(`${API_BASE_URL}/upload`, {
         method: 'POST',
+        headers,
         body: formData
       })
 
-      if (!response.ok) {
-        const error = await response.json()
-        console.error('Upload failed:', error)
-        throw new Error(error.message || 'Upload failed')
+      const contentType = response.headers.get('content-type') || ''
+      let data: any = null
+      if (contentType.includes('application/json')) {
+        data = await response.json()
+      } else {
+        const text = await response.text()
+        if (text && text.trim().startsWith('<')) {
+          throw new Error('Server returned unexpected HTML during upload. Check upload endpoint and server logs.')
+        }
+        // Try to parse text as JSON fallback
+        try { data = JSON.parse(text) } catch { data = { message: text } }
       }
 
-      const data = await response.json()
-      
+      if (!response.ok) {
+        console.error('Upload failed:', data)
+        throw new Error(data.message || 'Upload failed')
+      }
+
       // Validate response has success and fileUrl
       if (!data.success || !data.fileUrl) {
         throw new Error('Invalid upload response - missing success or fileUrl')
       }
 
-      // Upload successful (file URL suppressed)
       return data.fileUrl
     } catch (error) {
       console.error('Error uploading to Cloudinary:', error)
@@ -95,16 +125,28 @@ export const profileService = {
    */
   async updateProfilePicture(userId: string, imageUrl: string) {
     try {
+      const token = getAuthToken()
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' }
+      if (token) headers['Authorization'] = `Bearer ${token}`
+
       const response = await fetch(`${API_BASE_URL}/api/auth/users/${userId}/profile-picture`, {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers,
         body: JSON.stringify({ imageUrl })
       })
 
-      const data = await response.json()
-      
+      const contentType = response.headers.get('content-type') || ''
+      let data: any = null
+      if (contentType.includes('application/json')) {
+        data = await response.json()
+      } else {
+        const text = await response.text()
+        if (text && text.trim().startsWith('<')) {
+          throw new Error('Server returned unexpected HTML. Check API_BASE and server logs.')
+        }
+        data = { message: text }
+      }
+
       if (!response.ok || !data.success) {
         throw new Error(data.message || 'Failed to update profile picture')
       }
@@ -123,9 +165,23 @@ export const profileService = {
    */
   async getUserById(userId: string) {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/auth/users/${userId}`)
-      const data = await response.json()
-      
+      const token = getAuthToken()
+      const headers: Record<string, string> = {}
+      if (token) headers['Authorization'] = `Bearer ${token}`
+
+      const response = await fetch(`${API_BASE_URL}/api/auth/users/${userId}`, { headers })
+      const contentType = response.headers.get('content-type') || ''
+      let data: any = null
+      if (contentType.includes('application/json')) {
+        data = await response.json()
+      } else {
+        const text = await response.text()
+        if (text && text.trim().startsWith('<')) {
+          throw new Error('Server returned unexpected HTML. Check API_BASE and server logs.')
+        }
+        data = { message: text }
+      }
+
       if (!response.ok || !data.success) {
         throw new Error(data.message || 'Failed to fetch user')
       }
@@ -143,9 +199,23 @@ export const profileService = {
    */
   async getAllUsers() {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/auth/users`)
-      const data = await response.json()
-      
+      const token = getAuthToken()
+      const headers: Record<string, string> = {}
+      if (token) headers['Authorization'] = `Bearer ${token}`
+
+      const response = await fetch(`${API_BASE_URL}/api/auth/users`, { headers })
+      const contentType = response.headers.get('content-type') || ''
+      let data: any = null
+      if (contentType.includes('application/json')) {
+        data = await response.json()
+      } else {
+        const text = await response.text()
+        if (text && text.trim().startsWith('<')) {
+          throw new Error('Server returned unexpected HTML. Check API_BASE and server logs.')
+        }
+        data = { message: text }
+      }
+
       if (!response.ok || !data.success) {
         throw new Error(data.message || 'Failed to fetch users')
       }
