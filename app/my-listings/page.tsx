@@ -28,6 +28,7 @@ export default function MyListingsPage() {
   const [serverResultsCount, setServerResultsCount] = useState<number | null>(null)
   const [serverResultsSample, setServerResultsSample] = useState<any[] | null>(null)
   const [showRawServerResults, setShowRawServerResults] = useState(false)
+  const [requestUrl, setRequestUrl] = useState<string | null>(null)
 
   const API_BASE: string = (process.env.NEXT_PUBLIC_API_BASE ?? '').replace(/\/$/, '')
 
@@ -43,6 +44,8 @@ export default function MyListingsPage() {
       if (!originBase) throw new Error('API base URL not available')
 
       const ep = `${originBase}/api/properties/user/${user._id}`
+      // Save the request URL for dev-only debugging
+      setRequestUrl(ep)
       const res = await fetch(ep, {
         headers: {
           ...(token ? { Authorization: `Bearer ${token}` } : {})
@@ -281,6 +284,13 @@ export default function MyListingsPage() {
           </div>
         ) : (
           <>
+            {process.env.NODE_ENV === 'development' && requestUrl && (
+              <div className="mb-4 p-3 rounded-lg bg-blue-50 border border-blue-100 text-sm text-blue-800">
+                <div className="font-medium">Dev Debug</div>
+                <div className="text-xs mt-1">Request URL: <code className="break-all">{requestUrl}</code></div>
+                <div className="text-xs mt-1">Server results: {serverResultsCount ?? 'unknown'}</div>
+              </div>
+            )}
             {serverFilteredNotice && (
               <div className="mb-4 p-3 rounded-lg bg-yellow-50 border border-yellow-200 text-sm text-yellow-800">
                 <div className="flex items-start justify-between gap-4">
