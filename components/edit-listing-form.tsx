@@ -15,11 +15,12 @@ import { Loader2, CheckCircle2, MapPin, Home, Phone, DollarSign, FileText, Tag, 
 interface EditListingFormProps {
   propertyId: string
   onSaveSuccess?: () => void
+  onClose?: () => void
 }
 
 const MAX_PRICE = 50000
 
-export default function EditListingForm({ propertyId, onSaveSuccess }: EditListingFormProps) {
+export default function EditListingForm({ propertyId, onSaveSuccess, onClose }: EditListingFormProps) {
   const { token } = useAuthStore()
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -251,9 +252,19 @@ export default function EditListingForm({ propertyId, onSaveSuccess }: EditListi
       <div className="max-w-6xl mx-auto">
         <Card className="shadow-2xl border-0 overflow-hidden">
           <CardHeader className="bg-gradient-to-r from-violet-600 via-purple-600 to-fuchsia-600 text-white py-6 sm:py-8">
-            <div className="flex items-center gap-3">
-              <Sparkles className="h-6 w-6 sm:h-7 sm:w-7" />
-              <CardTitle className="text-xl sm:text-2xl font-bold">Edit Property Listing</CardTitle>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <Sparkles className="h-6 w-6 sm:h-7 sm:w-7" />
+                <CardTitle className="text-xl sm:text-2xl font-bold">Edit Property Listing</CardTitle>
+              </div>
+              <div>
+                <button
+                  onClick={() => { try { if (onClose) onClose() } catch (e) {} }}
+                  className="text-sm text-white bg-white/10 hover:bg-white/20 px-3 py-1 rounded-md"
+                >
+                  Close
+                </button>
+              </div>
             </div>
             <p className="text-violet-100 text-sm mt-2">Update your property details with ease</p>
           </CardHeader>

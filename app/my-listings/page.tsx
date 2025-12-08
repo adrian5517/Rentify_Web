@@ -396,13 +396,11 @@ export default function MyListingsPage() {
           <div className="fixed inset-0 bg-black/40" onClick={() => { setIsEditOpen(false); setEditingPropertyId(null); fetchMyListings() }} />
           <div className="relative w-full max-w-4xl mx-4">
             <div className="bg-white rounded-2xl shadow-xl p-4 max-h-[90vh] overflow-auto">
-              <div className="flex justify-between items-center mb-2">
-                <h3 className="text-lg font-semibold">Edit Property</h3>
-                <div className="flex gap-2">
-                  <button onClick={() => { setIsEditOpen(false); setEditingPropertyId(null); fetchMyListings() }} className="text-sm text-slate-500 hover:text-slate-800">Close</button>
-                </div>
-              </div>
-              <EditListingForm propertyId={editingPropertyId} onSaveSuccess={() => { setIsEditOpen(false); setEditingPropertyId(null); fetchMyListings() }} />
+              <EditListingForm
+                propertyId={editingPropertyId}
+                onSaveSuccess={() => { setIsEditOpen(false); setEditingPropertyId(null); fetchMyListings() }}
+                onClose={() => { setIsEditOpen(false); setEditingPropertyId(null); fetchMyListings() }}
+              />
             </div>
           </div>
         </div>
