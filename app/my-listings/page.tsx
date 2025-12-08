@@ -218,14 +218,16 @@ export default function MyListingsPage() {
                 <div className="flex items-center gap-3">
                   <button
                     onClick={() => router.push('/')}
-                    className="p-2 rounded-md bg-white/10 text-dark hover:bg-white/20 mr-2"
+                    className="p-2 rounded-md bg-gradient-to-br from-violet-600 to-purple-600 text-white hover:bg-purple-700 mr-2"
                     aria-label="Go home"
                   >
                     ← Back
                   </button>
                   
                   <div className="p-3 bg-gradient-to-br from-violet-600 to-purple-600 rounded-lg">
-                    <Home className="w-5 h-5 text-white" />
+                    <Home 
+                    onClick={() => router.push('/')}
+                    className="w-5 h-5 text-white hover:bg-white/20 rounded text-dark" />
                   </div>
                 </div>
                 <h1 className="text-2xl md:text-5xl font-black text-slate-900 tracking-tight">My Listings</h1>
