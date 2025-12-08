@@ -177,8 +177,8 @@ export default function MyListingsPage() {
     }
   }
 
-  const handleEditClick = (e: React.MouseEvent, propertyId: string) => {
-    e.preventDefault()
+  const handleEditClick = (propertyId: string) => {
+    // Use router.push to navigate to edit page. Keep handler simple (no event handling)
     router.push(`/listings/${propertyId}/edit`)
   }
 
@@ -306,7 +306,7 @@ export default function MyListingsPage() {
                   <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors duration-300 flex items-center justify-center opacity-0 group-hover:opacity-100">
                     <div className="flex gap-3">
                       <button 
-                        onClick={(e) => handleEditClick(e, property._id)}
+                        onClick={() => handleEditClick(property._id)}
                         className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-white hover:bg-violet-600 text-violet-600 hover:text-white shadow-lg transition-all duration-200 hover:scale-110"
                         aria-label="Edit property"
                       >
@@ -342,7 +342,7 @@ export default function MyListingsPage() {
                   {/* Action Buttons */}
                   <div className="flex flex-col sm:flex-row gap-3">
                     <button 
-                      onClick={(e) => handleEditClick(e, property._id)}
+                      onClick={() => handleEditClick(property._id)}
                       className="flex items-center justify-center gap-2 flex-1 px-4 py-2 bg-gradient-to-r from-violet-600 to-purple-600 text-white rounded-lg hover:from-violet-700 hover:to-purple-700 font-semibold transition-all duration-200 text-sm"
                     >
                       <Edit className="w-4 h-4" /> Edit
