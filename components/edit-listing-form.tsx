@@ -318,14 +318,14 @@ export default function EditListingForm({ propertyId, onSaveSuccess }: EditListi
                 </SelectTrigger>
                 <SelectContent>
                   {[
-                    { value: 'available', label: 'Available' },
-                    { value: 'for rent', label: 'For Rent' },
-                    { value: 'for sale', label: 'For Sale' },
-                    { value: 'fully booked', label: 'Fully Booked' },
-                    { value: 'rented', label: 'Rented' },
-                  ].map(opt => (
-                    <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
-                  ))}
+                      { value: 'available', label: 'Available' },
+                      { value: 'For rent', label: 'For Rent' },
+                      { value: 'For sale', label: 'For Sale' },
+                      { value: 'fully booked', label: 'Fully Booked' },
+                      { value: 'Rented', label: 'Rented' },
+                    ].map(opt => (
+                      <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                    ))}
                 </SelectContent>
               </Select>
             </div>
