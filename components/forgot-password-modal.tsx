@@ -102,7 +102,7 @@ export default function ForgotPasswordModal({ isOpen, onClose }: ForgotPasswordM
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="z-70 sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="text-xl font-bold text-slate-900 flex items-center gap-2">
             <KeyRound className="h-5 w-5 text-blue-600" />
