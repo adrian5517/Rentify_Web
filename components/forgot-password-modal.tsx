@@ -24,6 +24,8 @@ export default function ForgotPasswordModal({ isOpen, onClose }: ForgotPasswordM
   const [resetToken, setResetToken] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [genericNotice, setGenericNotice] = useState(false)
+  const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
   const resetForm = () => {
     setStep('email')
@@ -46,11 +48,28 @@ export default function ForgotPasswordModal({ isOpen, onClose }: ForgotPasswordM
     setError(null)
     setIsLoading(true)
 
+    if (!EMAIL_REGEX.test(email)) {
+      setError('Please enter a valid email address')
+      setIsLoading(false)
+      return
+    }
+
     try {
       await requestPasswordReset(email)
+      // Show generic notice (privacy-preserving) and move to OTP step
+      setGenericNotice(true)
       setStep('otp')
-    } catch (error) {
-      setError(error instanceof Error ? error.message : 'Failed to send OTP')
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Failed to send OTP'
+      // If backend returns 'Email not found', treat it the same as success for privacy
+      if (typeof msg === 'string' && msg.toLowerCase().includes('email not found')) {
+        setGenericNotice(true)
+        setStep('otp')
+      } else if (typeof msg === 'string' && msg.toLowerCase().includes('undeliver')) {
+        setError('Email appears invalid or undeliverable. Please use a valid email address.')
+      } else {
+        setError(msg)
+      }
     } finally {
       setIsLoading(false)
     }
@@ -113,7 +132,7 @@ export default function ForgotPasswordModal({ isOpen, onClose }: ForgotPasswordM
           </DialogTitle>
           <DialogDescription className="text-sm text-slate-600">
             {step === 'email' && "Enter your email to receive an OTP code"}
-            {step === 'otp' && `We've sent a 6-digit code to ${email}`}
+            {step === 'otp' && (genericNotice ? "If this email exists, an OTP has been sent" : `We've sent a 6-digit code to ${email}`)}
             {step === 'password' && "Create a new password for your account"}
             {step === 'success' && "Your password has been reset successfully"}
           </DialogDescription>
