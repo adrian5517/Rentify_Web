@@ -441,6 +441,19 @@ export default function AddPropertyModal({ isOpen, onClose, onPropertyAdded }: A
         setIsSubmitting(false)
         return
       }
+      // Validate required fields before sending
+      const missing: string[] = []
+      if (!formData.name || formData.name.trim() === '') missing.push('Name')
+      if (!formData.price || String(formData.price).trim() === '') missing.push('Price')
+      if (!formData.address || formData.address.trim() === '') missing.push('Address')
+      if (!formData.propertyType || String(formData.propertyType).trim() === '') missing.push('Property Type')
+
+      if (missing.length > 0) {
+        // Show a helpful message listing the missing required fields
+        setSubmitError(`Please provide the required information: ${missing.join(', ')}.`)
+        setIsSubmitting(false)
+        return
+      }
       const token = getAuthToken()
       if (!token) {
         setSubmitError('You must be logged in to add a property')
