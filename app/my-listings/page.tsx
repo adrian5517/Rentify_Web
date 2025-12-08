@@ -178,8 +178,11 @@ export default function MyListingsPage() {
   }
 
   const handleEditClick = (propertyId: string) => {
-    // Use router.push to navigate to edit page. Keep handler simple (no event handling)
     router.push(`/listings/${propertyId}/edit`)
+  }
+
+  const handleViewClick = (propertyId: string) => {
+    router.push(`/listings/${propertyId}`)
   }
 
   if (!user) {
@@ -348,9 +351,12 @@ export default function MyListingsPage() {
                       <Edit className="w-4 h-4" /> Edit
                     </button>
                     
-                    <Link href={`/listings/${property._id}`} className="flex items-center justify-center gap-2 flex-1 px-4 py-2 border-2 border-violet-200 text-violet-600 rounded-lg hover:bg-violet-50 font-semibold transition-all duration-200 text-sm">
+                    <button 
+                      onClick={() => handleViewClick(property._id)}
+                      className="flex items-center justify-center gap-2 flex-1 px-4 py-2 border-2 border-violet-200 text-violet-600 rounded-lg hover:bg-violet-50 font-semibold transition-all duration-200 text-sm"
+                    >
                       <Eye className="w-4 h-4" /> View
-                    </Link>
+                    </button>
                   </div>
                 </div>
               </div>
