@@ -4,8 +4,7 @@ import { Poppins } from 'next/font/google'
 
 import './globals.css'
 import SocketProvider from '@/components/SocketProvider'
-import NavbarWrapper from '@/components/navbar-wrapper'
-
+import Navbar from '@/components/navbar'
 
 export const metadata: Metadata = {
   title: 'Rentify Web',
@@ -24,12 +23,13 @@ export default function RootLayout({
     <html lang="en">
       <body className={`${poppins.className} ${GeistMono.variable}`}>
         <SocketProvider>
-          <header className="sticky top-0 z-40">
-            <NavbarWrapper />
-          </header>
-          <main>
+          {/* Navbar appears on all pages */}
+          <Navbar />
+          
+          {/* Page content - add top padding to account for fixed navbar height */}
+          <div className="pt-16 md:pt-20">
             {children}
-          </main>
+          </div>
         </SocketProvider>
       </body>
     </html>
