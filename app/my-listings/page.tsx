@@ -218,12 +218,12 @@ export default function MyListingsPage() {
                 <div className="flex items-center gap-3">
                   <button
                     onClick={() => router.push('/')}
-                    className="p-2 rounded-md bg-white/10 text-white hover:bg-white/20 mr-2"
+                    className="p-2 rounded-md bg-white/10 text-dark hover:bg-white/20 mr-2"
                     aria-label="Go home"
                   >
                     ← Back
                   </button>
-                  <Link href="/" className="p-2 rounded-md bg-white/10 text-white hover:bg-white/20 mr-2">Home</Link>
+                  
                   <div className="p-3 bg-gradient-to-br from-violet-600 to-purple-600 rounded-lg">
                     <Home className="w-6 h-6 text-white" />
                   </div>
