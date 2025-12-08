@@ -796,7 +796,7 @@ function MessagesPage() {
   }
 
   return (
-    <main className="max-w-6xl mx-auto py-3 sm:py-4 md:py-6 px-2 sm:px-3 md:px-4">
+    <div className="max-w-6xl mx-auto py-3 sm:py-4 md:py-6 px-2 sm:px-3 md:px-4">
       {/* Connection Status Indicator */}
       {!isConnected && (
         <div className="mb-3 sm:mb-4 p-2.5 sm:p-3 bg-yellow-50 border border-yellow-200 rounded-lg flex items-center gap-2 text-yellow-800">
@@ -1186,7 +1186,7 @@ function MessagesPage() {
           />
         </section>
       </div>
-    </main>
+    </div>
   )
 }
 
