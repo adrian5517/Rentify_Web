@@ -59,6 +59,14 @@ export default function MyListingsPage() {
         }
       })
 
+      // If unauthorized, clear auth and surface a friendly message so user can re-login
+      if (res && res.status === 401) {
+        try {
+          useAuthStore.setState({ user: null, token: null, profilePicture: null })
+        } catch (e) { /* ignore */ }
+        throw new Error('Session expired or invalid token. Please sign in again.')
+      }
+
       if (!res || !res.ok) {
         // Surface server response if available
         let msg = 'Failed to fetch your listings'
@@ -355,7 +363,7 @@ export default function MyListingsPage() {
 
               <div className="w-full md:w-1/3">
                 <div className="bg-gradient-to-br from-slate-50 to-white rounded-xl p-4 shadow-inner flex items-center justify-center">
-                  <img src="/placeholder-logo.svg" alt="No listings" className="w-32 h-32 object-contain opacity-80" />
+                  <img src="/rentify-logo.png" alt="No listings" className="w-32 h-32 object-contain opacity-80" />
                 </div>
               </div>
             </div>
