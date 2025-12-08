@@ -10,7 +10,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Loader2, CheckCircle2 } from 'lucide-react'
+import { Loader2, CheckCircle2, MapPin, Home, Phone, DollarSign, FileText, Tag, X, Plus, Sparkles } from 'lucide-react'
 
 interface EditListingFormProps {
   propertyId: string
@@ -43,7 +43,6 @@ export default function EditListingForm({ propertyId, onSaveSuccess }: EditListi
   const [newAmenity, setNewAmenity] = useState('')
 
   const API_BASE: string = config.API_API
-  // Mapbox token fallback
   mapboxgl.accessToken = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN || mapboxgl.accessToken || 'pk.eyJ1IjoiYWRyaWFuNTUxNyIsImEiOiJjbWZkdTg4dmIwMThpMnFyNG10cWJwZjRhIn0.JLRzE6qmyDfePYgSs11ALg'
 
   const mapContainerRef = useRef<HTMLDivElement | null>(null)
@@ -56,7 +55,6 @@ export default function EditListingForm({ propertyId, onSaveSuccess }: EditListi
       setLoading(true)
       setError(null)
       try {
-        // Use absolute backend API endpoint to avoid hitting Next origin (which may return HTML)
         const ep = `${API_BASE.replace(/\/$/, '')}/api/properties/${propertyId}`
         const headers: Record<string, string> = {}
         if (token) headers['Authorization'] = `Bearer ${token}`
@@ -91,18 +89,15 @@ export default function EditListingForm({ propertyId, onSaveSuccess }: EditListi
 
     fetchProperty()
     return () => { mounted = false }
-  }, [propertyId, API_BASE])
+  }, [propertyId, API_BASE, token])
 
-  // Initialize map and marker after data is loaded
   useEffect(() => {
     if (loading) return
-    // ensure we have numeric coordinates or use default center
     const lat = Number(formData.latitude) || 13.6218
     const lng = Number(formData.longitude) || 123.1815
 
     if (!mapContainerRef.current) return
 
-    // Create map only once
     if (!mapRef.current) {
       try {
         const map = new mapboxgl.Map({
@@ -113,12 +108,10 @@ export default function EditListingForm({ propertyId, onSaveSuccess }: EditListi
         })
         mapRef.current = map
 
-        // add controls
         map.addControl(new mapboxgl.NavigationControl())
 
         map.on('click', (e) => {
           const { lng: clickLng, lat: clickLat } = e.lngLat
-          // move marker
           if (markerRef.current) markerRef.current.setLngLat([clickLng, clickLat])
           else {
             markerRef.current = new mapboxgl.Marker({ draggable: true }).setLngLat([clickLng, clickLat]).addTo(map)
@@ -132,7 +125,6 @@ export default function EditListingForm({ propertyId, onSaveSuccess }: EditListi
           handleChange('longitude', String(clickLng))
         })
 
-        // create marker
         markerRef.current = new mapboxgl.Marker({ draggable: true }).setLngLat([lng, lat]).addTo(map)
         markerRef.current.on('dragend', () => {
           const ll = markerRef.current!.getLngLat()
@@ -143,14 +135,12 @@ export default function EditListingForm({ propertyId, onSaveSuccess }: EditListi
         console.warn('Mapbox init failed', e)
       }
     } else {
-      // update center/marker position
       try {
         const map = mapRef.current!
         map.setCenter([lng, lat])
         if (markerRef.current) markerRef.current.setLngLat([lng, lat])
       } catch (e) { }
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loading, formData.latitude, formData.longitude])
 
   const handleChange = (field: string, value: any) => {
@@ -221,10 +211,9 @@ export default function EditListingForm({ propertyId, onSaveSuccess }: EditListi
       setSuccessMessage('Listing updated successfully')
       setInitialData(formData)
 
-      // Notify parent that save succeeded so parent can close modal / refresh
       try {
         if (onSaveSuccess) onSaveSuccess()
-      } catch (e) { /* ignore */ }
+      } catch (e) { }
     } catch (err: any) {
       setError(err?.message || 'Failed to save changes')
     } finally {
@@ -233,168 +222,296 @@ export default function EditListingForm({ propertyId, onSaveSuccess }: EditListi
   }
 
   if (loading) return (
-    <div className="p-8 flex items-center justify-center">
-      <Loader2 className="animate-spin h-6 w-6 text-blue-600" />
+    <div className="min-h-screen bg-gradient-to-br from-violet-50 via-purple-50 to-fuchsia-50 p-4 sm:p-8 flex items-center justify-center">
+      <div className="text-center">
+        <Loader2 className="animate-spin h-10 w-10 text-violet-600 mx-auto mb-4" />
+        <p className="text-violet-700 font-medium">Loading your property...</p>
+      </div>
     </div>
   )
 
-  if (error) return (
-    <div className="p-6">
-      <Card>
-        <CardHeader>
-          <CardTitle>Error</CardTitle>
+  if (error && !formData.name) return (
+    <div className="min-h-screen bg-gradient-to-br from-violet-50 via-purple-50 to-fuchsia-50 p-4 sm:p-8">
+      <Card className="max-w-2xl mx-auto border-2 border-red-200 shadow-xl">
+        <CardHeader className="bg-gradient-to-r from-red-500 to-pink-500 text-white">
+          <CardTitle className="flex items-center gap-2">
+            <X className="h-5 w-5" />
+            Error Loading Property
+          </CardTitle>
         </CardHeader>
-        <CardContent>
-          <p className="text-sm text-red-600">{error}</p>
+        <CardContent className="pt-6">
+          <p className="text-red-600">{error}</p>
         </CardContent>
       </Card>
     </div>
   )
 
   return (
-    <div className="p-6 max-w-4xl mx-auto">
-      <Card className="shadow-lg">
-        <CardHeader className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white">
-          <CardTitle className="text-lg">Edit Listing</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {successMessage && (
-            <div className="p-3 mb-4 bg-green-50 border border-green-200 rounded">
-              <div className="flex items-start gap-2">
-                <CheckCircle2 className="text-green-600 h-5 w-5 mt-0.5" />
-                <p className="text-sm text-green-800">{successMessage}</p>
-              </div>
+    <div className="min-h-screen bg-gradient-to-br from-violet-50 via-purple-50 to-fuchsia-50 py-4 sm:py-8 px-4">
+      <div className="max-w-6xl mx-auto">
+        <Card className="shadow-2xl border-0 overflow-hidden">
+          <CardHeader className="bg-gradient-to-r from-violet-600 via-purple-600 to-fuchsia-600 text-white py-6 sm:py-8">
+            <div className="flex items-center gap-3">
+              <Sparkles className="h-6 w-6 sm:h-7 sm:w-7" />
+              <CardTitle className="text-xl sm:text-2xl font-bold">Edit Property Listing</CardTitle>
             </div>
-          )}
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <Label className="text-xs font-semibold">Property Name</Label>
-              <Input value={formData.name} onChange={(e) => handleChange('name', e.target.value)} />
-            </div>
-
-            <div>
-              <Label className="text-xs font-semibold">Monthly Rent (₱)</Label>
-              <Input type="number" value={formData.price} onChange={(e) => handleChange('price', e.target.value)} />
-              {!isPriceValid && formData.price !== '' && (
-                <p className="text-xs text-red-600 mt-1">Price must be at most ₱{MAX_PRICE.toLocaleString()}</p>
-              )}
-            </div>
-
-            <div className="md:col-span-2">
-              <Label className="text-xs font-semibold">Address</Label>
-              <Input value={formData.address} onChange={(e) => handleChange('address', e.target.value)} />
-            </div>
-
-            <div className="md:col-span-2">
-              <Label className="text-xs font-semibold">Description</Label>
-              <Textarea value={formData.description} onChange={(e) => handleChange('description', e.target.value)} rows={4} />
-            </div>
-
-            <div>
-              <Label className="text-xs font-semibold">Property Type</Label>
-              <Select value={formData.propertyType} onValueChange={(v) => handleChange('propertyType', v)}>
-                <SelectTrigger className="h-9">
-                  <SelectValue placeholder="Select type" />
-                </SelectTrigger>
-                <SelectContent>
-                  {['Apartment','House','Condo','Studio','Townhouse','Room'].map(t => (
-                    <SelectItem key={t} value={t}>{t}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div>
-              <Label className="text-xs font-semibold">Contact Phone</Label>
-              <Input value={formData.phoneNumber} onChange={(e) => handleChange('phoneNumber', e.target.value)} />
-            </div>
-
-            <div className="md:col-span-2">
-              <Label className="text-xs font-semibold">Status</Label>
-              <Select value={formData.status} onValueChange={(v) => handleChange('status', v)}>
-                <SelectTrigger className="h-9">
-                  <SelectValue placeholder="Select status" />
-                </SelectTrigger>
-                <SelectContent>
-                  {[
-                      { value: 'available', label: 'Available' },
-                      { value: 'For rent', label: 'For Rent' },
-                      { value: 'For sale', label: 'For Sale' },
-                      { value: 'fully booked', label: 'Fully Booked' },
-                      { value: 'Rented', label: 'Rented' },
-                    ].map(opt => (
-                      <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
-                    ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="md:col-span-2">
-              <Label className="text-xs font-semibold">Amenities</Label>
-              {/* Input below allows typing new amenity and pressing Enter to add */}
-              <div className="flex flex-wrap gap-2">
-                {formData.amenities && formData.amenities.length > 0 ? (
-                  formData.amenities.map((a, idx) => (
-                    <div key={idx} className="px-3 py-1 bg-violet-50 border border-violet-100 rounded-full text-sm flex items-center gap-2">
-                      <span>{a}</span>
-                      <button onClick={() => removeAmenity(a)} className="ml-2 text-xs text-violet-600">×</button>
-                    </div>
-                  ))
-                ) : (
-                  <p className="text-sm text-slate-500">No amenities added</p>
-                )}
-              </div>
-              <div className="mt-2">
-                <div className="flex gap-2">
-                  <input id="new-amenity-input" placeholder="Type and press Enter" className="w-full px-3 py-2 border rounded" onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      e.preventDefault()
-                      const val = (e.target as HTMLInputElement).value.trim()
-                      if (val) { addAmenity(val); (e.target as HTMLInputElement).value = '' }
-                    }
-                  }} />
-                  <button onClick={() => {
-                    const el = document.getElementById('new-amenity-input') as HTMLInputElement | null
-                    const val = el?.value.trim() || ''
-                    if (val) { addAmenity(val); if (el) el.value = '' }
-                  }} className="px-3 py-2 bg-violet-600 text-white rounded">Add</button>
+            <p className="text-violet-100 text-sm mt-2">Update your property details with ease</p>
+          </CardHeader>
+          
+          <CardContent className="p-4 sm:p-8">
+            {successMessage && (
+              <div className="p-4 mb-6 bg-gradient-to-r from-green-50 to-emerald-50 border-2 border-green-300 rounded-xl shadow-sm animate-in fade-in slide-in-from-top-2 duration-300">
+                <div className="flex items-start gap-3">
+                  <CheckCircle2 className="text-green-600 h-6 w-6 mt-0.5 flex-shrink-0" />
+                  <div>
+                    <p className="font-semibold text-green-900">{successMessage}</p>
+                    <p className="text-sm text-green-700 mt-1">Your changes have been saved successfully.</p>
+                  </div>
                 </div>
               </div>
-            </div>
-          </div>
+            )}
 
-          {/* Map + Coordinates Editor */}
-          <div className="md:col-span-2 mt-6">
-            <Label className="text-xs font-semibold mb-2">Location (click map or drag marker)</Label>
-            <div ref={mapContainerRef} className="w-full h-64 rounded-lg overflow-hidden border border-slate-200" />
-
-            <div className="grid grid-cols-2 gap-3 mt-3">
-              <div>
-                <Label className="text-xs font-semibold">Latitude</Label>
-                <Input value={formData.latitude} onChange={(e) => handleChange('latitude', e.target.value)} />
+            {error && (
+              <div className="p-4 mb-6 bg-gradient-to-r from-red-50 to-pink-50 border-2 border-red-300 rounded-xl shadow-sm">
+                <div className="flex items-start gap-3">
+                  <X className="text-red-600 h-6 w-6 mt-0.5 flex-shrink-0" />
+                  <p className="text-red-800">{error}</p>
+                </div>
               </div>
-              <div>
-                <Label className="text-xs font-semibold">Longitude</Label>
-                <Input value={formData.longitude} onChange={(e) => handleChange('longitude', e.target.value)} />
+            )}
+
+            <div className="space-y-6">
+              {/* Property Name & Price */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+                <div className="space-y-2">
+                  <Label className="text-sm font-semibold text-violet-900 flex items-center gap-2">
+                    <Home className="h-4 w-4 text-violet-600" />
+                    Property Name
+                  </Label>
+                  <Input 
+                    value={formData.name} 
+                    onChange={(e) => handleChange('name', e.target.value)}
+                    className="border-violet-200 focus:border-violet-500 focus:ring-violet-500 h-11"
+                    placeholder="e.g., Sunset View Apartment"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="text-sm font-semibold text-violet-900 flex items-center gap-2">
+                    <DollarSign className="h-4 w-4 text-violet-600" />
+                    Monthly Rent (₱)
+                  </Label>
+                  <Input 
+                    type="number" 
+                    value={formData.price} 
+                    onChange={(e) => handleChange('price', e.target.value)}
+                    className={`h-11 ${!isPriceValid && formData.price !== '' ? 'border-red-300 focus:border-red-500 focus:ring-red-500' : 'border-violet-200 focus:border-violet-500 focus:ring-violet-500'}`}
+                    placeholder="Enter monthly rent"
+                  />
+                  {!isPriceValid && formData.price !== '' && (
+                    <p className="text-xs text-red-600 flex items-center gap-1 mt-1">
+                      <X className="h-3 w-3" />
+                      Price must be at most ₱{MAX_PRICE.toLocaleString()}
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              {/* Address */}
+              <div className="space-y-2">
+                <Label className="text-sm font-semibold text-violet-900 flex items-center gap-2">
+                  <MapPin className="h-4 w-4 text-violet-600" />
+                  Address
+                </Label>
+                <Input 
+                  value={formData.address} 
+                  onChange={(e) => handleChange('address', e.target.value)}
+                  className="border-violet-200 focus:border-violet-500 focus:ring-violet-500 h-11"
+                  placeholder="Enter full address"
+                />
+              </div>
+
+              {/* Description */}
+              <div className="space-y-2">
+                <Label className="text-sm font-semibold text-violet-900 flex items-center gap-2">
+                  <FileText className="h-4 w-4 text-violet-600" />
+                  Description
+                </Label>
+                <Textarea 
+                  value={formData.description} 
+                  onChange={(e) => handleChange('description', e.target.value)}
+                  rows={5}
+                  className="border-violet-200 focus:border-violet-500 focus:ring-violet-500 resize-none"
+                  placeholder="Describe your property in detail..."
+                />
+              </div>
+
+              {/* Property Type & Contact */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+                <div className="space-y-2">
+                  <Label className="text-sm font-semibold text-violet-900 flex items-center gap-2">
+                    <Tag className="h-4 w-4 text-violet-600" />
+                    Property Type
+                  </Label>
+                  <Select value={formData.propertyType} onValueChange={(v) => handleChange('propertyType', v)}>
+                    <SelectTrigger className="h-11 border-violet-200 focus:border-violet-500 focus:ring-violet-500">
+                      <SelectValue placeholder="Select type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {['Apartment','House','Condo','Studio','Townhouse','Room'].map(t => (
+                        <SelectItem key={t} value={t}>{t}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="text-sm font-semibold text-violet-900 flex items-center gap-2">
+                    <Phone className="h-4 w-4 text-violet-600" />
+                    Contact Phone
+                  </Label>
+                  <Input 
+                    value={formData.phoneNumber} 
+                    onChange={(e) => handleChange('phoneNumber', e.target.value)}
+                    className="border-violet-200 focus:border-violet-500 focus:ring-violet-500 h-11"
+                    placeholder="+63 XXX XXX XXXX"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="text-sm font-semibold text-violet-900">Status</Label>
+                  <Select value={formData.status} onValueChange={(v) => handleChange('status', v)}>
+                    <SelectTrigger className="h-11 border-violet-200 focus:border-violet-500 focus:ring-violet-500">
+                      <SelectValue placeholder="Select status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {[
+                        { value: 'available', label: 'Available' },
+                        { value: 'For rent', label: 'For Rent' },
+                        { value: 'For sale', label: 'For Sale' },
+                        { value: 'fully booked', label: 'Fully Booked' },
+                        { value: 'Rented', label: 'Rented' },
+                      ].map(opt => (
+                        <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              {/* Amenities */}
+              <div className="space-y-3">
+                <Label className="text-sm font-semibold text-violet-900">Amenities</Label>
+                <div className="p-4 bg-gradient-to-br from-violet-50 to-purple-50 rounded-xl border-2 border-violet-200">
+                  <div className="flex flex-wrap gap-2 mb-3">
+                    {formData.amenities && formData.amenities.length > 0 ? (
+                      formData.amenities.map((a, idx) => (
+                        <div key={idx} className="group px-4 py-2 bg-white border-2 border-violet-300 rounded-full text-sm font-medium text-violet-900 flex items-center gap-2 hover:bg-violet-100 transition-colors shadow-sm">
+                          <span>{a}</span>
+                          <button 
+                            onClick={() => removeAmenity(a)} 
+                            className="text-violet-600 hover:text-red-600 transition-colors"
+                            aria-label="Remove amenity"
+                          >
+                            <X className="h-4 w-4" />
+                          </button>
+                        </div>
+                      ))
+                    ) : (
+                      <p className="text-sm text-violet-600 italic">No amenities added yet</p>
+                    )}
+                  </div>
+                  <div className="flex gap-2">
+                    <Input
+                      id="new-amenity-input"
+                      placeholder="Add amenity (e.g., WiFi, Parking)"
+                      className="flex-1 border-violet-300 focus:border-violet-500 focus:ring-violet-500 h-11"
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault()
+                          const val = (e.target as HTMLInputElement).value.trim()
+                          if (val) { addAmenity(val); (e.target as HTMLInputElement).value = '' }
+                        }
+                      }}
+                    />
+                    <Button 
+                      onClick={() => {
+                        const el = document.getElementById('new-amenity-input') as HTMLInputElement | null
+                        const val = el?.value.trim() || ''
+                        if (val) { addAmenity(val); if (el) el.value = '' }
+                      }}
+                      className="bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-700 hover:to-purple-700 h-11 px-6"
+                    >
+                      <Plus className="h-4 w-4 mr-1" />
+                      Add
+                    </Button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Map Section */}
+              <div className="space-y-3">
+                <Label className="text-sm font-semibold text-violet-900 flex items-center gap-2">
+                  <MapPin className="h-4 w-4 text-violet-600" />
+                  Location (Click map or drag marker)
+                </Label>
+                <div className="p-4 bg-gradient-to-br from-violet-50 to-purple-50 rounded-xl border-2 border-violet-200">
+                  <div ref={mapContainerRef} className="w-full h-64 sm:h-80 lg:h-96 rounded-lg overflow-hidden border-2 border-violet-300 shadow-lg" />
+                  
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
+                    <div className="space-y-2">
+                      <Label className="text-xs font-semibold text-violet-900">Latitude</Label>
+                      <Input 
+                        value={formData.latitude} 
+                        onChange={(e) => handleChange('latitude', e.target.value)}
+                        className="border-violet-300 focus:border-violet-500 focus:ring-violet-500 h-10"
+                        placeholder="e.g., 13.6218"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="text-xs font-semibold text-violet-900">Longitude</Label>
+                      <Input 
+                        value={formData.longitude} 
+                        onChange={(e) => handleChange('longitude', e.target.value)}
+                        className="border-violet-300 focus:border-violet-500 focus:ring-violet-500 h-10"
+                        placeholder="e.g., 123.1815"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 pt-4">
+                <Button 
+                  disabled={saving || !hasChanges() || !isPriceValid} 
+                  onClick={handleSave}
+                  className="flex-1 sm:flex-initial bg-gradient-to-r from-violet-600 via-purple-600 to-fuchsia-600 hover:from-violet-700 hover:via-purple-700 hover:to-fuchsia-700 text-white font-semibold h-12 px-8 shadow-lg hover:shadow-xl transition-all disabled:opacity-50"
+                >
+                  {saving ? (
+                    <>
+                      <Loader2 className="h-5 w-5 animate-spin mr-2" /> 
+                      Saving Changes...
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle2 className="h-5 w-5 mr-2" />
+                      Save Changes
+                    </>
+                  )}
+                </Button>
+                <Button 
+                  variant="outline" 
+                  onClick={() => { setFormData(initialData); setError(null); setSuccessMessage(null); }}
+                  className="flex-1 sm:flex-initial border-2 border-violet-300 text-violet-700 hover:bg-violet-50 h-12 px-8 font-semibold"
+                >
+                  Reset Form
+                </Button>
               </div>
             </div>
-          </div>
-
-          <div className="flex items-center gap-3 mt-6">
-            <Button disabled={saving || !hasChanges() || !isPriceValid} onClick={handleSave} className="bg-gradient-to-r from-blue-600 to-indigo-600">
-              {saving ? (
-                <>
-                  <Loader2 className="h-4 w-4 animate-spin mr-2" /> Saving...
-                </>
-              ) : 'Save Changes'}
-            </Button>
-            <Button variant="outline" onClick={() => { setFormData(initialData); setError(null); setSuccessMessage(null); }}>
-              Reset
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   )
 }
