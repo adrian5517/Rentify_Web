@@ -31,7 +31,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Slider } from "@/components/ui/slider"
 import PropertyMap from "@/components/property-map"
 import ProfilePage from "@/components/profile-page"
-import Navbar from "@/components/navbar"
+import { usePathname } from 'next/navigation'
 import { type Property } from "@/lib/property-data"
 import { getRecommendations, clusterProperties } from "@/lib/ml-utils"
 import AddPropertyModal from "@/components/add-property-modal"
@@ -675,6 +675,16 @@ export default function PropertyListingPage() {
   const [clusters, setClusters] = useState<any[]>([])
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [currentPage, setCurrentPage] = useState("home")
+  const pathname = usePathname()
+
+  useEffect(() => {
+    if (!pathname) return
+    if (pathname === '/' || pathname === '/home') setCurrentPage('home')
+    else if (pathname.startsWith('/my-listings')) setCurrentPage('my-listings')
+    else if (pathname.startsWith('/messages')) setCurrentPage('messages')
+    else if (pathname.startsWith('/profile')) setCurrentPage('profile')
+    else setCurrentPage('')
+  }, [pathname])
   const [showAddPropertyModal, setShowAddPropertyModal] = useState(false)
   const [properties, setProperties] = useState<Property[]>([])
   const [loading, setLoading] = useState(true)
@@ -1243,10 +1253,7 @@ export default function PropertyListingPage() {
                 loading="eager"
               />
               <div className="hidden sm:block h-6 w-px bg-slate-300"></div>
-              {/* Inline navbar with better spacing */}
-              <div className="ml-1">
-                <Navbar currentPage={currentPage} onPageChange={setCurrentPage} />
-              </div>
+              {/* Inline navbar removed (global Navbar is rendered in the root layout) */}
             </div>
             <div className="flex items-center gap-2 sm:gap-4">
               {currentPage === "home" && (
