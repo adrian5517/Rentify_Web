@@ -34,7 +34,11 @@ export default function MyListingsPage() {
   const API_BASE: string = config.API_API
 
   const fetchMyListings = async () => {
-    if (!user?._id) return
+    // Wait until we have both user id and auth token available to avoid
+    // making an unauthenticated request while Zustand persist is still rehydrating.
+    if (!user?._id || !token) {
+      return
+    }
     setLoading(true)
     setError(null)
     setServerFilteredNotice(false)
