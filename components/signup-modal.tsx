@@ -200,6 +200,10 @@ export default function SignupModal({ isOpen, onClose, onSwitchToLogin }: Signup
                   disabled={isLoading}
                 />
               </div>
+              {/* Live mismatch error */}
+              {confirmPassword && password !== confirmPassword && (
+                <p className="text-xs text-red-600 mt-1">Passwords do not match</p>
+              )}
             </div>
 
             <Button
