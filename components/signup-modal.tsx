@@ -62,12 +62,6 @@ export default function SignupModal({ isOpen, onClose, onSwitchToLogin }: Signup
       setEmail('')
       setPassword('')
       setConfirmPassword('')
-      
-      // Show success message for 2 seconds then close
-      setTimeout(() => {
-        setSuccess(false)
-        onClose()
-      }, 2000)
     } else {
       setError(result.error || 'Registration failed. Please try again.')
     }
@@ -79,7 +73,13 @@ export default function SignupModal({ isOpen, onClose, onSwitchToLogin }: Signup
     window.location.href = `${apiBase}/api/auth/facebook`
   }
 
+  const handleSuccessDialogClose = () => {
+    setSuccess(false)
+    onClose()
+  }
+
   return (
+    <>
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="z-60 w-[calc(100%-1rem)] sm:max-w-[425px] bg-gradient-to-br from-white to-indigo-50 border-2 border-indigo-100 max-h-[92vh] overflow-y-auto">
         <DialogHeader>
@@ -268,5 +268,33 @@ export default function SignupModal({ isOpen, onClose, onSwitchToLogin }: Signup
         )}
       </DialogContent>
     </Dialog>
+
+    {/* Success confirmation modal */}
+    <Dialog open={success} onOpenChange={handleSuccessDialogClose}>
+      <DialogContent className="w-[calc(100%-2rem)] sm:max-w-md">
+        <DialogHeader>
+          <div className="flex items-center justify-center mb-3 sm:mb-4">
+            <div className="w-16 sm:w-20 h-16 sm:h-20 bg-gradient-to-br from-green-100 to-emerald-100 rounded-full flex items-center justify-center animate-bounce">
+              <CheckCircle2 className="w-10 sm:w-12 h-10 sm:h-12 text-green-600" />
+            </div>
+          </div>
+          <DialogTitle className="text-center text-lg sm:text-xl md:text-2xl font-bold text-slate-900">
+            Account Created! 🎉
+          </DialogTitle>
+          <DialogDescription className="text-center text-sm sm:text-base pt-2 sm:pt-3 text-slate-600">
+            Your account has been created successfully. You can now log in.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="flex justify-center pt-4 sm:pt-6 pb-1 sm:pb-2">
+          <Button
+            onClick={handleSuccessDialogClose}
+            className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white px-8 sm:px-10 py-5 sm:py-6 text-base sm:text-lg font-semibold"
+          >
+            Great — Go to Login
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+    </>
   )
 }
