@@ -4,7 +4,7 @@ import { Poppins } from 'next/font/google'
 
 import './globals.css'
 import SocketProvider from '@/components/SocketProvider'
-import Navbar from '@/components/navbar'
+import NavbarWrapper from '@/components/navbar-wrapper'
 
 
 export const metadata: Metadata = {
@@ -25,7 +25,7 @@ export default function RootLayout({
       <body className={`${poppins.className} ${GeistMono.variable}`}>
         <SocketProvider>
           <header className="sticky top-0 z-40">
-            <Navbar currentPage={""} onPageChange={() => {}} />
+            <NavbarWrapper />
           </header>
           <main>
             {children}
