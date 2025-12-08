@@ -7,7 +7,7 @@ import { useAuthStore } from '@/lib/auth-store'
 import config from '@/lib/config'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Loader2, Edit, Trash2, Plus } from 'lucide-react'
+import { Loader2, Edit, Trash2, Plus, MapPin, Home, Eye, AlertCircle } from 'lucide-react'
 import AddPropertyModal from '@/components/add-property-modal'
 
 interface PropertyItem {
@@ -25,124 +25,80 @@ export default function MyListingsPage() {
   const [error, setError] = useState<string | null>(null)
   const [properties, setProperties] = useState<PropertyItem[]>([])
   const [isAddOpen, setIsAddOpen] = useState(false)
-  const [serverFilteredNotice, setServerFilteredNotice] = useState(false)
-  const [serverResultsCount, setServerResultsCount] = useState<number | null>(null)
-  const [serverResultsSample, setServerResultsSample] = useState<any[] | null>(null)
-  const [showRawServerResults, setShowRawServerResults] = useState(false)
-  const [requestUrl, setRequestUrl] = useState<string | null>(null)
+  const [deletingId, setDeletingId] = useState<string | null>(null)
 
   const API_BASE: string = config.API_API
 
   const fetchMyListings = async () => {
-    // Wait until we have both user id and auth token available to avoid
-    // making an unauthenticated request while Zustand persist is still rehydrating.
     if (!user?._id || !token) {
       return
     }
     setLoading(true)
     setError(null)
-    setServerFilteredNotice(false)
     try {
-      // Build an absolute API URL. Prefer explicit `NEXT_PUBLIC_API_BASE`.
-      // If that's not set, prefer a known backend host fallback (the production API),
-      // and avoid defaulting to the Next.js origin which returns the app HTML (causing the HTML 404 issue).
       const FALLBACK_API = process.env.NEXT_PUBLIC_FALLBACK_API || 'https://rentify-server-ge0f.onrender.com'
       const originBase = API_BASE || FALLBACK_API
       if (!originBase) throw new Error('API base URL not available')
 
       const ep = `${originBase.replace(/\/$/, '')}/api/properties/user/${user._id}`
-      // Save the request URL for dev-only debugging
-      setRequestUrl(ep)
       const res = await fetch(ep, {
         headers: {
           ...(token ? { Authorization: `Bearer ${token}` } : {})
         }
       })
 
-      // If unauthorized, clear auth and surface a friendly message so user can re-login
       if (res && res.status === 401) {
         try {
           useAuthStore.setState({ user: null, token: null, profilePicture: null })
         } catch (e) { /* ignore */ }
-        throw new Error('Session expired or invalid token. Please sign in again.')
+        throw new Error('Session expired. Please sign in again.')
       }
 
       if (!res || !res.ok) {
-        // Surface server response if available
-        let msg = 'Failed to fetch your listings'
+        let msg = 'Failed to fetch listings'
         try { const txt = await res.text(); msg = txt || msg } catch (e) {}
         throw new Error(msg)
       }
 
       const data = await res.json()
-
       const results: PropertyItem[] = Array.isArray(data) ? data : (data.properties || data.results || [])
-      // capture server results for debugging if needed
-      setServerResultsCount(Array.isArray(results) ? results.length : null)
-      try {
-        setServerResultsSample(Array.isArray(results) ? (results as any[]).slice(0, 6).map(r => ({
-          _id: r._id,
-          name: r.name,
-          postedBy: (r as any).postedBy,
-          createdBy: (r as any).createdBy,
-          owner: (r as any).owner,
-          ownerId: (r as any).ownerId,
-          userId: (r as any).userId,
-        })) : null)
-      } catch (e) {
-        // ignore
-      }
-      // don't store raw server results in UI state
 
-      // If the API returned a broad set (or the server ignored the user filter),
-      // ensure we only show properties belonging to the current user as a fallback.
-      // Strict filtering: only accept properties that explicitly list the current user's id
       const filtered = results.filter((prop: any) => {
         const ownerIdCandidates = new Set<string>()
 
-        // postedBy may be an id or populated object
         if (prop.postedBy) {
           if (typeof prop.postedBy === 'string') ownerIdCandidates.add(prop.postedBy)
           else if (prop.postedBy._id) ownerIdCandidates.add(prop.postedBy._id)
           else if (prop.postedBy.id) ownerIdCandidates.add(prop.postedBy.id)
         }
 
-        // createdBy may be an id or populated object
         if (prop.createdBy) {
           if (typeof prop.createdBy === 'string') ownerIdCandidates.add(prop.createdBy)
           else if (prop.createdBy._id) ownerIdCandidates.add(prop.createdBy._id)
           else if (prop.createdBy.id) ownerIdCandidates.add(prop.createdBy.id)
         }
 
-        // owner / ownerId / userId legacy fields
         if (prop.owner) {
           if (typeof prop.owner === 'string') ownerIdCandidates.add(prop.owner)
           else if (prop.owner._id) ownerIdCandidates.add(prop.owner._id)
           else if (prop.owner.id) ownerIdCandidates.add(prop.owner.id)
         }
+
         if (prop.ownerId) ownerIdCandidates.add(prop.ownerId)
         if (prop.userId) ownerIdCandidates.add(prop.userId)
         if (prop.poster) ownerIdCandidates.add(prop.poster)
 
-        // If no owner info exists, try fallback matching by email or owner name
         if (ownerIdCandidates.size === 0) {
-          // try email match
           try {
             const userEmail = (user && (user.email || (user as any)?.userEmail)) || null
-            if (userEmail) {
-              if ((prop.postedBy && typeof prop.postedBy !== 'string' && prop.postedBy.email === userEmail) ||
-                  (prop.createdBy && typeof prop.createdBy !== 'string' && prop.createdBy.email === userEmail) ||
-                  (prop.ownerEmail && prop.ownerEmail === userEmail) ||
-                  (prop.email && prop.email === userEmail) ||
-                  (prop.posterEmail && prop.posterEmail === userEmail)) {
-                return true
-              }
-            }
-          } catch (e) {
-            // ignore
-          }
+            if (userEmail && (
+              (prop.postedBy && typeof prop.postedBy !== 'string' && prop.postedBy.email === userEmail) ||
+              (prop.createdBy && typeof prop.createdBy !== 'string' && prop.createdBy.email === userEmail) ||
+              (prop.ownerEmail && prop.ownerEmail === userEmail) ||
+              (prop.email && prop.email === userEmail)
+            )) return true
+          } catch (e) { /* ignore */ }
 
-          // try name match (case-insensitive, minimal risk)
           try {
             const userNames = new Set<string>()
             if ((user as any)?.name) userNames.add(((user as any).name as string).toLowerCase())
@@ -153,14 +109,10 @@ export default function MyListingsPage() {
             if (ownerName && userNames.size > 0 && userNames.has(ownerName.toLowerCase())) {
               return true
             }
-          } catch (e) {
-            // ignore
-          }
-
+          } catch (e) { /* ignore */ }
           return false
         }
 
-        // match against user's id fields (strict equality only)
         const userIds = new Set<string>()
         if (user?._id) userIds.add(user._id)
         if ((user as any)?.id) userIds.add((user as any).id)
@@ -172,15 +124,7 @@ export default function MyListingsPage() {
         return false
       })
 
-      // If server returned extra results (i.e., filtering happened client-side), show a small notice
-      if (results.length > filtered.length) {
-        setServerFilteredNotice(true)
-      }
-
-      // Always show only filtered results (strict mode)
       setProperties(filtered)
-      // if server returned results but none matched the user, keep serverFilteredNotice on
-      if (results.length > 0 && filtered.length === 0) setServerFilteredNotice(true)
     } catch (err: any) {
       setError(err?.message || 'Failed to load listings')
     } finally {
@@ -190,26 +134,23 @@ export default function MyListingsPage() {
 
   useEffect(() => {
     fetchMyListings()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?._id, token, API_BASE])
 
-  // Redirect unauthenticated users away from this page so it's not viewable
   useEffect(() => {
     if (!user) {
-      // push to homepage (or sign-in route if you prefer)
       router.push('/')
     }
   }, [user, router])
 
   const handleDelete = async (id: string) => {
-    const ok = confirm('Are you sure you want to delete this listing? This cannot be undone.')
+    const ok = confirm('Are you sure? This action cannot be undone.')
     if (!ok) return
-    setLoading(true)
+    
+    setDeletingId(id)
     try {
       const FALLBACK_API = process.env.NEXT_PUBLIC_FALLBACK_API || 'https://rentify-server-ge0f.onrender.com'
       const originBase = API_BASE || FALLBACK_API
       const ep = `${originBase.replace(/\/$/, '')}/api/properties/${id}`
-      if (process.env.NODE_ENV === 'development') console.log('🗑️ Deleting via:', ep)
 
       const res = await fetch(ep, {
         method: 'DELETE',
@@ -220,245 +161,230 @@ export default function MyListingsPage() {
       })
 
       if (!res || !res.ok) {
-        let msg = `Failed to delete listing (status ${res?.status ?? 'unknown'})`
+        let msg = `Failed to delete listing`
         try {
           const txt = await res.text()
-          if (txt) {
-            if (process.env.NODE_ENV === 'development') console.error('🗑️ Delete error body:', txt.substring(0, 2000))
-            msg = txt
-          }
-        } catch (readErr) {
-          if (process.env.NODE_ENV === 'development') console.error('🗑️ Failed to read delete error body:', readErr)
-        }
+          if (txt) msg = txt
+        } catch (readErr) { /* ignore */ }
         throw new Error(msg)
       }
-      // Refresh list
+
       await fetchMyListings()
     } catch (err: any) {
       alert(err?.message || 'Failed to delete listing')
     } finally {
-      setLoading(false)
+      setDeletingId(null)
     }
+  }
+
+  const handleEditClick = (e: React.MouseEvent, propertyId: string) => {
+    e.preventDefault()
+    router.push(`/listings/${propertyId}/edit`)
   }
 
   if (!user) {
     return (
-      <div className="min-h-screen flex items-center justify-center p-6">
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">My Listings</CardTitle>
+      <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-violet-50 via-purple-50 to-indigo-50">
+        <Card className="w-full max-w-md border-violet-200 shadow-xl">
+          <CardHeader className="bg-gradient-to-r from-violet-600 to-purple-600 text-white">
+            <CardTitle className="flex items-center gap-2">
+              <Home className="w-5 h-5" /> My Listings
+            </CardTitle>
           </CardHeader>
-          <CardContent>
-            <p className="text-sm">Please sign in to view and manage your listings.</p>
+          <CardContent className="pt-6">
+            <p className="text-sm text-slate-600">Please sign in to view and manage your listings.</p>
           </CardContent>
         </Card>
       </div>
     )
   }
 
-  // Helper to check ownership again at render time (extra safety)
-  const isPropertyOwned = (prop: any) => {
-    try {
-      const ownerIdCandidates = new Set<string>()
-      if (prop.postedBy) {
-        if (typeof prop.postedBy === 'string') ownerIdCandidates.add(prop.postedBy)
-        else if (prop.postedBy._id) ownerIdCandidates.add(prop.postedBy._id)
-        else if (prop.postedBy.id) ownerIdCandidates.add(prop.postedBy.id)
-      }
-      if (prop.createdBy) {
-        if (typeof prop.createdBy === 'string') ownerIdCandidates.add(prop.createdBy)
-        else if (prop.createdBy._id) ownerIdCandidates.add(prop.createdBy._id)
-        else if (prop.createdBy.id) ownerIdCandidates.add(prop.createdBy.id)
-      }
-      if (prop.owner) {
-        if (typeof prop.owner === 'string') ownerIdCandidates.add(prop.owner)
-        else if (prop.owner._id) ownerIdCandidates.add(prop.owner._id)
-        else if (prop.owner.id) ownerIdCandidates.add(prop.owner.id)
-      }
-      if (prop.ownerId) ownerIdCandidates.add(prop.ownerId)
-      if (prop.userId) ownerIdCandidates.add(prop.userId)
-      if (prop.poster) ownerIdCandidates.add(prop.poster)
-
-      const userIds = new Set<string>()
-      if (user?._id) userIds.add(user._id)
-      if ((user as any)?.id) userIds.add((user as any).id)
-
-      for (const uid of userIds) if (ownerIdCandidates.has(uid)) return true
-
-      // fallback to email/name matching if no id candidates
-      if (ownerIdCandidates.size === 0) {
-        try {
-          const userEmail = (user && (user.email || (user as any)?.userEmail)) || null
-          if (userEmail) {
-            if ((prop.postedBy && typeof prop.postedBy !== 'string' && prop.postedBy.email === userEmail) ||
-                (prop.createdBy && typeof prop.createdBy !== 'string' && prop.createdBy.email === userEmail) ||
-                (prop.ownerEmail && prop.ownerEmail === userEmail) ||
-                (prop.email && prop.email === userEmail) ||
-                (prop.posterEmail && prop.posterEmail === userEmail)) {
-              return true
-            }
-          }
-        } catch {}
-
-        try {
-          const userNames = new Set<string>()
-          if ((user as any)?.name) userNames.add(((user as any).name as string).toLowerCase())
-          if ((user as any)?.fullName) userNames.add(((user as any).fullName as string).toLowerCase())
-          if ((user as any)?.username) userNames.add(((user as any).username as string).toLowerCase())
-
-          const ownerName = (prop.ownerName || prop.owner?.name || prop.postedBy?.name || prop.createdBy?.name || '') as string
-          if (ownerName && userNames.size > 0 && userNames.has(ownerName.toLowerCase())) return true
-        } catch {}
-      }
-
-      return false
-    } catch (e) {
-      return false
-    }
-  }
-
-  const ownedProperties = properties.filter(isPropertyOwned)
-
   return (
-    <main className="min-h-screen bg-gradient-to-b from-white via-slate-50 to-slate-50 py-10">
-      <div className="container mx-auto px-4">
-        <div className="mb-8 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-          <div>
-            <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight">My Listings</h1>
-            <p className="text-sm text-slate-600 mt-2">Premium dashboard — manage, edit, and publish your rental properties.</p>
-          </div>
+    <main className="min-h-screen bg-gradient-to-br from-violet-50 via-purple-50 to-indigo-50 py-8 md:py-12">
+      <div className="container mx-auto px-4 md:px-6 max-w-7xl">
+        {/* Header Section */}
+        <div className="mb-10 md:mb-12">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
+            <div>
+              <div className="flex items-center gap-3 mb-3">
+                <div className="p-3 bg-gradient-to-br from-violet-600 to-purple-600 rounded-lg">
+                  <Home className="w-6 h-6 text-white" />
+                </div>
+                <h1 className="text-3xl md:text-5xl font-black text-slate-900 tracking-tight">My Listings</h1>
+              </div>
+              <p className="text-base text-slate-600 max-w-2xl">Manage your rental properties with ease. Edit details, upload images, and track your listings all in one place.</p>
+            </div>
 
-          <div className="flex items-center gap-4">
-            <Button onClick={() => setIsAddOpen(true)} className="flex items-center gap-2 bg-gradient-to-r from-indigo-600 to-blue-600 text-white hover:from-indigo-700 hover:to-blue-700 shadow-lg">
-              <Plus className="w-4 h-4" /> Add Property
+            <Button 
+              onClick={() => setIsAddOpen(true)} 
+              className="flex items-center justify-center gap-2 bg-gradient-to-r from-violet-600 to-purple-600 text-white hover:from-violet-700 hover:to-purple-700 shadow-lg hover:shadow-xl px-6 py-6 rounded-xl font-semibold text-base transition-all duration-200 w-full md:w-auto"
+            >
+              <Plus className="w-5 h-5" /> Add New Property
             </Button>
           </div>
         </div>
 
-        {loading ? (
-          <div className="p-8 flex items-center justify-center">
-            <Loader2 className="animate-spin h-8 w-8 text-indigo-600" />
+        {/* Error State */}
+        {error && (
+          <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl flex items-start gap-3 animate-in fade-in">
+            <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
+            <div>
+              <p className="font-semibold text-red-800">Error</p>
+              <p className="text-sm text-red-700 mt-1">{error}</p>
+            </div>
           </div>
-        ) : error ? (
-          <div className="p-4 bg-red-50 border border-red-200 rounded text-sm text-red-600">{error}</div>
-        ) : ownedProperties.length === 0 ? (
-          <div className="p-8 bg-white rounded-2xl shadow-2xl text-center">
-            <div className="max-w-3xl mx-auto flex flex-col md:flex-row items-center gap-6">
-              <div className="flex-1 text-left">
-                <h2 className="text-2xl md:text-3xl font-extrabold">You don't have any listings yet</h2>
-                <p className="text-sm text-slate-600 mt-3">Create a premium listing to showcase your property. Upload photos, set a price, and edit details anytime from this dashboard.</p>
+        )}
 
-                <div className="mt-6 flex flex-col sm:flex-row items-center gap-3">
-                  <Button onClick={() => setIsAddOpen(true)} className="flex items-center gap-2 bg-gradient-to-r from-indigo-600 to-blue-600 text-white hover:from-indigo-700 hover:to-blue-700 shadow-lg">
+        {/* Loading State */}
+        {loading && (
+          <div className="flex items-center justify-center py-20">
+            <div className="text-center">
+              <Loader2 className="animate-spin h-10 w-10 text-violet-600 mx-auto mb-3" />
+              <p className="text-slate-600 font-medium">Loading your listings...</p>
+            </div>
+          </div>
+        )}
+
+        {/* Empty State */}
+        {!loading && properties.length === 0 && (
+          <div className="bg-white rounded-2xl shadow-xl overflow-hidden border border-violet-100">
+            <div className="grid md:grid-cols-2 gap-8 p-8 md:p-12">
+              <div className="flex flex-col justify-center">
+                <div className="inline-flex items-center gap-2 mb-4">
+                  <div className="h-1 w-8 bg-gradient-to-r from-violet-600 to-purple-600 rounded"></div>
+                  <span className="text-sm font-semibold text-violet-600">GET STARTED</span>
+                </div>
+                <h2 className="text-3xl md:text-4xl font-bold text-slate-900 mb-4">Create Your First Listing</h2>
+                <p className="text-base text-slate-600 mb-8 leading-relaxed">Start showcasing your rental property today. Upload stunning photos, set competitive pricing, and reach potential tenants instantly.</p>
+
+                <div className="flex flex-col sm:flex-row gap-4">
+                  <Button 
+                    onClick={() => setIsAddOpen(true)} 
+                    className="flex items-center justify-center gap-2 bg-gradient-to-r from-violet-600 to-purple-600 text-white hover:from-violet-700 hover:to-purple-700 px-6 py-3 rounded-lg font-semibold transition-all duration-200"
+                  >
                     <Plus className="w-4 h-4" /> Add Property
                   </Button>
-
                   <Link href="/" className="w-full sm:w-auto">
-                    <Button variant="outline" className="w-full sm:w-auto">Browse Listings</Button>
+                    <Button variant="outline" className="w-full border-2 border-violet-200 text-violet-600 hover:bg-violet-50 py-3 rounded-lg font-semibold">
+                      Browse Listings
+                    </Button>
                   </Link>
                 </div>
-
-                <p className="text-xs text-slate-500 mt-4">Tip: You can also scroll the homepage to see live listings and inspiration before creating your own.</p>
               </div>
 
-              <div className="w-full md:w-1/3">
-                <div className="bg-gradient-to-br from-slate-50 to-white rounded-xl p-4 shadow-inner flex items-center justify-center">
-                  <img src="/rentify-logo.png" alt="No listings" className="w-32 h-32 object-contain opacity-80" />
+              <div className="hidden md:flex items-center justify-center">
+                <div className="bg-gradient-to-br from-violet-100 to-purple-100 rounded-2xl p-12 flex items-center justify-center">
+                  <Home className="w-32 h-32 text-violet-300" />
                 </div>
               </div>
             </div>
           </div>
-        ) : (
-          <>
-            {process.env.NODE_ENV === 'development' && requestUrl && (
-              <div className="mb-4 p-3 rounded-lg bg-blue-50 border border-blue-100 text-sm text-blue-800">
-                <div className="font-medium">Dev Debug</div>
-                <div className="text-xs mt-1">Request URL: <code className="break-all">{requestUrl}</code></div>
-                <div className="text-xs mt-1">Server results: {serverResultsCount ?? 'unknown'}</div>
-              </div>
-            )}
-            {serverFilteredNotice && (
-              <div className="mb-4 p-3 rounded-lg bg-yellow-50 border border-yellow-200 text-sm text-yellow-800">
-                <div className="flex items-start justify-between gap-4">
-                  <div>
-                    <strong>Note:</strong> Server returned a broader list — showing only your properties.
-                    {serverResultsCount !== null && (
-                      <div className="text-xs text-yellow-800 mt-1">Server results: {serverResultsCount} — Showing: {ownedProperties.length}</div>
-                    )}
+        )}
+
+        {/* Properties Grid */}
+        {!loading && properties.length > 0 && (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
+            {properties.map((property) => (
+              <div 
+                key={property._id} 
+                className="group bg-white rounded-2xl shadow-md hover:shadow-2xl overflow-hidden border border-violet-100 transition-all duration-300 hover:-translate-y-1"
+              >
+                {/* Image Section */}
+                <div className="relative h-56 md:h-64 overflow-hidden bg-slate-200">
+                  <img 
+                    src={property.images && property.images.length ? property.images[0] : '/placeholder.jpg'} 
+                    alt={property.name} 
+                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                  />
+                  
+                  {/* Price Badge */}
+                  <div className="absolute top-4 left-4 bg-white/95 backdrop-blur-sm rounded-full px-4 py-2 shadow-lg">
+                    <p className="text-base md:text-lg font-bold text-violet-600">₱{Number(property.price).toLocaleString()}</p>
                   </div>
 
-                  <div className="flex items-center gap-2">
-                    <button onClick={() => setShowRawServerResults(prev => !prev)} className="text-xs underline text-yellow-800">{showRawServerResults ? 'Hide' : 'Show'} sample</button>
-                    <button onClick={() => { setServerFilteredNotice(false); setShowRawServerResults(false) }} className="text-xs underline text-yellow-800">Dismiss</button>
+                  {/* Action Buttons Overlay */}
+                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors duration-300 flex items-center justify-center opacity-0 group-hover:opacity-100">
+                    <div className="flex gap-3">
+                      <button 
+                        onClick={(e) => handleEditClick(e, property._id)}
+                        className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-white hover:bg-violet-600 text-violet-600 hover:text-white shadow-lg transition-all duration-200 hover:scale-110"
+                        aria-label="Edit property"
+                      >
+                        <Edit className="w-5 h-5" />
+                      </button>
+                      <button 
+                        onClick={() => handleDelete(property._id)}
+                        disabled={deletingId === property._id}
+                        className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-red-600 hover:bg-red-700 text-white shadow-lg transition-all duration-200 hover:scale-110 disabled:opacity-50"
+                        aria-label="Delete property"
+                      >
+                        {deletingId === property._id ? (
+                          <Loader2 className="w-5 h-5 animate-spin" />
+                        ) : (
+                          <Trash2 className="w-5 h-5" />
+                        )}
+                      </button>
+                    </div>
                   </div>
                 </div>
 
-                {showRawServerResults && serverResultsSample && (
-                  <div className="mt-3 bg-white rounded p-3 border border-yellow-100 text-xs text-slate-700">
-                    <div className="font-medium text-yellow-800 mb-2">Server sample (first {serverResultsSample.length}):</div>
-                    <pre className="whitespace-pre-wrap break-words text-[12px]">{JSON.stringify(serverResultsSample, null, 2)}</pre>
-                  </div>
-                )}
-              </div>
-            )}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {ownedProperties.map((p) => (
-              <div key={p._id} className="relative bg-white rounded-2xl shadow-xl overflow-hidden group">
-                <div className="relative h-56 sm:h-64 lg:h-56 overflow-hidden">
-                  <img src={p.images && p.images.length ? p.images[0] : '/placeholder.jpg'} alt={p.name} className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-400" />
+                {/* Content Section */}
+                <div className="p-6">
+                  <h3 className="text-lg md:text-xl font-bold text-slate-900 line-clamp-2 mb-2">{property.name}</h3>
+                  
+                  {property.location?.address && (
+                    <div className="flex items-start gap-2 mb-6">
+                      <MapPin className="w-4 h-4 text-violet-600 flex-shrink-0 mt-0.5" />
+                      <p className="text-sm text-slate-600 line-clamp-2">{property.location.address}</p>
+                    </div>
+                  )}
 
-                  {/* Price badge */}
-                  <div className="absolute top-4 left-4 bg-white/90 backdrop-blur-sm rounded-full px-4 py-2 shadow">
-                    <p className="text-sm text-slate-700 font-semibold">₱{Number(p.price).toLocaleString()}</p>
-                  </div>
-
-                  {/* Action buttons overlay */}
-                  <div className="absolute top-4 right-4 flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <Link href={`/listings/${p._id}/edit`} className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-white/90 shadow hover:bg-white" aria-label={`Edit ${p.name}`}>
-                      <Edit className="w-4 h-4 text-slate-700" />
-                    </Link>
-                    <button onClick={() => handleDelete(p._id)} disabled={loading} aria-disabled={loading} className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-rose-600 hover:bg-rose-700 text-white shadow">
-                      <Trash2 className="w-4 h-4" />
+                  {/* Action Buttons */}
+                  <div className="flex flex-col sm:flex-row gap-3">
+                    <button 
+                      onClick={(e) => handleEditClick(e, property._id)}
+                      className="flex items-center justify-center gap-2 flex-1 px-4 py-2 bg-gradient-to-r from-violet-600 to-purple-600 text-white rounded-lg hover:from-violet-700 hover:to-purple-700 font-semibold transition-all duration-200 text-sm"
+                    >
+                      <Edit className="w-4 h-4" /> Edit
                     </button>
-                  </div>
-                </div>
-
-                <div className="p-5 border-t">
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="flex-1">
-                      <h3 className="text-lg font-semibold text-slate-900 truncate">{p.name}</h3>
-                      <p className="text-sm text-slate-600 mt-1 truncate">{p.location?.address || ''}</p>
-                    </div>
-
-                    <div className="hidden sm:flex sm:flex-col items-end">
-                      <p className="text-sm text-slate-700 font-semibold">₱{Number(p.price).toLocaleString()}</p>
-                    </div>
-                  </div>
-
-                  <div className="mt-4 flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <Link href={`/listings/${p._id}/edit`}>
-                        <Button variant="ghost" className="flex items-center gap-2" disabled={loading} aria-disabled={loading} aria-label={`Edit ${p.name}`}>
-                          <Edit className="w-4 h-4" /> Edit
-                        </Button>
-                      </Link>
-                      <Button onClick={() => handleDelete(p._id)} variant="destructive" className="flex items-center gap-2" disabled={loading} aria-disabled={loading}>
-                        <Trash2 className="w-4 h-4" /> Delete
-                      </Button>
-                    </div>
-
-                    <Link href={`/listings/${p._id}`} className="text-sm text-indigo-600 hover:underline">View Details</Link>
+                    
+                    <Link href={`/listings/${property._id}`} className="flex items-center justify-center gap-2 flex-1 px-4 py-2 border-2 border-violet-200 text-violet-600 rounded-lg hover:bg-violet-50 font-semibold transition-all duration-200 text-sm">
+                      <Eye className="w-4 h-4" /> View
+                    </Link>
                   </div>
                 </div>
               </div>
             ))}
           </div>
-          </>
         )}
 
-        {/* Add Property Modal */}
-        <AddPropertyModal isOpen={isAddOpen} onClose={() => setIsAddOpen(false)} onPropertyAdded={async () => { setIsAddOpen(false); await fetchMyListings() }} />
+        {/* Stats Section */}
+        {!loading && properties.length > 0 && (
+          <div className="mt-12 bg-gradient-to-r from-violet-600 to-purple-600 rounded-2xl p-8 text-white shadow-lg">
+            <div className="grid md:grid-cols-3 gap-8 text-center">
+              <div>
+                <p className="text-4xl font-bold">{properties.length}</p>
+                <p className="text-violet-100 mt-2 font-medium">Total Listings</p>
+              </div>
+              <div>
+                <p className="text-4xl font-bold">₱{properties.reduce((sum, p) => sum + p.price, 0).toLocaleString()}</p>
+                <p className="text-violet-100 mt-2 font-medium">Combined Value</p>
+              </div>
+              <div>
+                <p className="text-4xl font-bold">✓</p>
+                <p className="text-violet-100 mt-2 font-medium">Active & Ready</p>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
+
+      {/* Add Property Modal */}
+      <AddPropertyModal 
+        isOpen={isAddOpen} 
+        onClose={() => setIsAddOpen(false)} 
+        onPropertyAdded={async () => { setIsAddOpen(false); await fetchMyListings() }} 
+      />
     </main>
   )
 }
