@@ -225,10 +225,10 @@ export default function MyListingsPage() {
                   </button>
                   
                   <div className="p-3 bg-gradient-to-br from-violet-600 to-purple-600 rounded-lg">
-                    <Home className="w-6 h-6 text-white" />
+                    <Home className="w-5 h-5 text-white" />
                   </div>
                 </div>
-                <h1 className="text-3xl md:text-5xl font-black text-slate-900 tracking-tight">My Listings</h1>
+                <h1 className="text-2xl md:text-5xl font-black text-slate-900 tracking-tight">My Listings</h1>
               </div>
               <p className="text-base text-slate-600 max-w-2xl">Manage your rental properties with ease. Edit details, upload images, and track your listings all in one place.</p>
             </div>
