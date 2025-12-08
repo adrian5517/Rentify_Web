@@ -208,15 +208,25 @@ export default function MyListingsPage() {
   }
 
   return (
-    <main className="min-h-screen bg-gradient-to-br from-violet-50 via-purple-50 to-indigo-50 py-8 md:py-12">
+    <main className="h-screen overflow-auto bg-gradient-to-br from-violet-50 via-purple-50 to-indigo-50 py-8 md:py-12">
       <div className="container mx-auto px-4 md:px-6 max-w-7xl">
         {/* Header Section */}
         <div className="mb-10 md:mb-12">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
             <div>
               <div className="flex items-center gap-3 mb-3">
-                <div className="p-3 bg-gradient-to-br from-violet-600 to-purple-600 rounded-lg">
-                  <Home className="w-6 h-6 text-white" />
+                <div className="flex items-center gap-3">
+                  <button
+                    onClick={() => router.push('/')}
+                    className="p-2 rounded-md bg-white/10 text-white hover:bg-white/20 mr-2"
+                    aria-label="Go home"
+                  >
+                    ← Back
+                  </button>
+                  <Link href="/" className="p-2 rounded-md bg-white/10 text-white hover:bg-white/20 mr-2">Home</Link>
+                  <div className="p-3 bg-gradient-to-br from-violet-600 to-purple-600 rounded-lg">
+                    <Home className="w-6 h-6 text-white" />
+                  </div>
                 </div>
                 <h1 className="text-3xl md:text-5xl font-black text-slate-900 tracking-tight">My Listings</h1>
               </div>
@@ -357,10 +367,17 @@ export default function MyListingsPage() {
                     </button>
                     
                     <button 
-                      onClick={() => handleViewClick(property._id)}
-                      className="flex items-center justify-center gap-2 flex-1 px-4 py-2 border-2 border-violet-200 text-violet-600 rounded-lg hover:bg-violet-50 font-semibold transition-all duration-200 text-sm"
+                      onClick={() => handleDelete(property._id)}
+                      disabled={deletingId === property._id}
+                      className="flex items-center justify-center gap-2 flex-1 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-semibold transition-all duration-200 text-sm disabled:opacity-50"
+                      aria-label="Delete property"
                     >
-                      <Eye className="w-4 h-4" /> View
+                      {deletingId === property._id ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <Trash2 className="w-4 h-4" />
+                      )}
+                      Delete
                     </button>
                   </div>
                 </div>
