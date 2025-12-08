@@ -14,11 +14,12 @@ import { Loader2, CheckCircle2 } from 'lucide-react'
 
 interface EditListingFormProps {
   propertyId: string
+  onSaveSuccess?: () => void
 }
 
 const MAX_PRICE = 50000
 
-export default function EditListingForm({ propertyId }: EditListingFormProps) {
+export default function EditListingForm({ propertyId, onSaveSuccess }: EditListingFormProps) {
   const { token } = useAuthStore()
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -34,10 +35,12 @@ export default function EditListingForm({ propertyId }: EditListingFormProps) {
     longitude: '',
     propertyType: '',
     amenities: [] as string[],
+    status: 'available',
     phoneNumber: '',
   })
 
   const [initialData, setInitialData] = useState<any>(null)
+  const [newAmenity, setNewAmenity] = useState('')
 
   const API_BASE: string = config.API_API
   // Mapbox token fallback
@@ -73,6 +76,7 @@ export default function EditListingForm({ propertyId }: EditListingFormProps) {
           longitude: String(property.location?.longitude ?? property.longitude ?? ''),
           propertyType: property.propertyType || '',
           amenities: property.amenities || [],
+          status: property.status || 'available',
           phoneNumber: property.phoneNumber || property.phone || '',
         }
 
@@ -153,6 +157,20 @@ export default function EditListingForm({ propertyId }: EditListingFormProps) {
     setFormData((p) => ({ ...p, [field]: value }))
   }
 
+  const addAmenity = (amenity: string) => {
+    const a = amenity?.trim()
+    if (!a) return
+    setFormData((prev) => {
+      if (prev.amenities.includes(a)) return prev
+      return { ...prev, amenities: [...prev.amenities, a] }
+    })
+    setNewAmenity('')
+  }
+
+  const removeAmenity = (amenity: string) => {
+    setFormData((prev) => ({ ...prev, amenities: prev.amenities.filter((x) => x !== amenity) }))
+  }
+
   const hasChanges = () => {
     if (!initialData) return false
     return JSON.stringify(initialData) !== JSON.stringify(formData)
@@ -177,6 +195,7 @@ export default function EditListingForm({ propertyId }: EditListingFormProps) {
         longitude: formData.longitude !== '' ? Number(formData.longitude) : undefined,
         propertyType: formData.propertyType,
         amenities: formData.amenities,
+        status: formData.status,
         phoneNumber: formData.phoneNumber,
       }
 
@@ -201,6 +220,11 @@ export default function EditListingForm({ propertyId }: EditListingFormProps) {
 
       setSuccessMessage('Listing updated successfully')
       setInitialData(formData)
+
+      // Notify parent that save succeeded so parent can close modal / refresh
+      try {
+        if (onSaveSuccess) onSaveSuccess()
+      } catch (e) { /* ignore */ }
     } catch (err: any) {
       setError(err?.message || 'Failed to save changes')
     } finally {
@@ -284,6 +308,59 @@ export default function EditListingForm({ propertyId }: EditListingFormProps) {
             <div>
               <Label className="text-xs font-semibold">Contact Phone</Label>
               <Input value={formData.phoneNumber} onChange={(e) => handleChange('phoneNumber', e.target.value)} />
+            </div>
+
+            <div className="md:col-span-2">
+              <Label className="text-xs font-semibold">Status</Label>
+              <Select value={formData.status} onValueChange={(v) => handleChange('status', v)}>
+                <SelectTrigger className="h-9">
+                  <SelectValue placeholder="Select status" />
+                </SelectTrigger>
+                <SelectContent>
+                  {[
+                    { value: 'available', label: 'Available' },
+                    { value: 'for rent', label: 'For Rent' },
+                    { value: 'for sale', label: 'For Sale' },
+                    { value: 'fully booked', label: 'Fully Booked' },
+                    { value: 'rented', label: 'Rented' },
+                  ].map(opt => (
+                    <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="md:col-span-2">
+              <Label className="text-xs font-semibold">Amenities</Label>
+              {/* Input below allows typing new amenity and pressing Enter to add */}
+              <div className="flex flex-wrap gap-2">
+                {formData.amenities && formData.amenities.length > 0 ? (
+                  formData.amenities.map((a, idx) => (
+                    <div key={idx} className="px-3 py-1 bg-violet-50 border border-violet-100 rounded-full text-sm flex items-center gap-2">
+                      <span>{a}</span>
+                      <button onClick={() => removeAmenity(a)} className="ml-2 text-xs text-violet-600">×</button>
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-sm text-slate-500">No amenities added</p>
+                )}
+              </div>
+              <div className="mt-2">
+                <div className="flex gap-2">
+                  <input id="new-amenity-input" placeholder="Type and press Enter" className="w-full px-3 py-2 border rounded" onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault()
+                      const val = (e.target as HTMLInputElement).value.trim()
+                      if (val) { addAmenity(val); (e.target as HTMLInputElement).value = '' }
+                    }
+                  }} />
+                  <button onClick={() => {
+                    const el = document.getElementById('new-amenity-input') as HTMLInputElement | null
+                    const val = el?.value.trim() || ''
+                    if (val) { addAmenity(val); if (el) el.value = '' }
+                  }} className="px-3 py-2 bg-violet-600 text-white rounded">Add</button>
+                </div>
+              </div>
             </div>
           </div>
 

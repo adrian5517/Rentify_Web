@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Loader2, Edit, Trash2, Plus, MapPin, Home, Eye, AlertCircle } from 'lucide-react'
 import AddPropertyModal from '@/components/add-property-modal'
+import EditListingForm from '@/components/edit-listing-form'
 
 interface PropertyItem {
   _id: string
@@ -25,6 +26,8 @@ export default function MyListingsPage() {
   const [error, setError] = useState<string | null>(null)
   const [properties, setProperties] = useState<PropertyItem[]>([])
   const [isAddOpen, setIsAddOpen] = useState(false)
+  const [editingPropertyId, setEditingPropertyId] = useState<string | null>(null)
+  const [isEditOpen, setIsEditOpen] = useState(false)
   const [deletingId, setDeletingId] = useState<string | null>(null)
 
   const API_BASE: string = config.API_API
@@ -178,7 +181,9 @@ export default function MyListingsPage() {
   }
 
   const handleEditClick = (propertyId: string) => {
-    router.push(`/listings/${propertyId}/edit`)
+    // Open inline edit modal instead of navigating away
+    setEditingPropertyId(propertyId)
+    setIsEditOpen(true)
   }
 
   const handleViewClick = (propertyId: string) => {
@@ -384,6 +389,24 @@ export default function MyListingsPage() {
           </div>
         )}
       </div>
+
+      {/* Edit Property Modal (inline) */}
+      {isEditOpen && editingPropertyId && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div className="fixed inset-0 bg-black/40" onClick={() => { setIsEditOpen(false); setEditingPropertyId(null); fetchMyListings() }} />
+          <div className="relative w-full max-w-4xl mx-4">
+            <div className="bg-white rounded-2xl shadow-xl p-4 max-h-[90vh] overflow-auto">
+              <div className="flex justify-between items-center mb-2">
+                <h3 className="text-lg font-semibold">Edit Property</h3>
+                <div className="flex gap-2">
+                  <button onClick={() => { setIsEditOpen(false); setEditingPropertyId(null); fetchMyListings() }} className="text-sm text-slate-500 hover:text-slate-800">Close</button>
+                </div>
+              </div>
+              <EditListingForm propertyId={editingPropertyId} onSaveSuccess={() => { setIsEditOpen(false); setEditingPropertyId(null); fetchMyListings() }} />
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Add Property Modal */}
       <AddPropertyModal 
