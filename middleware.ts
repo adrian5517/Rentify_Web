@@ -1,54 +1,29 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 
-export function middleware(req: NextRequest) {
-  const { pathname } = req.nextUrl
+export function middleware(request: NextRequest) {
+  const { pathname } = request.nextUrl
 
   // Protect admin routes: require a token cookie. Backend still enforces role checks.
   if (pathname.startsWith('/admin')) {
-    const token = req.cookies.get('token')?.value
+    const token = request.cookies.get('token')?.value
     if (!token) {
-      const url = req.nextUrl.clone()
+      const url = request.nextUrl.clone()
       url.pathname = '/auth'
       return NextResponse.redirect(url)
     }
   }
 
-  return NextResponse.next()
-}
-
-export const config = {
-  matcher: ['/admin/:path*'],
-}
-import { NextResponse } from 'next/server'
-import type { NextRequest } from 'next/server'
-
-export function middleware(request: NextRequest) {
   const response = NextResponse.next()
 
   // Security Headers
-  
-  // Prevent clickjacking attacks
   response.headers.set('X-Frame-Options', 'DENY')
   response.headers.set('Frame-Options', 'DENY')
-  
-  // Prevent MIME type sniffing
   response.headers.set('X-Content-Type-Options', 'nosniff')
-  
-  // Enable XSS protection
   response.headers.set('X-XSS-Protection', '1; mode=block')
-  
-  // Referrer Policy - only send origin for cross-origin requests
   response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin')
-  
-  // Permissions Policy - restrict potentially dangerous features
-  response.headers.set(
-    'Permissions-Policy',
-    'camera=(), microphone=(), geolocation=(self), payment=()'
-  )
-  
-  // Content Security Policy
-  // Note: Adjust these directives based on your actual needs
+  response.headers.set('Permissions-Policy', 'camera=(), microphone=(), geolocation=(self), payment=()')
+
   const cspDirectives = [
     "default-src 'self'",
     "script-src 'self' 'unsafe-eval' 'unsafe-inline' https://api.mapbox.com",
@@ -64,40 +39,23 @@ export function middleware(request: NextRequest) {
     "frame-ancestors 'none'",
     "upgrade-insecure-requests",
   ].join('; ')
-  
+
   response.headers.set('Content-Security-Policy', cspDirectives)
-  
-  // Strict Transport Security - force HTTPS (only in production)
+
   if (process.env.NODE_ENV === 'production') {
-    response.headers.set(
-      'Strict-Transport-Security',
-      'max-age=31536000; includeSubDomains; preload'
-    )
+    response.headers.set('Strict-Transport-Security', 'max-age=31536000; includeSubDomains; preload')
   }
-  
+
   // Rate limiting headers (informational)
-  const rateLimit = {
-    limit: 100,
-    remaining: 99,
-    reset: Date.now() + 60000,
-  }
-  response.headers.set('X-RateLimit-Limit', rateLimit.limit.toString())
-  response.headers.set('X-RateLimit-Remaining', rateLimit.remaining.toString())
-  response.headers.set('X-RateLimit-Reset', rateLimit.reset.toString())
+  const rateLimit = { limit: 100, remaining: 99, reset: Date.now() + 60000 }
+  response.headers.set('X-RateLimit-Limit', String(rateLimit.limit))
+  response.headers.set('X-RateLimit-Remaining', String(rateLimit.remaining))
+  response.headers.set('X-RateLimit-Reset', String(rateLimit.reset))
 
   return response
 }
 
-// Apply middleware to all routes
+// Apply middleware to specific routes: admin plus general site (excluding api/_next)
 export const config = {
-  matcher: [
-    /*
-     * Match all request paths except for the ones starting with:
-     * - api (API routes)
-     * - _next/static (static files)
-     * - _next/image (image optimization files)
-     * - favicon.ico (favicon file)
-     */
-    '/((?!api|_next/static|_next/image|favicon.ico).*)',
-  ],
+  matcher: ['/admin/:path*', '/((?!api|_next/static|_next/image|favicon.ico).*)'],
 }
