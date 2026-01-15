@@ -2038,11 +2038,7 @@ export default function PropertyListingPage() {
         
         {renderCurrentPage()}
 
-        {/* Inline analytics visualization (converted from property list) */}
-        <section className="max-w-6xl mx-auto my-8 px-4">
-          <h3 className="text-lg font-semibold mb-3">Properties Analytics</h3>
-
-        </section>
+      
       </main>
 
       <AddPropertyModal 

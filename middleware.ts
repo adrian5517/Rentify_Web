@@ -8,6 +8,17 @@ export function middleware(request: NextRequest) {
   if (pathname.startsWith('/admin')) {
     const token = request.cookies.get('token')?.value
     if (!token) {
+      // If a CLIENT_URL is configured (e.g. production client), redirect there first.
+      // This allows using an external client URL for auth flows (useful for PoC).
+      const clientUrl = process.env.CLIENT_URL && String(process.env.CLIENT_URL).replace(/\/$/, '')
+      if (clientUrl) {
+        try {
+          return NextResponse.redirect(`${clientUrl}/auth`)
+        } catch (e) {
+          // If external redirect fails, fall back to local /auth
+        }
+      }
+
       const url = request.nextUrl.clone()
       url.pathname = '/auth'
       return NextResponse.redirect(url)
