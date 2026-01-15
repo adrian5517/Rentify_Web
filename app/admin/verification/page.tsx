@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation'
 import { useAuthStore } from '@/lib/auth-store'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from '@/components/ui/dialog'
 
 type Doc = { filename?: string; url?: string };
 type UserRef = { username?: string; email?: string };
@@ -18,6 +19,13 @@ export default function AdminVerificationPage() {
   const [items, setItems] = useState<Property[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [query, setQuery] = useState('')
+  const [page, setPage] = useState(1)
+  const PAGE_SIZE = 6
+
+  // modal viewer
+  const [viewerOpen, setViewerOpen] = useState(false)
+  const [viewerDocs, setViewerDocs] = useState<Doc[] | null>(null)
 
   const router = useRouter()
   const { user, token } = useAuthStore()
@@ -94,6 +102,16 @@ export default function AdminVerificationPage() {
     <div className="p-6">
       <h1 className="text-2xl font-semibold mb-4">Admin — Verification Queue</h1>
 
+      <div className="flex items-center gap-3 mb-4">
+        <input
+          value={query}
+          onChange={(e) => { setQuery(e.target.value); setPage(1) }}
+          placeholder="Search by property name or owner email"
+          className="border rounded px-3 py-2 w-full max-w-md"
+        />
+        <div className="text-sm text-gray-500">{items.length} total</div>
+      </div>
+
       {(!checkedAuth || loading) && <div className="mb-4">Loading…</div>}
       {error && <div className="mb-4 text-red-600">{error}</div>}
 
@@ -101,68 +119,126 @@ export default function AdminVerificationPage() {
         <div className="text-sm text-gray-600">No pending properties.</div>
       ) : null}
 
-      <div className="space-y-4 mt-4">
-        {items.map((p) => (
-          <div key={p._id} className="p-4 border rounded shadow-sm bg-white">
-            <div className="flex justify-between items-start">
-              <div>
-                <div className="font-medium text-lg">{p.name || 'Untitled property'}</div>
-                <div className="text-sm text-gray-500">Owner: {p.postedBy?.email || p.postedBy?.username || 'unknown'}</div>
-                <div className="text-xs text-gray-400 mt-1">Status: {p.verification_status || 'unverified'}</div>
-              </div>
-              <div className="flex gap-2">
-                <button
-                  onClick={() => {
-                    if (!p.verification_documents || p.verification_documents.length === 0) {
-                      alert('No verification documents uploaded');
-                      return;
-                    }
-                    // open first doc in a new tab
-                    window.open(p.verification_documents[0].url, '_blank');
-                  }}
-                  className="px-3 py-1 rounded bg-gray-100 hover:bg-gray-200"
-                >
-                  View Documents
-                </button>
-                <button
-                  onClick={() => doAction(p._id, 'verify', 'Approved via admin dashboard')}
-                  className="px-3 py-1 rounded bg-green-600 text-white hover:opacity-90"
-                >
-                  Approve
-                </button>
-                <button
-                  onClick={() => {
-                    const reason = prompt('Rejection reason (optional):', '');
-                    if (reason !== null) doAction(p._id, 'reject', reason);
-                  }}
-                  className="px-3 py-1 rounded bg-red-600 text-white hover:opacity-90"
-                >
-                  Reject
-                </button>
-              </div>
-            </div>
+      {/* filter + pagination */}
+      {items.length > 0 && (
+        (() => {
+          const q = query.trim().toLowerCase()
+          const filtered = q
+            ? items.filter((it) => (it.name || '').toLowerCase().includes(q) || (it.postedBy?.email || '').toLowerCase().includes(q) || (it.postedBy?.username || '').toLowerCase().includes(q))
+            : items
+          const total = filtered.length
+          const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE))
+          const start = (page - 1) * PAGE_SIZE
+          const pageItems = filtered.slice(start, start + PAGE_SIZE)
 
-            {p.verification_documents && p.verification_documents.length > 0 && (
-              <div className="mt-3 grid grid-cols-3 gap-2">
-                {p.verification_documents.map((d, i) => (
-                  <div key={i} className="border rounded overflow-hidden">
-                    {d.url ? (
-                      // show small image if it's image content; otherwise show a link
-                      <img src={d.url} alt={d.filename || `doc-${i}`} className="w-full h-28 object-cover" onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }} />
-                    ) : null}
-                    <div className="p-2 text-xs">
-                      <div className="truncate">{d.filename || 'document'}</div>
-                      {d.url && (
-                        <a href={d.url} target="_blank" rel="noreferrer" className="text-blue-600 text-xs">Open</a>
-                      )}
+          return (
+            <>
+              <div className="space-y-4 mt-4">
+                {pageItems.map((p) => (
+                  <div key={p._id} className="p-4 border rounded shadow-sm bg-white">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <div className="font-medium text-lg">{p.name || 'Untitled property'}</div>
+                        <div className="text-sm text-gray-500">Owner: {p.postedBy?.email || p.postedBy?.username || 'unknown'}</div>
+                        <div className="text-xs text-gray-400 mt-1">Status: {p.verification_status || 'unverified'}</div>
+                      </div>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => {
+                            if (!p.verification_documents || p.verification_documents.length === 0) {
+                              alert('No verification documents uploaded');
+                              return;
+                            }
+                            setViewerDocs(p.verification_documents || [])
+                            setViewerOpen(true)
+                          }}
+                          className="px-3 py-1 rounded bg-gray-100 hover:bg-gray-200"
+                        >
+                          View Documents
+                        </button>
+                        <button
+                          onClick={() => doAction(p._id, 'verify', 'Approved via admin dashboard')}
+                          className="px-3 py-1 rounded bg-green-600 text-white hover:opacity-90"
+                        >
+                          Approve
+                        </button>
+                        <button
+                          onClick={() => {
+                            const reason = prompt('Rejection reason (optional):', '');
+                            if (reason !== null) doAction(p._id, 'reject', reason);
+                          }}
+                          className="px-3 py-1 rounded bg-red-600 text-white hover:opacity-90"
+                        >
+                          Reject
+                        </button>
+                      </div>
                     </div>
+
+                    {p.verification_documents && p.verification_documents.length > 0 && (
+                      <div className="mt-3 grid grid-cols-3 gap-2">
+                        {p.verification_documents.map((d, i) => (
+                          <div key={i} className="border rounded overflow-hidden">
+                            {d.url ? (
+                              <img src={d.url} alt={d.filename || `doc-${i}`} className="w-full h-28 object-cover" onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }} />
+                            ) : null}
+                            <div className="p-2 text-xs">
+                              <div className="truncate">{d.filename || 'document'}</div>
+                              {d.url && (
+                                <a href={d.url} target="_blank" rel="noreferrer" className="text-blue-600 text-xs">Open</a>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
+
+              {/* pagination controls */}
+              {total > PAGE_SIZE && (
+                <div className="mt-4 flex items-center gap-3">
+                  <button onClick={() => setPage((p) => Math.max(1, p - 1))} className="px-3 py-1 rounded bg-slate-100">Prev</button>
+                  <div className="text-sm text-gray-600">Page {page} of {totalPages}</div>
+                  <button onClick={() => setPage((p) => Math.min(totalPages, p + 1))} className="px-3 py-1 rounded bg-slate-100">Next</button>
+                </div>
+              )}
+            </>
+          )
+        })()
+      )}
+
+      {/* Document viewer modal */}
+      <Dialog open={viewerOpen} onOpenChange={(open) => { setViewerOpen(open); if (!open) setViewerDocs(null) }}>
+        <DialogContent className="max-w-3xl">
+          <DialogHeader>
+            <DialogTitle>Verification Documents</DialogTitle>
+            <DialogDescription className="text-sm text-gray-500">Click an image to open in a new tab.</DialogDescription>
+          </DialogHeader>
+
+          <div className="mt-3 grid grid-cols-1 gap-3">
+            {viewerDocs && viewerDocs.length > 0 ? (
+              viewerDocs.map((d, i) => (
+                <div key={i} className="flex flex-col gap-2">
+                  {d.url ? (
+                    // allow click to open in new tab
+                    <img src={d.url} alt={d.filename || `doc-${i}`} className="w-full max-h-[60vh] object-contain cursor-pointer" onClick={() => window.open(d.url, '_blank')} />
+                  ) : null}
+                  <div className="text-sm text-gray-700">{d.filename}</div>
+                </div>
+              ))
+            ) : (
+              <div className="text-sm text-gray-600">No documents to show.</div>
             )}
           </div>
-        ))}
-      </div>
+
+          <DialogFooter>
+            <DialogClose>
+              <button className="px-3 py-2 rounded bg-slate-100">Close</button>
+            </DialogClose>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

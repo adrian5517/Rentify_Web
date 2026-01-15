@@ -78,6 +78,18 @@ export default function Navbar({ currentPage, onPageChange }: NavbarProps) {
             </Button>
           )
         })}
+        {user && user.role === 'admin' && (
+          <Button
+            key="admin"
+            variant="ghost"
+            size="sm"
+            onClick={() => { try { router.push('/admin/verification') } catch (e) { onPageChange('admin') } }}
+            className={`relative rounded-full px-3 py-2 text-sm font-medium transition-colors text-slate-600 hover:text-slate-900 hover:bg-slate-100`}>
+            <Navigation className="h-4 w-4 mr-2 text-slate-500" />
+            Admin
+            <Badge className="ml-2">Admin</Badge>
+          </Button>
+        )}
         
         {/* Auth buttons on the right */}
         <div className="ml-auto flex items-center gap-2">
@@ -198,6 +210,18 @@ export default function Navbar({ currentPage, onPageChange }: NavbarProps) {
                   </button>
                 )
               })}
+              {user && user.role === 'admin' && (
+                <button
+                  onClick={() => {
+                    try { router.push('/admin/verification') } catch (e) { onPageChange('admin') }
+                    setIsMobileMenuOpen(false)
+                  }}
+                  className={`w-full flex items-center gap-3 px-4 py-2.5 text-left text-sm text-slate-700 hover:bg-slate-50 hover:text-slate-900`}
+                >
+                  <Navigation className="h-4 w-4 text-slate-500" />
+                  <span className="flex-1">Admin</span>
+                </button>
+              )}
               
               {/* Mobile auth buttons */}
                 <div className="border-t border-slate-200 mt-3 pt-2 px-4 pb-2 space-y-2">
