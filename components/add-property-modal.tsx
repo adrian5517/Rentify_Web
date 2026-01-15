@@ -99,6 +99,16 @@ export default function AddPropertyModal({ isOpen, onClose, onPropertyAdded, pro
   const [uploadProgress, setUploadProgress] = useState<number[]>([])
   const [uploadResults, setUploadResults] = useState<{ name: string; ok: boolean; message?: string }[]>([])
   const [docUploadMessage, setDocUploadMessage] = useState<string | null>(null)
+  // Inline toast notifications
+  const [toasts, setToasts] = useState<Array<{ id: string; type: 'success' | 'error' | 'info'; title?: string; message?: string }>>([])
+
+  const showToast = (toast: { type: 'success' | 'error' | 'info'; title?: string; message?: string }, timeout = 4000) => {
+    const id = String(Date.now()) + Math.random().toString(36).slice(2, 8)
+    setToasts((t) => [...t, { id, ...toast }])
+    if (timeout > 0) setTimeout(() => setToasts((t) => t.filter((x) => x.id !== id)), timeout)
+    return id
+  }
+  const removeToast = (id: string) => setToasts((t) => t.filter((x) => x.id !== id))
 
   const [newAmenity, setNewAmenity] = useState("")
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -773,7 +783,7 @@ export default function AddPropertyModal({ isOpen, onClose, onPropertyAdded, pro
     e.target.value = ''
   }
 
-  // Upload verification docs sequentially so we can show per-file progress
+  // Upload verification docs in parallel with per-file progress tracking
   const uploadDocsForProperty = (propertyId: string, token: string) => {
     return new Promise<{ ok: boolean; results: { name: string; ok: boolean; message?: string }[] }>(async (resolve) => {
       if (docFiles.length === 0) return resolve({ ok: true, results: [] })
@@ -782,11 +792,8 @@ export default function AddPropertyModal({ isOpen, onClose, onPropertyAdded, pro
       setUploadResults([])
       setDocUploadMessage(null)
 
-      const results: { name: string; ok: boolean; message?: string }[] = []
-
-      for (let idx = 0; idx < docFiles.length; idx++) {
-        const file = docFiles[idx]
-        await new Promise<void>((res) => {
+      const promises = docFiles.map((file, idx) => {
+        return new Promise<{ name: string; ok: boolean; message?: string }>((res) => {
           try {
             const url = `${API_BASE.replace(/\/$/, '')}/api/properties/${propertyId}/verification/docs`
             const form = new FormData()
@@ -809,38 +816,49 @@ export default function AddPropertyModal({ isOpen, onClose, onPropertyAdded, pro
 
             xhr.onload = () => {
               if (xhr.status >= 200 && xhr.status < 300) {
-                results.push({ name: file.name, ok: true })
-                setUploadResults((prev) => [...prev, { name: file.name, ok: true }])
+                setUploadResults((prev) => {
+                  const copy = [...prev, { name: file.name, ok: true }]
+                  return copy
+                })
+                res({ name: file.name, ok: true })
               } else {
                 let message = `HTTP ${xhr.status}`
                 try { const body = JSON.parse(xhr.responseText); if (body && body.message) message = body.message } catch (e) {}
-                results.push({ name: file.name, ok: false, message })
                 setUploadResults((prev) => [...prev, { name: file.name, ok: false, message }])
+                res({ name: file.name, ok: false, message })
               }
-              res()
             }
 
             xhr.onerror = () => {
               const msg = 'Network error'
-              results.push({ name: file.name, ok: false, message: msg })
               setUploadResults((prev) => [...prev, { name: file.name, ok: false, message: msg }])
-              res()
+              res({ name: file.name, ok: false, message: msg })
             }
 
             xhr.send(form)
           } catch (err) {
             const msg = err instanceof Error ? err.message : String(err)
-            results.push({ name: file.name, ok: false, message: msg })
             setUploadResults((prev) => [...prev, { name: file.name, ok: false, message: msg }])
-            res()
+            res({ name: file.name, ok: false, message: msg })
           }
         })
+      })
+
+      const settled = await Promise.all(promises)
+      setUploadingDocs(false)
+
+      const ok = settled.every(r => r.ok)
+      setDocUploadMessage(ok ? 'All documents uploaded' : 'Some documents failed to upload')
+
+      // Show a toast summary
+      if (ok) {
+        showToast({ type: 'success', title: 'Documents uploaded', message: `${settled.length} document(s) uploaded successfully.` })
+      } else {
+        const failed = settled.filter(s => !s.ok).map(s => s.name).slice(0, 3)
+        showToast({ type: 'error', title: 'Upload completed with errors', message: `Failed: ${failed.join(', ')}${settled.length - failed.length > 0 ? ', ...' : ''}` })
       }
 
-      setUploadingDocs(false)
-      const ok = results.every(r => r.ok)
-      setDocUploadMessage(ok ? 'All documents uploaded' : 'Some documents failed to upload')
-      resolve({ ok, results })
+      resolve({ ok, results: settled })
     })
   }
 
@@ -903,6 +921,21 @@ export default function AddPropertyModal({ isOpen, onClose, onPropertyAdded, pro
             Add New Property
           </DialogTitle>
         </DialogHeader>
+
+        {/* Inline toast container */}
+        <div className="pointer-events-none fixed top-6 right-6 z-50 flex flex-col gap-2">
+          {toasts.map((t) => (
+            <div key={t.id} className={`pointer-events-auto max-w-xs w-full rounded-lg shadow-lg border ${t.type === 'success' ? 'bg-emerald-50 border-emerald-100 text-emerald-800' : t.type === 'error' ? 'bg-red-50 border-red-100 text-red-800' : 'bg-slate-50 border-slate-100 text-slate-800'}`}>
+              <div className="flex items-start gap-3 p-3">
+                <div className="flex-1">
+                  {t.title && <div className="font-semibold text-sm">{t.title}</div>}
+                  {t.message && <div className="text-xs mt-0.5">{t.message}</div>}
+                </div>
+                <button onClick={() => removeToast(t.id)} className="text-xs text-slate-400 hover:text-slate-600">×</button>
+              </div>
+            </div>
+          ))}
+        </div>
 
         <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-5 md:space-y-6">
           {/* Basic Information */}
@@ -1223,22 +1256,22 @@ export default function AddPropertyModal({ isOpen, onClose, onPropertyAdded, pro
                       type="button"
                       onClick={async () => {
                         const token = getAuthToken()
-                        if (!token) { alert('Login required to upload documents'); return }
+                        if (!token) { showToast({ type: 'error', title: 'Login required', message: 'Please sign in to upload documents.' }); return }
                         if (propertyId) {
                           try {
                             const res = await uploadDocsForProperty(propertyId, token)
                             if (res.ok) {
-                              alert('Documents uploaded successfully')
+                              showToast({ type: 'success', title: 'Uploaded', message: 'Documents uploaded successfully.' })
                             } else {
-                              alert('Some documents failed to upload. Check the UI for details.')
+                              showToast({ type: 'error', title: 'Upload errors', message: 'Some documents failed to upload. Check the UI for details.' })
                             }
                           } catch (err) {
                             console.error('Upload failed', err)
-                            alert('Upload failed: ' + (err instanceof Error ? err.message : String(err)))
+                            showToast({ type: 'error', title: 'Upload failed', message: String(err instanceof Error ? err.message : err) })
                           }
                         } else {
                           // If property hasn't been created yet, we cannot upload here — notify user to submit property first
-                          alert('Documents will be uploaded after property creation. You can also upload them after posting from the property page.\n\n(Upload-on-create will show progress when you post the property.)')
+                          showToast({ type: 'info', title: 'Will upload after post', message: 'Documents will be uploaded after property creation. You can also upload them after posting from the property page.' })
                         }
                       }}
                       variant="outline"
