@@ -18,6 +18,7 @@ interface AddPropertyModalProps {
   isOpen: boolean
   onClose: () => void
   onPropertyAdded?: () => void
+  propertyId?: string // optional: when editing an existing property, provide its id so docs can be uploaded immediately
 }
 
 // Helper function to get auth token
@@ -75,7 +76,7 @@ const getCurrentUserInfo = (): { id: string; fullname: string; email: string } |
   }
 }
 
-export default function AddPropertyModal({ isOpen, onClose, onPropertyAdded }: AddPropertyModalProps) {
+export default function AddPropertyModal({ isOpen, onClose, onPropertyAdded, propertyId }: AddPropertyModalProps) {
   const [formData, setFormData] = useState({
     name: "",
     description: "",
@@ -94,6 +95,10 @@ export default function AddPropertyModal({ isOpen, onClose, onPropertyAdded }: A
   // Verification document files (owners can upload during listing creation)
   const [docFiles, setDocFiles] = useState<File[]>([])
   const [docNames, setDocNames] = useState<string[]>([])
+  const [uploadingDocs, setUploadingDocs] = useState(false)
+  const [uploadProgress, setUploadProgress] = useState<number[]>([])
+  const [uploadResults, setUploadResults] = useState<{ name: string; ok: boolean; message?: string }[]>([])
+  const [docUploadMessage, setDocUploadMessage] = useState<string | null>(null)
 
   const [newAmenity, setNewAmenity] = useState("")
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -597,19 +602,13 @@ export default function AddPropertyModal({ isOpen, onClose, onPropertyAdded }: A
       try {
         const createdProperty = data.property || data
         if (docFiles.length > 0 && createdProperty && createdProperty._id) {
-          const docsForm = new FormData()
-          for (const f of docFiles) docsForm.append('docs', f)
-
-          const uploadRes = await fetch(`${API_BASE.replace(/\/$/, '')}/api/properties/${createdProperty._id}/verification/docs`, {
-            method: 'POST',
-            headers: { Authorization: `Bearer ${token}` },
-            body: docsForm
-          })
-
-          if (!uploadRes.ok) {
-            console.warn('Failed to upload verification docs during create:', uploadRes.status)
-          } else {
-            // Auto-submit for verification (best-effort)
+          // Use the sequential uploader to show progress and results
+          try {
+            const r = await uploadDocsForProperty(createdProperty._id, token)
+            if (!r.ok) {
+              console.warn('Some document uploads failed during create')
+            }
+            // Attempt to auto-submit after uploads
             try {
               await fetch(`${API_BASE.replace(/\/$/, '')}/api/properties/${createdProperty._id}/verification/submit`, {
                 method: 'POST',
@@ -619,6 +618,8 @@ export default function AddPropertyModal({ isOpen, onClose, onPropertyAdded }: A
             } catch (err) {
               console.warn('Auto-submit failed:', err)
             }
+          } catch (err) {
+            console.warn('Error uploading docs after property creation:', err)
           }
         }
       } catch (err) {
@@ -770,6 +771,77 @@ export default function AddPropertyModal({ isOpen, onClose, onPropertyAdded }: A
       setDocNames(prev => [...prev, ...names])
     }
     e.target.value = ''
+  }
+
+  // Upload verification docs sequentially so we can show per-file progress
+  const uploadDocsForProperty = (propertyId: string, token: string) => {
+    return new Promise<{ ok: boolean; results: { name: string; ok: boolean; message?: string }[] }>(async (resolve) => {
+      if (docFiles.length === 0) return resolve({ ok: true, results: [] })
+      setUploadingDocs(true)
+      setUploadProgress(docFiles.map(() => 0))
+      setUploadResults([])
+      setDocUploadMessage(null)
+
+      const results: { name: string; ok: boolean; message?: string }[] = []
+
+      for (let idx = 0; idx < docFiles.length; idx++) {
+        const file = docFiles[idx]
+        await new Promise<void>((res) => {
+          try {
+            const url = `${API_BASE.replace(/\/$/, '')}/api/properties/${propertyId}/verification/docs`
+            const form = new FormData()
+            form.append('docs', file)
+
+            const xhr = new XMLHttpRequest()
+            xhr.open('POST', url)
+            xhr.setRequestHeader('Authorization', `Bearer ${token}`)
+
+            xhr.upload.onprogress = (e) => {
+              if (e.lengthComputable) {
+                const pct = Math.round((e.loaded / e.total) * 100)
+                setUploadProgress((prev) => {
+                  const copy = [...prev]
+                  copy[idx] = pct
+                  return copy
+                })
+              }
+            }
+
+            xhr.onload = () => {
+              if (xhr.status >= 200 && xhr.status < 300) {
+                results.push({ name: file.name, ok: true })
+                setUploadResults((prev) => [...prev, { name: file.name, ok: true }])
+              } else {
+                let message = `HTTP ${xhr.status}`
+                try { const body = JSON.parse(xhr.responseText); if (body && body.message) message = body.message } catch (e) {}
+                results.push({ name: file.name, ok: false, message })
+                setUploadResults((prev) => [...prev, { name: file.name, ok: false, message }])
+              }
+              res()
+            }
+
+            xhr.onerror = () => {
+              const msg = 'Network error'
+              results.push({ name: file.name, ok: false, message: msg })
+              setUploadResults((prev) => [...prev, { name: file.name, ok: false, message: msg }])
+              res()
+            }
+
+            xhr.send(form)
+          } catch (err) {
+            const msg = err instanceof Error ? err.message : String(err)
+            results.push({ name: file.name, ok: false, message: msg })
+            setUploadResults((prev) => [...prev, { name: file.name, ok: false, message: msg }])
+            res()
+          }
+        })
+      }
+
+      setUploadingDocs(false)
+      const ok = results.every(r => r.ok)
+      setDocUploadMessage(ok ? 'All documents uploaded' : 'Some documents failed to upload')
+      resolve({ ok, results })
+    })
   }
 
   const removeImage = (index: number) => {
@@ -1140,6 +1212,73 @@ export default function AddPropertyModal({ isOpen, onClose, onPropertyAdded }: A
                     </div>
                   </div>
                 ))}
+              </div>
+            )}
+            {docFiles.length > 0 && (
+              <div className="mt-3">
+                {/* Upload controls and progress */}
+                {!uploadingDocs ? (
+                  <div className="flex items-center gap-3">
+                    <Button
+                      type="button"
+                      onClick={async () => {
+                        const token = getAuthToken()
+                        if (!token) { alert('Login required to upload documents'); return }
+                        if (propertyId) {
+                          try {
+                            const res = await uploadDocsForProperty(propertyId, token)
+                            if (res.ok) {
+                              alert('Documents uploaded successfully')
+                            } else {
+                              alert('Some documents failed to upload. Check the UI for details.')
+                            }
+                          } catch (err) {
+                            console.error('Upload failed', err)
+                            alert('Upload failed: ' + (err instanceof Error ? err.message : String(err)))
+                          }
+                        } else {
+                          // If property hasn't been created yet, we cannot upload here — notify user to submit property first
+                          alert('Documents will be uploaded after property creation. You can also upload them after posting from the property page.\n\n(Upload-on-create will show progress when you post the property.)')
+                        }
+                      }}
+                      variant="outline"
+                      className="text-sm"
+                      disabled={uploadingDocs}
+                    >
+                      {uploadingDocs ? (
+                        <><Loader2 className="h-3.5 w-3.5 animate-spin mr-2" />Uploading...</>
+                      ) : (
+                        'Upload Documents Now'
+                      )}
+                    </Button>
+                    <div className="text-xs text-gray-500">Or they will be uploaded automatically when you post the property.</div>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {docFiles.map((f, idx) => (
+                      <div key={idx} className="space-y-1">
+                        <div className="flex items-center justify-between text-xs">
+                          <div className="truncate mr-4">{f.name}</div>
+                          <div className="text-right text-xs">
+                            {uploadProgress[idx] ?? 0}%
+                          </div>
+                        </div>
+                        <div className="w-full h-2 bg-slate-200 rounded overflow-hidden">
+                          <div className="h-full bg-blue-600" style={{ width: `${uploadProgress[idx] ?? 0}%` }} />
+                        </div>
+                        {uploadResults[idx] && (
+                          <div className={`text-xs ${uploadResults[idx].ok ? 'text-green-600' : 'text-red-600'}`}>{uploadResults[idx].ok ? 'Uploaded' : `Failed: ${uploadResults[idx].message || 'error'}`}</div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {docUploadMessage && (
+                  <div className={`mt-2 p-2 text-sm rounded ${docUploadMessage.includes('failed') ? 'bg-red-50 text-red-700 border border-red-100' : 'bg-green-50 text-green-700 border border-green-100'}`}>
+                    {docUploadMessage}
+                  </div>
+                )}
               </div>
             )}
           </div>
