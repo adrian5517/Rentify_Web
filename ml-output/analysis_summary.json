@@ -1,0 +1,13 @@
+{
+  "knn_mape": 47.941176470588246,
+  "kmeans_inertia": 0.0,
+  "kmeans_silhouette": NaN,
+  "kmeans_davies_bouldin": NaN,
+  "num_properties": 25,
+  "num_features": 2,
+  "cluster_distribution": {
+    "Low Budget": 8,
+    "Mid-Range": 9,
+    "High-End": 8
+  }
+}

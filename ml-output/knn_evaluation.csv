@@ -1,0 +1,6 @@
+property_name,address,price,original_index,rating,__v,actual_price,predicted_price,error_percent
+Becky miraña,"{'address': '3rd Street Concepcion Pequeña, Naga City, Camarines Sur, Philippines', 'latitude': 13.618448, 'longitude': 123.201801}",3000,0,0.0,0.0,3000,3000.0,0.0
+Figuracion,"{'address': '1st Street Concepcion Pequeña, Naga City, Camarines Sur, Philippines', 'latitude': 13.617345, 'longitude': 123.200081}",4000,8,0.0,0.0,4000,3000.0,25.0
+ Evelyn Kamensa,"{'address': '3rd Street Concepcion Pequeña, Naga City, Camarines Sur, Philippines', 'latitude': 13.616836, 'longitude': 123.200189}",8500,16,0.0,0.0,8500,3000.0,64.70588235294117
+Test Rentify,"{'address': 'Riverside Street Igualdad Interior, Naga City, Camarines Sur, Philippines', 'latitude': 13.622486, 'longitude': 123.186438}",10000,23,0.0,0.0,10000,3000.0,70.0
+Jardinel,"{'address': '3rd Street Concepcion Pequeña, Naga City, Camarines Sur, Philippines', 'latitude': 13.615166, 'longitude': 123.198289}",15000,11,0.0,0.0,15000,3000.0,80.0

@@ -51,11 +51,12 @@ export default function AuthRedirect() {
 
         setStatus('success')
         setMessage('Successfully signed in!')
-        
-        // Redirect to home after 1.5 seconds
+
+        // Redirect based on role: admins -> admin dashboard
+        const isAdmin = data.user?.role === 'admin'
         setTimeout(() => {
-          router.push('/')
-        }, 1500)
+          router.push(isAdmin ? '/admin/verification' : '/')
+        }, 1200)
 
       } catch (error) {
         console.error('Facebook auth error:', error)

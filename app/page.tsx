@@ -39,7 +39,6 @@ import AuthProtected from "@/components/auth-protected"
 import MessagesPage from "@/app/messages/page"
 import { sendMessageAPI } from "@/lib/api"
 
-// API Property interface matching the API response
 interface APIProperty {
   _id: string
   name: string
@@ -2033,6 +2032,12 @@ export default function PropertyListingPage() {
         )}
         
         {renderCurrentPage()}
+
+        {/* Inline analytics visualization (converted from property list) */}
+        <section className="max-w-6xl mx-auto my-8 px-4">
+          <h3 className="text-lg font-semibold mb-3">Properties Analytics</h3>
+
+        </section>
       </main>
 
       <AddPropertyModal 

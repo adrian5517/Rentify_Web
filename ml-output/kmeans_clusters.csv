@@ -1,0 +1,26 @@
+property_name,address,price,original_index,rating,__v,cluster_label,budget_category,price_percentile_in_cluster
+Becky miraña,"{'address': '3rd Street Concepcion Pequeña, Naga City, Camarines Sur, Philippines', 'latitude': 13.618448, 'longitude': 123.201801}",3000,0,0.0,0.0,0,Low Budget,0.8125
+abucar aprartment,"{'address': '3rd Street Concepcion Pequeña, Naga City, Camarines Sur, Philippines', 'latitude': 13.617256, 'longitude': 123.200626}",2000,1,0.0,0.0,0,Low Budget,0.3125
+"ARJONA,MARIA VICTORIA ","{'address': '4th Street Concepcion Pequeña, Naga City, Camarines Sur, Philippines', 'latitude': 13.616755, 'longitude': 123.200729}",4000,2,0.0,0.0,1,Mid-Range,0.4444444444444444
+Zulueta apartment,"{'address': 'Canda Street Concepcion Pequeña, Naga City, Camarines Sur, Philippines', 'latitude': 13.619088, 'longitude': 123.200554}",6000,3,0.0,0.0,2,High-End,0.1875
+TownHouse Fully Furnished,"{'address': 'Cararayan-San Isidro Road Cararayan, Naga City, Camarines Sur, Philippines', 'latitude': 13.630582, 'longitude': 123.225157}",14000,4,0.0,0.0,2,High-End,0.875
+Transient Home for 4–5 Pax,"{'address': 'Mangga Street Dayangdang, Naga City, Camarines Sur, Philippines', 'latitude': 13.631109, 'longitude': 123.200485}",3000,5,0.0,0.0,0,Low Budget,0.8125
+Ria Apartment,"{'address': 'Abella Street San Roque, Camaligan, Camarines Sur, Philippines', 'latitude': 13.6218, 'longitude': 123.1815}",6500,6,0.0,0.0,2,High-End,0.375
+San felipe Grandvalle Deca 3,"{'address': 'Cokeville Road San Felipe, Naga City, Camarines Sur, Philippines', 'latitude': 13.646814, 'longitude': 123.204211}",9000,7,0.0,0.0,2,High-End,0.625
+Figuracion,"{'address': '1st Street Concepcion Pequeña, Naga City, Camarines Sur, Philippines', 'latitude': 13.617345, 'longitude': 123.200081}",4000,8,0.0,0.0,1,Mid-Range,0.4444444444444444
+Ondevilla Rental Room,"{'address': 'Panganiban Drive Concepcion Pequeña, Naga City, Camarines Sur, Philippines', 'latitude': 13.621033, 'longitude': 123.200504}",1500,9,0.0,0.0,0,Low Budget,0.125
+Amaranto Room,"{'address': 'Canda Street Concepcion Pequeña, Naga City, Camarines Sur, Philippines', 'latitude': 13.619189, 'longitude': 123.200637}",4000,10,0.0,0.0,1,Mid-Range,0.4444444444444444
+Jardinel,"{'address': '3rd Street Concepcion Pequeña, Naga City, Camarines Sur, Philippines', 'latitude': 13.615166, 'longitude': 123.198289}",15000,11,0.0,0.0,2,High-End,1.0
+Arjona Room for rent,"{'address': '4th Street Concepcion Pequeña, Naga City, Camarines Sur, Philippines', 'latitude': 13.616698, 'longitude': 123.200643}",4000,12,0.0,0.0,1,Mid-Range,0.4444444444444444
+Elester Pado,"{'address': '10th Street Concepcion Pequeña, Naga City, Camarines Sur, Philippines', 'latitude': 13.615879, 'longitude': 123.203028}",3500,13,0.0,0.0,1,Mid-Range,0.1111111111111111
+Cortes BedSpace,"{'address': '3rd Street Concepcion Pequeña, Naga City, Camarines Sur, Philippines', 'latitude': 13.618535, 'longitude': 123.201845}",2000,14,0.0,0.0,0,Low Budget,0.3125
+Abucar Room,"{'address': '2nd Street Concepcion Pequeña, Naga City, Camarines Sur, Philippines', 'latitude': 13.617388, 'longitude': 123.200421}",2500,15,0.0,0.0,0,Low Budget,0.5
+ Evelyn Kamensa,"{'address': '3rd Street Concepcion Pequeña, Naga City, Camarines Sur, Philippines', 'latitude': 13.616836, 'longitude': 123.200189}",8500,16,0.0,0.0,2,High-End,0.5
+ACOB ,"{'address': '6th Street Concepcion Pequeña, Naga City, Camarines Sur, Philippines', 'latitude': 13.616505, 'longitude': 123.201301}",6000,17,0.0,0.0,2,High-End,0.1875
+Rafael Gabo,"{'address': 'Jolly Neighborhood, Lot 9, Blk 5, Urban 3rd street extension, Sta. Cruz, Naga City', 'latitude': 13.627763, 'longitude': 123.182552}",5000,18,0.0,0.0,1,Mid-Range,0.8888888888888888
+Janna Room,"{'address': '2nd Street Concepcion Pequeña, Naga City, Camarines Sur, Philippines', 'latitude': 13.618225, 'longitude': 123.201371}",3000,19,0.0,0.0,0,Low Budget,0.8125
+Billz's Room,"{'address': ' 218 St., Joseph Compund, Jacob Ext. Liboton, Naga City', 'latitude': 13.630992, 'longitude': 123.193112}",3000,20,0.0,0.0,0,Low Budget,0.8125
+RoMels Studio Type Room ,"{'address': 'M. Castro Street San Francisco, Naga City, Camarines Sur, Philippines', 'latitude': 13.62582, 'longitude': 123.190467}",4000,21,0.0,0.0,1,Mid-Range,0.4444444444444444
+Lacoste's Room,"{'address': 'San Rafael, Cararayan, Naga City', 'latitude': 13.632992, 'longitude': 123.229008}",5000,22,0.0,0.0,1,Mid-Range,0.8888888888888888
+Test Rentify,"{'address': 'Riverside Street Igualdad Interior, Naga City, Camarines Sur, Philippines', 'latitude': 13.622486, 'longitude': 123.186438}",10000,23,0.0,0.0,2,High-End,0.75
+Test Property,"{'address': 'Blumentritt Street Igualdad Interior, Naga City, Camarines Sur, Philippines', 'latitude': 13.630906758120034, 'longitude': 123.20245161637513}",5000,24,0.0,1.0,1,Mid-Range,0.8888888888888888

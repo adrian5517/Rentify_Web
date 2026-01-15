@@ -1,6 +1,28 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 
+export function middleware(req: NextRequest) {
+  const { pathname } = req.nextUrl
+
+  // Protect admin routes: require a token cookie. Backend still enforces role checks.
+  if (pathname.startsWith('/admin')) {
+    const token = req.cookies.get('token')?.value
+    if (!token) {
+      const url = req.nextUrl.clone()
+      url.pathname = '/auth'
+      return NextResponse.redirect(url)
+    }
+  }
+
+  return NextResponse.next()
+}
+
+export const config = {
+  matcher: ['/admin/:path*'],
+}
+import { NextResponse } from 'next/server'
+import type { NextRequest } from 'next/server'
+
 export function middleware(request: NextRequest) {
   const response = NextResponse.next()
 

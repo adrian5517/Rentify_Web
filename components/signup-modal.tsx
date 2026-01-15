@@ -21,6 +21,7 @@ export default function SignupModal({ isOpen, onClose, onSwitchToLogin }: Signup
   const [confirmPassword, setConfirmPassword] = useState('')
   const [error, setError] = useState('')
   const [success, setSuccess] = useState(false)
+  const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
   const { register, loginWithFacebook, isLoading } = useAuthStore()
   const [fbLoading, setFbLoading] = useState(false)
 
@@ -32,6 +33,11 @@ export default function SignupModal({ isOpen, onClose, onSwitchToLogin }: Signup
     // Validation
     if (!username || !email || !password || !confirmPassword) {
       setError('Please fill in all fields')
+      return
+    }
+
+    if (!EMAIL_REGEX.test(email)) {
+      setError('Please enter a valid email address')
       return
     }
 
@@ -63,7 +69,13 @@ export default function SignupModal({ isOpen, onClose, onSwitchToLogin }: Signup
       setPassword('')
       setConfirmPassword('')
     } else {
-      setError(result.error || 'Registration failed. Please try again.')
+      // Map backend undeliverable message to a friendlier message
+      const msg = result.error || 'Registration failed. Please try again.'
+      if (typeof msg === 'string' && msg.toLowerCase().includes('undeliver')) {
+        setError('Email appears invalid or undeliverable. Please use a valid email address.')
+      } else {
+        setError(msg)
+      }
     }
   }
 

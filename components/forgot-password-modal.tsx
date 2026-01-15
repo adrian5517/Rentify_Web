@@ -103,7 +103,7 @@ export default function ForgotPasswordModal({ isOpen, onClose }: ForgotPasswordM
     }
 
     if (newPassword.length < 6) {
-      setError('Password must be at least 6 characters')
+      setError('Password must be at least 8 characters long ')
       return
     }
 
