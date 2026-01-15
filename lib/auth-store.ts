@@ -98,6 +98,14 @@ export const useAuthStore = create<AuthState>()(
             isLoading: false
           })
 
+          try {
+            // Set a client-side cookie so Next.js middleware can detect authentication for protected routes.
+            // Note: For production, prefer HttpOnly secure cookies set by the server.
+            document.cookie = `token=${data.token}; path=/`;
+          } catch (e) {
+            // ignore (server-side rendering or restricted environments)
+          }
+
           return { success: true }
         } catch (error) {
           set({ isLoading: false })
@@ -147,6 +155,14 @@ export const useAuthStore = create<AuthState>()(
             isLoading: false,
           })
 
+          try {
+            // Set a client-side cookie so Next.js middleware can detect authentication for protected routes.
+            // Note: For production, prefer HttpOnly secure cookies set by the server.
+            document.cookie = `token=${data.token}; path=/`;
+          } catch (e) {
+            // ignore (server-side rendering or restricted environments)
+          }
+
           return { success: true }
         } catch (error) {
           set({ isLoading: false })
@@ -173,6 +189,12 @@ export const useAuthStore = create<AuthState>()(
 
       logout: () => {
         set({ user: null, token: null, profilePicture: null, isLoading: false })
+        try {
+          // Clear the token cookie on logout
+          document.cookie = 'token=; Max-Age=0; path=/'
+        } catch (e) {
+          // ignore
+        }
       },
     }),
     {

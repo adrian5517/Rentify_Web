@@ -87,7 +87,7 @@ export default function Navbar({ currentPage, onPageChange }: NavbarProps) {
             className={`relative rounded-full px-3 py-2 text-sm font-medium transition-colors text-slate-600 hover:text-slate-900 hover:bg-slate-100`}>
             <Navigation className="h-4 w-4 mr-2 text-slate-500" />
             Admin
-            <Badge className="ml-2">Admin</Badge>
+            
           </Button>
         )}
         
@@ -143,7 +143,7 @@ export default function Navbar({ currentPage, onPageChange }: NavbarProps) {
               </button>
               
               {/* Logout Button */}
-              <Button
+              {/* <Button
                 variant="ghost"
                 size="sm"
                 onClick={handleLogout}
@@ -151,7 +151,7 @@ export default function Navbar({ currentPage, onPageChange }: NavbarProps) {
               >
                 <LogOut className="h-4 w-4 mr-2" />
                 Logout
-              </Button>
+              </Button> */}
             </>
           ) : (
             <>

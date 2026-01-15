@@ -14,12 +14,15 @@ export default function AuthRedirect() {
   useEffect(() => {
     const handleAuth = async () => {
       try {
-        // Get token from URL fragment (#token=...)
-        const hash = window.location.hash.substring(1) // remove '#'
-        const params = new URLSearchParams(hash)
-        const token = params.get('token')
+        // Get token from URL fragment (#token=...) or query string (?token=...)
+        const hash = (window.location.hash || '').replace(/^#/, '')
+        const hashParams = new URLSearchParams(hash)
+        const searchParams = new URLSearchParams(window.location.search || '')
+        const token = hashParams.get('token') || searchParams.get('token') || null
 
         if (!token) {
+          // Provide more helpful guidance in logs for debugging
+          console.warn('Auth redirect landed on /auth but no token found. url=', window.location.href)
           setStatus('error')
           setMessage('Authentication failed: No token received')
           setTimeout(() => router.push('/'), 3000)
@@ -48,6 +51,13 @@ export default function AuthRedirect() {
           user: data.user,
           profilePicture: data.user.profilePicture || null
         })
+
+        try {
+          // Mirror token into a cookie so Next middleware can detect it
+          document.cookie = `token=${token}; path=/`;
+        } catch (e) {
+          // ignore in non-browser environments
+        }
 
         setStatus('success')
         setMessage('Successfully signed in!')
