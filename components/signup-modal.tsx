@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from 'react'
+import config from '@/lib/config'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -80,9 +81,10 @@ export default function SignupModal({ isOpen, onClose, onSwitchToLogin }: Signup
   }
 
   const handleFacebookSignup = () => {
-    // Redirect to backend Facebook OAuth endpoint
-    const apiBase = 'https://rentify-server-ge0f.onrender.com'
-    window.location.href = `${apiBase}/api/auth/facebook`
+    // Redirect to backend Facebook OAuth endpoint with returnTo set to our origin
+    const apiBase = config.API_API || 'https://rentify-server-ge0f.onrender.com'
+    const returnTo = window.location?.origin || ''
+    window.location.href = `${apiBase}/api/auth/facebook?returnTo=${encodeURIComponent(returnTo)}`
   }
 
   const handleSuccessDialogClose = () => {

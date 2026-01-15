@@ -84,7 +84,8 @@ export default function LoginModal({ isOpen, onClose, onSwitchToSignup }: LoginM
   const handleFacebookLogin = () => {
     // Redirect to backend Facebook OAuth endpoint using configured API base
     const apiBase = config.API_API || 'https://rentify-server-ge0f.onrender.com'
-    window.location.href = `${apiBase}/api/auth/facebook`
+    const returnTo = window.location?.origin || ''
+    window.location.href = `${apiBase}/api/auth/facebook?returnTo=${encodeURIComponent(returnTo)}`
   }
 
   return (

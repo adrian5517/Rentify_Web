@@ -39,6 +39,9 @@ export interface Property {
     phone?: string
   }
   createdAt?: string
+  // Verification fields (optional)
+  verification_status?: 'pending' | 'verified' | 'rejected'
+  verified?: boolean
   // Legacy owner field for backward compatibility
   owner?: {
     id: string

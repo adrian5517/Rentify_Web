@@ -12,7 +12,8 @@ type Property = {
   name?: string;
   postedBy?: UserRef;
   verification_documents?: Doc[];
-  verification_status?: string;
+  verification_status?: 'pending' | 'verified' | 'rejected';
+  verified?: boolean;
 };
 
 export default function AdminVerificationPage() {
@@ -24,6 +25,7 @@ export default function AdminVerificationPage() {
   const PAGE_SIZE = 6
   const [total, setTotal] = useState(0)
   const [totalPages, setTotalPages] = useState(1)
+  const [statusFilter, setStatusFilter] = useState<'pending'|'verified'|'rejected'>('pending')
 
   // modal viewer
   const [viewerOpen, setViewerOpen] = useState(false)
@@ -53,7 +55,7 @@ export default function AdminVerificationPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user])
 
-  async function fetchPending(p = page) {
+  async function fetchByStatus(p = page, status = statusFilter) {
     setLoading(true);
     setError(null);
     try {
@@ -61,7 +63,8 @@ export default function AdminVerificationPage() {
       params.set('page', String(p))
       params.set('limit', String(PAGE_SIZE))
       if (query && query.trim()) params.set('q', query.trim())
-      const res = await fetch(`/api/properties/admin/pending?${params.toString()}`, {
+      const endpoint = `/api/properties/admin/${status}?${params.toString()}`
+      const res = await fetch(endpoint, {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (!res.ok) {
@@ -81,9 +84,9 @@ export default function AdminVerificationPage() {
 
   useEffect(() => {
     if (!token) return;
-    fetchPending(page);
+    fetchByStatus(page, statusFilter);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [page, query, token]);
+  }, [page, query, token, statusFilter]);
 
   async function doAction(id: string, action: 'verify' | 'reject', notes = '') {
     setLoading(true);
@@ -98,7 +101,7 @@ export default function AdminVerificationPage() {
         const body = await res.json().catch(() => ({}));
         throw new Error(body?.message || `Action failed: ${res.status}`);
       }
-      await fetchPending();
+      await fetchByStatus();
       alert(`Property ${action === 'verify' ? 'approved' : 'rejected'} successfully.`);
     } catch (err: any) {
       alert('Error: ' + (err.message || String(err)));
@@ -121,6 +124,13 @@ export default function AdminVerificationPage() {
         <div className="text-sm text-gray-500">{total} total</div>
       </div>
 
+      {/* Status tabs */}
+      <div className="flex items-center gap-2 mb-4">
+        <button onClick={() => { setStatusFilter('pending'); setPage(1); }} className={`px-3 py-1 rounded ${statusFilter === 'pending' ? 'bg-blue-600 text-white' : 'bg-slate-100'}`}>Pending</button>
+        <button onClick={() => { setStatusFilter('verified'); setPage(1); }} className={`px-3 py-1 rounded ${statusFilter === 'verified' ? 'bg-emerald-600 text-white' : 'bg-slate-100'}`}>Approved</button>
+        <button onClick={() => { setStatusFilter('rejected'); setPage(1); }} className={`px-3 py-1 rounded ${statusFilter === 'rejected' ? 'bg-red-600 text-white' : 'bg-slate-100'}`}>Rejected</button>
+      </div>
+
       {(!checkedAuth || loading) && <div className="mb-4">Loading…</div>}
       {error && <div className="mb-4 text-red-600">{error}</div>}
 
@@ -140,7 +150,7 @@ export default function AdminVerificationPage() {
                     <div className="text-sm text-gray-500">Owner: {p.postedBy?.email || p.postedBy?.username || 'unknown'}</div>
                     <div className="text-xs text-gray-400 mt-1">Status: {p.verification_status || 'unverified'}</div>
                   </div>
-                  <div className="flex gap-2">
+                    <div className="flex gap-2">
                     <button
                       onClick={() => {
                         if (!p.verification_documents || p.verification_documents.length === 0) {
@@ -162,8 +172,16 @@ export default function AdminVerificationPage() {
                     </button>
                     <button
                       onClick={() => {
-                        const reason = prompt('Rejection reason (optional):', '');
-                        if (reason !== null) doAction(p._id, 'reject', reason);
+                        // Require non-empty rejection reason
+                        let reason = prompt('Rejection reason (required):', '');
+                        if (reason === null) return; // cancelled
+                        reason = reason.trim();
+                        while (!reason) {
+                          reason = prompt('Rejection reason is required. Please provide details:', '') || '';
+                          if (reason === null) return; // cancelled
+                          reason = reason.trim();
+                        }
+                        doAction(p._id, 'reject', reason);
                       }}
                       className="px-3 py-1 rounded bg-red-600 text-white hover:opacity-90"
                     >

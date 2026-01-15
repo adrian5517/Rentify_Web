@@ -1008,6 +1008,11 @@ export default function PropertyListingPage() {
                       }`}>
                         {property.status}
                       </Badge>
+
+                      {/* Verified Badge (visible to clients) */}
+                      {property.verified || property.verification_status === 'verified' ? (
+                        <Badge className="absolute top-12 right-3 bg-emerald-600 text-white border-0 shadow-lg text-xs font-bold px-2 py-0.5">Verified</Badge>
+                      ) : null}
                       
                       {/* Rating Badge */}
                       <div className="absolute top-3 left-3 flex items-center gap-1 bg-white/95 backdrop-blur-sm rounded-full px-2.5 py-1.5 shadow-lg z-10">
