@@ -91,6 +91,9 @@ export default function AddPropertyModal({ isOpen, onClose, onPropertyAdded }: A
 
   // Store actual File objects for upload
   const [imageFiles, setImageFiles] = useState<File[]>([])
+  // Verification document files (owners can upload during listing creation)
+  const [docFiles, setDocFiles] = useState<File[]>([])
+  const [docNames, setDocNames] = useState<string[]>([])
 
   const [newAmenity, setNewAmenity] = useState("")
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -590,6 +593,38 @@ export default function AddPropertyModal({ isOpen, onClose, onPropertyAdded }: A
         }
       }
 
+      // If owner uploaded verification documents during creation, upload them now and optionally submit for review
+      try {
+        const createdProperty = data.property || data
+        if (docFiles.length > 0 && createdProperty && createdProperty._id) {
+          const docsForm = new FormData()
+          for (const f of docFiles) docsForm.append('docs', f)
+
+          const uploadRes = await fetch(`${API_BASE.replace(/\/$/, '')}/api/properties/${createdProperty._id}/verification/docs`, {
+            method: 'POST',
+            headers: { Authorization: `Bearer ${token}` },
+            body: docsForm
+          })
+
+          if (!uploadRes.ok) {
+            console.warn('Failed to upload verification docs during create:', uploadRes.status)
+          } else {
+            // Auto-submit for verification (best-effort)
+            try {
+              await fetch(`${API_BASE.replace(/\/$/, '')}/api/properties/${createdProperty._id}/verification/submit`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                body: JSON.stringify({ notes: 'Submitted with listing creation' })
+              })
+            } catch (err) {
+              console.warn('Auto-submit failed:', err)
+            }
+          }
+        }
+      } catch (err) {
+        console.warn('Error while uploading/submitting verification docs:', err)
+      }
+
       // Show success modal
       setShowSuccessModal(true)
 
@@ -713,6 +748,30 @@ export default function AddPropertyModal({ isOpen, onClose, onPropertyAdded }: A
     e.target.value = ''
   }
 
+  const handleDocUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files
+    if (!files || files.length === 0) return
+
+    const validFiles: File[] = []
+    const names: string[] = []
+    for (const file of Array.from(files)) {
+      // Accept images and PDFs
+      if (!file.type.startsWith('image/') && file.type !== 'application/pdf') {
+        // skip unsupported types
+        continue
+      }
+      // limit size to 8MB per doc
+      if (file.size > 8 * 1024 * 1024) continue
+      validFiles.push(file)
+      names.push(file.name)
+    }
+    if (validFiles.length > 0) {
+      setDocFiles(prev => [...prev, ...validFiles])
+      setDocNames(prev => [...prev, ...names])
+    }
+    e.target.value = ''
+  }
+
   const removeImage = (index: number) => {
     // Revoke object URL to free memory (only for blob URLs, not data URLs)
     const imageUrl = formData.images[index]
@@ -729,6 +788,11 @@ export default function AddPropertyModal({ isOpen, onClose, onPropertyAdded }: A
       ...prev,
       images: prev.images.filter((_, i) => i !== index),
     }))
+  }
+
+  const removeDoc = (index: number) => {
+    setDocFiles(prev => prev.filter((_, i) => i !== index))
+    setDocNames(prev => prev.filter((_, i) => i !== index))
   }
 
   const handleSuccessModalClose = () => {
@@ -1029,6 +1093,53 @@ export default function AddPropertyModal({ isOpen, onClose, onPropertyAdded }: A
             ) : (
               <div className="text-sm text-slate-500 italic p-4 bg-slate-50 rounded-lg border border-slate-200">
                 
+              </div>
+            )}
+          </div>
+
+          {/* Verification Documents (owner can upload during listing creation) */}
+          <div className="space-y-3 sm:space-y-4">
+            <Label className="text-xs sm:text-sm font-semibold text-slate-700 flex items-center gap-2">
+              <Upload className="h-3.5 sm:h-4 w-3.5 sm:w-4" />
+              Verification Documents
+            </Label>
+
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4">
+              <input
+                type="file"
+                id="doc-upload"
+                accept="image/*,application/pdf"
+                multiple
+                onChange={handleDocUpload}
+                className="hidden"
+              />
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => document.getElementById('doc-upload')?.click()}
+                className="flex items-center gap-2 text-xs sm:text-sm h-9 sm:h-10"
+              >
+                <Upload className="h-3.5 sm:h-4 w-3.5 sm:w-4" />
+                Select Documents
+              </Button>
+              <p className="text-xs sm:text-sm text-slate-500">
+                {docFiles.length > 0
+                  ? `${docFiles.length} document(s) selected (images or PDFs)`
+                  : 'Optional: upload ID or proof documents (max 8MB each)'}
+              </p>
+            </div>
+
+            {docFiles.length > 0 && (
+              <div className="flex flex-col gap-2">
+                {docNames.map((n, i) => (
+                  <div key={i} className="flex items-center justify-between bg-slate-50 rounded p-2 text-sm">
+                    <div className="truncate pr-4">{n}</div>
+                    <div className="flex items-center gap-2">
+                      <a href="#" onClick={(e) => { e.preventDefault(); alert('Preview not available for this file in PoC'); }} className="text-blue-600 text-xs">Preview</a>
+                      <button type="button" onClick={() => removeDoc(i)} className="text-red-600 text-xs">Remove</button>
+                    </div>
+                  </div>
+                ))}
               </div>
             )}
           </div>
