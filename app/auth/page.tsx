@@ -27,8 +27,8 @@ export default function AuthRedirect() {
         }
 
         // Save token to auth store
-        const apiBase = 'https://rentify-server-ge0f.onrender.com'
-        
+        const apiBase = (await import('@/lib/config')).default.API_API || 'https://rentify-server-ge0f.onrender.com'
+
         // Fetch user data with the token
         const response = await fetch(`${apiBase}/api/auth/me`, {
           headers: {

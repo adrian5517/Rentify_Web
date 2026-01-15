@@ -6,7 +6,8 @@
     "build": "next build",
     "dev": "next dev --turbopack",
     "lint": "next lint",
-    "start": "next start"
+    "start": "next start",
+    "seed-admin": "node Backend/seeders/adminSeeder.js"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",
@@ -60,6 +61,8 @@
     "socket.io-client": "^4.8.1",
     "mongodb": "^5.8.0",
     "sonner": "^1.7.4",
+    "minimist": "^1.2.8",
+    "jsonwebtoken": "^9.0.0",
     "tailwind-merge": "^2.5.5",
     "tailwindcss-animate": "^1.0.7",
     "vaul": "^0.9.9",

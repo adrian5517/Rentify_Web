@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useAuthStore } from '@/lib/auth-store'
+import config from '@/lib/config'
 import { useRouter } from 'next/navigation'
 import { Loader2, Mail, Lock, AlertCircle } from 'lucide-react'
 import ForgotPasswordModal from './forgot-password-modal'
@@ -81,8 +82,8 @@ export default function LoginModal({ isOpen, onClose, onSwitchToSignup }: LoginM
   }
 
   const handleFacebookLogin = () => {
-    // Redirect to backend Facebook OAuth endpoint
-    const apiBase = 'https://rentify-server-ge0f.onrender.com'
+    // Redirect to backend Facebook OAuth endpoint using configured API base
+    const apiBase = config.API_API || 'https://rentify-server-ge0f.onrender.com'
     window.location.href = `${apiBase}/api/auth/facebook`
   }
 
