@@ -1002,42 +1002,18 @@ export default function PropertyListingPage() {
                       {/* Gradient Overlay */}
                       <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-black/10 pointer-events-none" />
                       
-                      {/* Status Badge */}
-                      <Badge className={`absolute top-3 right-3 border-0 shadow-lg font-bold text-xs z-10 capitalize ${
-                        property.status === 'available' 
-                          ? 'bg-emerald-500 text-white' 
-                          : property.status === 'For rent' 
-                          ? 'bg-blue-500 text-white'
-                          : property.status === 'For sale'
-                          ? 'bg-amber-500 text-white' 
-                          : 'bg-slate-500 text-white'
-                      }`}>
-                        {property.status}
-                      </Badge>
+                      {/* Top-right stacked badges container for responsive layout */}
+                      <div className="absolute top-3 right-3 flex flex-col items-end gap-2 z-20">
+                        {property.verified || property.verification_status === 'verified' ? (
+                          <Badge className="bg-emerald-600 text-white border-0 shadow-lg text-xs font-bold px-2 py-0.5" title="This listing has been verified by Rentify." aria-label="Verified listing">Verified</Badge>
+                        ) : property.verification_status ? (
+                          <Badge className={`border-0 shadow-lg text-xs font-bold px-2 py-0.5 ${property.verification_status === 'pending' ? 'bg-yellow-400 text-black' : 'bg-red-600 text-white'}`} title={property.verification_status === 'pending' ? 'Verification pending — documents are under review by Rentify admins.' : 'Verification rejected — the owner may need to update documents or listing details.'} aria-label={`Verification ${property.verification_status}`}>
+                            {property.verification_status === 'pending' ? 'Pending' : 'Rejected'}
+                          </Badge>
+                        ) : null}
+                      </div>
 
-                      {/* Verified Badge (visible to clients) - stacked above status badge */}
-                      {property.verified || property.verification_status === 'verified' ? (
-                        <Badge
-                          title="This listing has been verified by Rentify."
-                          aria-label="Verified listing"
-                          className="absolute top-10 right-3 bg-emerald-600 text-white border-0 shadow-lg text-xs font-bold px-2 py-0.5"
-                        >
-                          Verified
-                        </Badge>
-                      ) : null}
-
-                      {/* Show status badge for non-verified properties (Pending / Rejected) - stacked below verified */}
-                      {!property.verified && property.verification_status && property.verification_status !== 'verified' ? (
-                        <Badge
-                          title={property.verification_status === 'pending'
-                            ? 'Verification pending — documents are under review by Rentify admins.'
-                            : 'Verification rejected — the owner may need to update documents or listing details.'}
-                          aria-label={`Verification ${property.verification_status}`}
-                          className={`absolute top-16 right-3 border-0 shadow-lg text-xs font-bold px-2 py-0.5 ${property.verification_status === 'pending' ? 'bg-yellow-400 text-black' : 'bg-red-600 text-white'}`}
-                        >
-                          {property.verification_status === 'pending' ? 'Pending' : 'Rejected'}
-                        </Badge>
-                      ) : null}
+                      {/* (verification badge already rendered above in place of availability) */}
                       
                       {/* Rating Badge */}
                       <div className="absolute top-3 left-3 flex items-center gap-1 bg-white/95 backdrop-blur-sm rounded-full px-2.5 py-1.5 shadow-lg z-10">
@@ -1828,7 +1804,17 @@ export default function PropertyListingPage() {
                           onImageClick={openImageViewer}
                         />
                         <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent" />
-                        <Badge className="absolute top-3 right-3 bg-blue-600 text-white border-0 shadow-lg text-sm font-bold px-3 py-1">
+                        {/* Top-right stacked badges container (nearby card) */}
+                        <div className="absolute top-3 right-3 flex flex-col items-end gap-2 z-20">
+                          {property.verified || property.verification_status === 'verified' ? (
+                            <Badge className="bg-emerald-600 text-white border-0 shadow-lg text-sm font-bold px-3 py-1" title="Verified listing">Verified</Badge>
+                          ) : property.verification_status ? (
+                            <Badge className={`border-0 shadow-lg text-sm font-bold px-3 py-1 ${property.verification_status === 'pending' ? 'bg-yellow-400 text-black' : 'bg-red-600 text-white'}`} title={property.verification_status === 'pending' ? 'Verification pending' : 'Verification rejected'}>{property.verification_status === 'pending' ? 'Pending' : 'Rejected'}</Badge>
+                          ) : null}
+                        </div>
+
+                        {/* Distance badge (moved down to avoid overlap) */}
+                        <Badge className="absolute top-12 right-20 bg-blue-600 text-white border-0 shadow-lg text-sm font-bold px-3 py-1">
                           📍 {(property as any).distance?.toFixed(1)}km away
                         </Badge>
                         <div className="absolute bottom-3 left-3 bg-white/95 backdrop-blur-sm rounded-full px-3 py-1.5 shadow-lg">
@@ -1902,7 +1888,17 @@ export default function PropertyListingPage() {
                           onImageClick={openImageViewer}
                         />
                         <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent" />
-                        <Badge className="absolute top-3 right-3 bg-emerald-600 text-white border-0 shadow-lg text-sm font-bold px-3 py-1">
+                        {/* Top-right stacked badges container (budget card) */}
+                        <div className="absolute top-3 right-3 flex flex-col items-end gap-2 z-20">
+                          {property.verified || property.verification_status === 'verified' ? (
+                            <Badge className="bg-emerald-600 text-white border-0 shadow-lg text-sm font-bold px-3 py-1" title="Verified listing">Verified</Badge>
+                          ) : property.verification_status ? (
+                            <Badge className={`border-0 shadow-lg text-sm font-bold px-3 py-1 ${property.verification_status === 'pending' ? 'bg-yellow-400 text-black' : 'bg-red-600 text-white'}`} title={property.verification_status === 'pending' ? 'Verification pending' : 'Verification rejected'}>{property.verification_status === 'pending' ? 'Pending' : 'Rejected'}</Badge>
+                          ) : null}
+                        </div>
+
+                        {/* Great value badge (moved down) */}
+                        <Badge className="absolute top-12 right-20 bg-emerald-600 text-white border-0 shadow-lg text-sm font-bold px-3 py-1">
                           💎 Great Value
                         </Badge>
                         <div className="absolute bottom-3 left-3 bg-white/95 backdrop-blur-sm rounded-full px-3 py-1.5 shadow-lg">
