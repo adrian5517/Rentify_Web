@@ -1813,8 +1813,8 @@ export default function PropertyListingPage() {
                           ) : null}
                         </div>
 
-                        {/* Distance badge (moved down to avoid overlap) */}
-                        <Badge className="absolute top-12 right-20 bg-blue-600 text-white border-0 shadow-lg text-sm font-bold px-3 py-1">
+                        {/* Distance badge (aligned to top-left of stacked badges) */}
+                        <Badge className="absolute top-3 right-24 bg-blue-600 text-white border-0 shadow-lg text-sm font-bold px-3 py-1 z-10">
                           📍 {(property as any).distance?.toFixed(1)}km away
                         </Badge>
                         <div className="absolute bottom-3 left-3 bg-white/95 backdrop-blur-sm rounded-full px-3 py-1.5 shadow-lg">
@@ -1897,8 +1897,8 @@ export default function PropertyListingPage() {
                           ) : null}
                         </div>
 
-                        {/* Great value badge (moved down) */}
-                        <Badge className="absolute top-12 right-20 bg-emerald-600 text-white border-0 shadow-lg text-sm font-bold px-3 py-1">
+                        {/* Great value badge (aligned to top-left of stacked badges) */}
+                        <Badge className="absolute top-3 right-22 bg-emerald-600 text-white border-0 shadow-lg text-sm font-bold px-3 py-1 z-10">
                           💎 Great Value
                         </Badge>
                         <div className="absolute bottom-3 left-3 bg-white/95 backdrop-blur-sm rounded-full px-3 py-1.5 shadow-lg">
