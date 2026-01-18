@@ -15,6 +15,8 @@ type Property = {
   verification_documents?: Doc[];
   verification_status?: 'pending' | 'verified' | 'rejected';
   verified?: boolean;
+  verification_notes?: string;
+  verification_history?: Array<{ action?: string; by?: any; at?: string; notes?: string }>;
 };
 
 export default function AdminVerificationPage() {
@@ -26,7 +28,7 @@ export default function AdminVerificationPage() {
   const PAGE_SIZE = 6
   const [total, setTotal] = useState(0)
   const [totalPages, setTotalPages] = useState(1)
-  const [statusFilter, setStatusFilter] = useState<'pending'|'verified'|'rejected'>('pending')
+  const [statusFilter, setStatusFilter] = useState<'pending'|'verified'|'rejected'|'unverified'>('pending')
 
   // modal viewer
   const [viewerOpen, setViewerOpen] = useState(false)
@@ -34,6 +36,68 @@ export default function AdminVerificationPage() {
 
   const router = useRouter()
   const { user, token } = useAuthStore()
+
+  // Helper: map raw action keys to friendly labels and support simple per-language translations
+  function formatActionLabel(action?: string) {
+    if (!action) return '';
+
+    // Base mapping (English keys)
+    const baseMap: Record<string, string> = {
+      documents_uploaded: 'Docs uploaded',
+      documents_uploaded_by_owner: 'Docs uploaded',
+      submitted_for_verification: 'Submitted for verification',
+      submitted: 'Submitted',
+      verified: 'Verified',
+      rejected: 'Rejected',
+      manual_flag: 'Manually flagged',
+      auto_verified: 'Auto verified',
+      owner_updated: 'Owner updated listing',
+      verification_notes_updated: 'Notes updated',
+      review_requested: 'Review requested',
+      review_escalated: 'Review escalated',
+    };
+
+    // Simple translations (extend as needed)
+    const translations: Record<string, Record<string, string>> = {
+      en: baseMap,
+      tl: {
+        documents_uploaded: 'Mga dokumentong in-upload',
+        documents_uploaded_by_owner: 'Mga dokumentong in-upload ng may-ari',
+        submitted_for_verification: 'Isinumite para sa beripikasyon',
+        submitted: 'Isinumite',
+        verified: 'Na-verify',
+        rejected: 'Tinanggihan',
+        manual_flag: 'Manu-manong tinag',
+        auto_verified: 'Awtomatikong naka-verify',
+        owner_updated: 'In-update ng may-ari',
+        verification_notes_updated: 'Mga tala na-update',
+        review_requested: 'Hiningi ang pagsusuri',
+        review_escalated: 'Pina-escalate sa pagsusuri',
+      }
+    };
+
+    // determine language (use navigator if available)
+    let lang = 'en';
+    try { lang = (typeof navigator !== 'undefined' && navigator.language) ? navigator.language.split('-')[0] : 'en'; } catch (e) { lang = 'en' }
+    const localeMap = translations[lang] || translations['en'];
+
+    if (localeMap && localeMap[action]) return localeMap[action];
+    if (baseMap[action]) return baseMap[action];
+
+    // Fallback: prettify
+    const pretty = action.replace(/_/g, ' ');
+    return pretty.charAt(0).toUpperCase() + pretty.slice(1);
+  }
+
+  function formatTimestamp(ts?: string) {
+    if (!ts) return '';
+    try {
+      const d = new Date(ts);
+      return d.toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' });
+    } catch (e) {
+      return ts;
+    }
+  }
 
   // Client-side guard: only allow admins
   const [checkedAuth, setCheckedAuth] = useState(false)
@@ -130,6 +194,7 @@ export default function AdminVerificationPage() {
         <button onClick={() => { setStatusFilter('pending'); setPage(1); }} className={`px-3 py-1 rounded ${statusFilter === 'pending' ? 'bg-blue-600 text-white' : 'bg-slate-100'}`}>Pending</button>
         <button onClick={() => { setStatusFilter('verified'); setPage(1); }} className={`px-3 py-1 rounded ${statusFilter === 'verified' ? 'bg-emerald-600 text-white' : 'bg-slate-100'}`}>Approved</button>
         <button onClick={() => { setStatusFilter('rejected'); setPage(1); }} className={`px-3 py-1 rounded ${statusFilter === 'rejected' ? 'bg-red-600 text-white' : 'bg-slate-100'}`}>Rejected</button>
+        <button onClick={() => { setStatusFilter('unverified'); setPage(1); }} className={`px-3 py-1 rounded ${statusFilter === 'unverified' ? 'bg-gray-600 text-white' : 'bg-slate-100'}`}>Unverified</button>
       </div>
 
       {(!checkedAuth || loading) && <div className="mb-4">Loading…</div>}
@@ -150,6 +215,32 @@ export default function AdminVerificationPage() {
                     <div className="font-medium text-lg">{p.name || 'Untitled property'}</div>
                     <div className="text-sm text-gray-500">Owner: {p.postedBy?.email || p.postedBy?.username || 'unknown'}</div>
                     <div className="text-xs text-gray-400 mt-1">Status: {p.verification_status || 'unverified'}</div>
+                    {/* Verification notes and recent history for admin context */}
+                    {(p.verification_notes || (p.verification_history && p.verification_history.length > 0)) && (
+                      <div className="mt-2 text-sm text-slate-600">
+                        {p.verification_notes ? (
+                          <div className="mb-1"><span className="font-medium">Notes:</span> <span className="ml-1">{p.verification_notes}</span></div>
+                        ) : null}
+
+                        {p.verification_history && p.verification_history.length > 0 ? (
+                          <div>
+                            <div className="text-xs text-gray-500 mb-1">Recent activity:</div>
+                            <ul className="text-xs space-y-1">
+                              {(p.verification_history as any).slice(-3).reverse().map((h: any, i: number) => (
+                                <li key={i} className="flex flex-col">
+                                  <div className="flex items-center gap-2">
+                                    <span className="font-medium">{formatActionLabel(h.action)}</span>
+                                    <span className="text-gray-500">by {(typeof h.by === 'string' ? h.by : (h.by?.username || h.by?.email || 'user'))}</span>
+                                    <span className="text-gray-400">{formatTimestamp(h.at)}</span>
+                                  </div>
+                                  {h.notes ? <div className="text-gray-700 ml-1">{h.notes}</div> : null}
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        ) : null}
+                      </div>
+                    )}
                   </div>
                     <div className="flex gap-2">
                     <button
