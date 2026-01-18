@@ -64,6 +64,7 @@ export const useAuthStore = create<AuthState>()(
             headers: {
               "Content-Type": "application/json",
             },
+            credentials: 'include',
             body: JSON.stringify({ username, email, password }),
             signal: controller.signal
           })
@@ -128,6 +129,7 @@ export const useAuthStore = create<AuthState>()(
             headers: {
               "Content-Type": "application/json",
             },
+            credentials: 'include',
             body: JSON.stringify({ email, password }),
             signal: controller.signal
           })
@@ -189,6 +191,10 @@ export const useAuthStore = create<AuthState>()(
 
       logout: () => {
         set({ user: null, token: null, profilePicture: null, isLoading: false })
+        try {
+          // Attempt to clear server-side refresh token as well
+          fetch(`${API_API}/api/auth/logout`, { method: 'POST', credentials: 'include' }).catch(() => {})
+        } catch (e) { /* ignore */ }
         try {
           // Clear the token cookie on logout
           document.cookie = 'token=; Max-Age=0; path=/'

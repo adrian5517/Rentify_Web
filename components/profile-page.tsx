@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useRef, useEffect } from "react"
+import { useRouter } from 'next/navigation'
 import { User, Mail, MapPin, Phone, Calendar, Edit2, Camera, Save, X, Building, Heart, MessageSquare, TrendingUp, CheckCircle2, Home, Edit, Trash2, Eye } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -35,6 +36,7 @@ export default function ProfilePage() {
   // Normalize to remove trailing slash so concatenation is consistent.
   const API_BASE: string = (config.API_API || '').replace(/\/$/, '')
   const { user, token, logout } = useAuthStore()
+  const router = useRouter()
   const [isEditing, setIsEditing] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const [uploadingImage, setUploadingImage] = useState(false)
@@ -44,6 +46,7 @@ export default function ProfilePage() {
   const [showEditComingSoonModal, setShowEditComingSoonModal] = useState(false)
   const [myProperties, setMyProperties] = useState<Property[]>([])
   const [loadingProperties, setLoadingProperties] = useState(true)
+  const [toast, setToast] = useState<{ type: 'info' | 'success' | 'error'; message: string } | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   
   // Form state - mapping backend fields to frontend
@@ -354,6 +357,52 @@ export default function ProfilePage() {
         // Helpful debug logging when something goes wrong
         if (!response.ok) {
           console.error(`Failed to fetch properties: HTTP ${response.status} ${response.statusText}`, { url: propsUrl, body: text })
+          // If unauthorized, attempt a single revalidation attempt by calling /api/auth/me.
+          if (response.status === 401) {
+            setToast({ type: 'info', message: 'Session expired. Attempting to refresh token...' })
+            try {
+              // Call refresh endpoint which uses HttpOnly refresh cookie
+              const refreshRes = await fetch(`${API_BASE}/api/auth/refresh`, { method: 'POST', credentials: 'include' })
+              if (refreshRes.ok) {
+                const refreshData = await refreshRes.json().catch(() => null)
+                if (refreshData && refreshData.token) {
+                  // Update auth store with new token and user
+                  useAuthStore.setState({ token: refreshData.token, user: refreshData.user || user })
+                  setToast({ type: 'success', message: 'Session refreshed. Retrying...' })
+
+                  // Retry original fetch with new token
+                  const retryHeaders: Record<string, string> = {}
+                  retryHeaders['Authorization'] = `Bearer ${refreshData.token}`
+                  const retryRes = await fetch(propsUrl, { headers: retryHeaders })
+                  const retryText = await retryRes.text().catch(() => '')
+                  if (!retryRes.ok) {
+                    console.error(`Retry failed: HTTP ${retryRes.status}`, { url: propsUrl, body: retryText })
+                    throw new Error(`Failed to fetch properties (HTTP ${retryRes.status})`)
+                  }
+                  // parse retry response
+                  let retryData: any = null
+                  try { retryData = retryText ? JSON.parse(retryText) : null } catch { retryData = retryText }
+                  // normalize and set
+                  let properties: Property[] = []
+                  if (Array.isArray(retryData)) properties = retryData
+                  else if (retryData && Array.isArray(retryData.properties)) properties = retryData.properties
+                  else if (retryData && retryData.success && Array.isArray(retryData.properties)) properties = retryData.properties
+                  setMyProperties(properties)
+                  setToast({ type: 'success', message: 'Properties loaded' })
+                  setLoadingProperties(false)
+                  return
+                }
+              }
+            } catch (revalErr) {
+              console.warn('Refresh attempt failed:', revalErr)
+            }
+
+            // Revalidation failed — sign out and redirect to /auth
+            setToast({ type: 'error', message: 'Session invalid. Redirecting to sign in...' })
+            try { logout() } catch (e) { /* ignore */ }
+            try { router.replace('/auth') } catch (e) { /* ignore */ }
+            throw new Error('Unauthorized. Please sign in again.')
+          }
           throw new Error(`Failed to fetch properties (HTTP ${response.status})`)
         }
 
@@ -392,6 +441,24 @@ export default function ProfilePage() {
     // Explicitly depend on user id and token so fetch runs when auth changes
   }, [user?._id, token, API_BASE])
 
+  // Render a simple toast notification
+  const ToastEl = () => {
+    if (!toast) return null
+    const bg = toast.type === 'error' ? 'bg-red-600' : toast.type === 'success' ? 'bg-emerald-600' : 'bg-slate-700'
+    return (
+      <div className={`fixed top-6 right-6 ${bg} text-white px-4 py-2 rounded shadow-lg z-50`}>
+        {toast.message}
+      </div>
+    )
+  }
+
+  // render ToastEl near the top of the component tree
+  useEffect(() => {
+    if (!toast) return
+    const id = setTimeout(() => setToast(null), 3500)
+    return () => clearTimeout(id)
+  }, [toast])
+
   const handleDeleteProperty = async (propertyId: string) => {
     if (!confirm('Are you sure you want to delete this property? This action cannot be undone.')) {
       return
@@ -428,7 +495,9 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className="max-w-6xl mx-auto space-y-4 sm:space-y-5 md:space-y-6 py-4 sm:py-6 md:py-8 px-3 sm:px-4">
+    <>
+      <ToastEl />
+      <div className="max-w-6xl mx-auto space-y-4 sm:space-y-5 md:space-y-6 py-4 sm:py-6 md:py-8 px-3 sm:px-4">
       {/* Profile Header Card */}
       <Card className="overflow-hidden border-0 shadow-lg">
         <div className="h-24 sm:h-28 md:h-32 bg-gradient-to-r from-purple-600 via-indigo-600 to-blue-600"></div>
@@ -1027,5 +1096,6 @@ export default function ProfilePage() {
         </DialogContent>
       </Dialog>
     </div>
+    </>
   )
 }
