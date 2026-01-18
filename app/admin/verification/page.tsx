@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from 'react';
+import { API_API } from '@/lib/config'
 import { useRouter } from 'next/navigation'
 import { useAuthStore } from '@/lib/auth-store'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from '@/components/ui/dialog'
@@ -63,7 +64,7 @@ export default function AdminVerificationPage() {
       params.set('page', String(p))
       params.set('limit', String(PAGE_SIZE))
       if (query && query.trim()) params.set('q', query.trim())
-      const endpoint = `/api/properties/admin/${status}?${params.toString()}`
+      const endpoint = `${API_API}/api/properties/admin/${status}?${params.toString()}`
       const res = await fetch(endpoint, {
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -91,7 +92,7 @@ export default function AdminVerificationPage() {
   async function doAction(id: string, action: 'verify' | 'reject', notes = '') {
     setLoading(true);
     try {
-      const url = `/api/properties/admin/${id}/${action === 'verify' ? 'verify' : 'reject'}`;
+      const url = `${API_API}/api/properties/admin/${id}/${action === 'verify' ? 'verify' : 'reject'}`;
       const res = await fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },

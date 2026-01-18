@@ -332,7 +332,7 @@ export default function ProfilePage() {
     favorites: 15
   }
 
-  // Fetch user's properties
+  // Fetch user's properties (robust parsing and clearer logs)
   useEffect(() => {
     const fetchMyProperties = async () => {
       if (!user?._id) {
@@ -340,28 +340,44 @@ export default function ProfilePage() {
         return
       }
 
+      setLoadingProperties(true)
       try {
-        setLoadingProperties(true)
         const propsUrl = `${API_BASE}/api/properties/user/${user._id}`
         const headers: Record<string, string> = {}
         if (token) headers['Authorization'] = `Bearer ${token}`
+
         const response = await fetch(propsUrl, { headers })
-        
+
+        // Read response as text first so we can safely attempt JSON parse
+        const text = await response.text().catch(() => '')
+
+        // Helpful debug logging when something goes wrong
         if (!response.ok) {
-          throw new Error('Failed to fetch properties')
+          console.error(`Failed to fetch properties: HTTP ${response.status} ${response.statusText}`, { url: propsUrl, body: text })
+          throw new Error(`Failed to fetch properties (HTTP ${response.status})`)
         }
 
-        const data = await response.json()
-        // User properties fetched (suppressed)
+        let data: any = null
+        try {
+          data = text ? JSON.parse(text) : null
+        } catch (parseErr) {
+          console.warn('Failed to parse properties response as JSON, falling back to text', { parseErr, textSnippet: (text || '').slice(0, 500) })
+          data = text
+        }
 
-        // Handle different response formats
+        // Normalize to an array of properties
         let properties: Property[] = []
         if (Array.isArray(data)) {
           properties = data
-        } else if (data.properties && Array.isArray(data.properties)) {
+        } else if (data && Array.isArray(data.properties)) {
           properties = data.properties
-        } else if (data.success && data.properties && Array.isArray(data.properties)) {
+        } else if (data && data.success && Array.isArray(data.properties)) {
           properties = data.properties
+        } else if (data === null) {
+          // empty response
+          properties = []
+        } else {
+          console.warn('Unexpected properties response shape', { data })
         }
 
         setMyProperties(properties)
@@ -373,7 +389,8 @@ export default function ProfilePage() {
     }
 
     fetchMyProperties()
-  }, [user?._id])
+    // Explicitly depend on user id and token so fetch runs when auth changes
+  }, [user?._id, token, API_BASE])
 
   const handleDeleteProperty = async (propertyId: string) => {
     if (!confirm('Are you sure you want to delete this property? This action cannot be undone.')) {
