@@ -363,9 +363,7 @@ export default function AdminVerificationPage() {
           </div>
 
           <DialogFooter>
-            <DialogClose>
-              <button className="px-3 py-2 rounded bg-slate-100">Close</button>
-            </DialogClose>
+            <DialogClose className="px-3 py-2 rounded bg-slate-100">Close</DialogClose>
           </DialogFooter>
         </DialogContent>
       </Dialog>
