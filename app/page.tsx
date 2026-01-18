@@ -1009,14 +1009,26 @@ export default function PropertyListingPage() {
                         {property.status}
                       </Badge>
 
-                      {/* Verified Badge (visible to clients) */}
+                      {/* Verified Badge (visible to clients) - stacked above status badge */}
                       {property.verified || property.verification_status === 'verified' ? (
-                        <Badge className="absolute top-12 right-3 bg-emerald-600 text-white border-0 shadow-lg text-xs font-bold px-2 py-0.5">Verified</Badge>
+                        <Badge
+                          title="This listing has been verified by Rentify."
+                          aria-label="Verified listing"
+                          className="absolute top-10 right-3 bg-emerald-600 text-white border-0 shadow-lg text-xs font-bold px-2 py-0.5"
+                        >
+                          Verified
+                        </Badge>
                       ) : null}
 
-                      {/* Show status badge for non-verified properties (Pending / Rejected) */}
+                      {/* Show status badge for non-verified properties (Pending / Rejected) - stacked below verified */}
                       {!property.verified && property.verification_status && property.verification_status !== 'verified' ? (
-                        <Badge className={`absolute top-12 right-3 border-0 shadow-lg text-xs font-bold px-2 py-0.5 ${property.verification_status === 'pending' ? 'bg-yellow-400 text-black' : 'bg-red-600 text-white'}`}>
+                        <Badge
+                          title={property.verification_status === 'pending'
+                            ? 'Verification pending — documents are under review by Rentify admins.'
+                            : 'Verification rejected — the owner may need to update documents or listing details.'}
+                          aria-label={`Verification ${property.verification_status}`}
+                          className={`absolute top-16 right-3 border-0 shadow-lg text-xs font-bold px-2 py-0.5 ${property.verification_status === 'pending' ? 'bg-yellow-400 text-black' : 'bg-red-600 text-white'}`}
+                        >
                           {property.verification_status === 'pending' ? 'Pending' : 'Rejected'}
                         </Badge>
                       ) : null}
@@ -1045,6 +1057,14 @@ export default function PropertyListingPage() {
                       {/* Property Name & Price */}
                       <div className="mb-3">
                         <h3 className="text-lg font-bold text-slate-900 leading-tight mb-1 line-clamp-1">{property.name}</h3>
+                        {/* Verification description for non-verified listings */}
+                        {!property.verified && property.verification_status && property.verification_status !== 'verified' ? (
+                          <p className={`text-xs mt-1 ${property.verification_status === 'pending' ? 'text-yellow-800' : 'text-red-700'}`}>
+                            {property.verification_status === 'pending'
+                              ? 'Verification: Pending — documents are under review.'
+                              : 'Verification: Rejected — listing may require updates from the owner.'}
+                          </p>
+                        ) : null}
                         <div className="flex items-center justify-between">
                           <p className="text-xl font-bold text-blue-600">{formatPrice(property.price)}</p>
                           <span className="text-xs text-slate-500 font-medium">per month</span>
