@@ -19,6 +19,12 @@ type Property = {
   verified?: boolean;
   verification_notes?: string;
   verification_history?: Array<{ action?: string; by?: any; at?: string; notes?: string }>;
+  price?: number;
+  propertyType?: string;
+  images?: string[];
+  description?: string;
+  amenities?: string[];
+  location?: { address?: string; latitude?: number; longitude?: number };
 };
 
 export default function AdminVerificationPage() {
@@ -39,77 +45,95 @@ export default function AdminVerificationPage() {
   const [actionLoading, setActionLoading] = useState(false)
   const [actionNotes, setActionNotes] = useState('')
 
-  const router = useRouter()
-  const { user, token } = useAuthStore()
+            {items.map((p) => (
+              <div key={p._id} className="bg-white rounded-lg shadow-md overflow-hidden border">
+                <div className="relative h-48 bg-gray-100">
+                  {p.verification_documents && p.verification_documents.length > 0 && p.verification_documents[0].url ? (
+                    <img src={p.verification_documents[0].url} alt={p.verification_documents[0].filename || p.name || 'property'} className="w-full h-full object-cover" onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }} />
+                  ) : p.images && p.images.length > 0 && p.images[0] ? (
+                    <img src={p.images[0]} alt={p.name || 'property'} className="w-full h-full object-cover" onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }} />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-gray-400">No image</div>
+                  )}
 
-  // Helper: map raw action keys to friendly labels and support simple per-language translations
-  function formatActionLabel(action?: string) {
-    if (!action) return '';
+                  {typeof p.price === 'number' && (
+                    <div className="absolute top-3 left-3 bg-white/90 text-sm font-semibold px-2 py-1 rounded shadow">
+                      ₱{p.price.toLocaleString()}
+                    </div>
+                  )}
+                </div>
+                <div className="p-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex-1">
+                      <div className="font-semibold text-lg truncate">{p.name || 'Untitled property'}</div>
+                      <div className="text-sm text-gray-500">{p.propertyType || p.postedBy?.username || p.postedBy?.email || 'owner unknown'}</div>
+                      <div className="mt-2 text-xs text-gray-600">{p.verification_notes ? p.verification_notes : (<span className="italic text-gray-400">No notes</span>)}</div>
+                      {p.description && (
+                        <div className="mt-2 text-sm text-gray-700 line-clamp-2">{p.description}</div>
+                      )}
+                    </div>
+                    <div className="flex flex-col items-end gap-2">
+                      <div className={`px-2 py-1 rounded text-xs ${p.verification_status === 'verified' ? 'bg-emerald-600 text-white' : p.verification_status === 'rejected' ? 'bg-red-600 text-white' : 'bg-yellow-400 text-black'}`}>{p.verification_status || 'unverified'}</div>
+                      <button
+                        onClick={async () => {
+                          setSelectedProperty(p);
+                          setActionNotes(p.verification_notes || '');
+                          setViewerDocs(p.verification_documents || []);
+                          setViewerOpen(true);
+                        }}
+                        className="text-sm text-blue-600 hover:underline"
+                      >
+                        See details
+                      </button>
+                    </div>
+                  </div>
 
-    // Base mapping (English keys)
-    const baseMap: Record<string, string> = {
-      documents_uploaded: 'Docs uploaded',
-      documents_uploaded_by_owner: 'Docs uploaded',
-      submitted_for_verification: 'Submitted for verification',
-      submitted: 'Submitted',
-      verified: 'Verified',
-      rejected: 'Rejected',
-      manual_flag: 'Manually flagged',
-      auto_verified: 'Auto verified',
-      owner_updated: 'Owner updated listing',
-      verification_notes_updated: 'Notes updated',
-      review_requested: 'Review requested',
-      review_escalated: 'Review escalated',
-    };
-
-    // Simple translations (extend as needed)
-    const translations: Record<string, Record<string, string>> = {
-      en: baseMap,
-      tl: {
-        documents_uploaded: 'Mga dokumentong in-upload',
-        documents_uploaded_by_owner: 'Mga dokumentong in-upload ng may-ari',
-        submitted_for_verification: 'Isinumite para sa beripikasyon',
-        submitted: 'Isinumite',
-        verified: 'Na-verify',
-        rejected: 'Tinanggihan',
-        manual_flag: 'Manu-manong tinag',
-        auto_verified: 'Awtomatikong naka-verify',
-        owner_updated: 'In-update ng may-ari',
-        verification_notes_updated: 'Mga tala na-update',
-        review_requested: 'Hiningi ang pagsusuri',
-        review_escalated: 'Pina-escalate sa pagsusuri',
-      }
-    };
-
-    // determine language (use navigator if available)
-    let lang = 'en';
-    try { lang = (typeof navigator !== 'undefined' && navigator.language) ? navigator.language.split('-')[0] : 'en'; } catch (e) { lang = 'en' }
-    const localeMap = translations[lang] || translations['en'];
-
-    if (localeMap && localeMap[action]) return localeMap[action];
-    if (baseMap[action]) return baseMap[action];
-
-    // Fallback: prettify
-    const pretty = action.replace(/_/g, ' ');
-    return pretty.charAt(0).toUpperCase() + pretty.slice(1);
-  }
-
-  function formatTimestamp(ts?: string) {
-    if (!ts) return '';
-    try {
-      const d = new Date(ts);
-      return d.toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' });
-    } catch (e) {
-      return ts;
-    }
-  }
-
-  // Client-side guard: only allow admins
-  const [checkedAuth, setCheckedAuth] = useState(false)
-
-  useEffect(() => {
-    // If there's no user but token exists, the auth store may not be hydrated yet.
-    // Wait a tick for store to populate, then check role.
+                  <div className="mt-4 flex gap-2">
+                    <button onClick={() => { setSelectedProperty(p); setActionNotes(''); setViewerDocs(p.verification_documents || []); setViewerOpen(true); }} className="flex-1 px-3 py-2 text-sm rounded bg-slate-100">View</button>
+                    <button onClick={async () => {
+                      const res = await Swal.fire({
+                        title: 'Approve property?',
+                        text: 'Are you sure you want to approve this property?',
+                        icon: 'question',
+                        showCancelButton: true,
+                        confirmButtonText: 'Yes, approve',
+                        cancelButtonText: 'Cancel'
+                      })
+                      if (res.isConfirmed) {
+                        setSelectedProperty(p); setActionNotes('Approved via admin UI'); doAction(p._id, 'verify', 'Approved via admin UI');
+                      }
+                    }} disabled={actionLoading} className="px-3 py-2 rounded bg-emerald-600 text-white text-sm hover:opacity-90">Approve</button>
+                    <button onClick={async () => {
+                      const { value: text } = await Swal.fire({
+                        title: 'Reject property',
+                        input: 'textarea',
+                        inputPlaceholder: 'Enter rejection reason...',
+                        inputAttributes: { 'aria-label': 'Rejection reason' },
+                        showCancelButton: true,
+                        confirmButtonText: 'Reject',
+                        cancelButtonText: 'Cancel',
+                        preConfirm: (v) => {
+                          if (!v || !v.trim()) {
+                            Swal.showValidationMessage('Rejection reason is required')
+                          }
+                          return v
+                        }
+                      })
+                      if (text) {
+                        setSelectedProperty(p); setActionNotes(text.trim()); doAction(p._id, 'reject', text.trim())
+                      }
+                    }} disabled={actionLoading} className="px-3 py-2 rounded bg-red-600 text-white text-sm hover:opacity-90">Reject</button>
+                  </div>
+                  {p.amenities && p.amenities.length > 0 && (
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      {p.amenities.slice(0,6).map((a, i) => (
+                        <span key={i} className="text-xs px-2 py-1 bg-slate-100 rounded">{a}</span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            ))}
     const t = setTimeout(() => {
       if (!user) {
         // Not logged in -> redirect to auth
