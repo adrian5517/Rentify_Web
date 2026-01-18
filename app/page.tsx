@@ -64,6 +64,9 @@ interface APIProperty {
     phoneNumber?: string
     address?: string
   }
+  // Optional verification fields added by backend
+  verification_status?: 'pending' | 'verified' | 'rejected' | string
+  verified?: boolean
   createdBy?: string | {
     _id: string
     username: string
@@ -748,6 +751,9 @@ export default function PropertyListingPage() {
       createdBy: apiProperty.createdBy,
       rating: apiProperty.rating,
       phoneNumber: apiProperty.phoneNumber,
+      // Map verification fields (if present)
+      verification_status: (apiProperty as any).verification_status || undefined,
+      verified: (apiProperty as any).verified || ((apiProperty as any).verification_status === 'verified'),
     }
   }
 
