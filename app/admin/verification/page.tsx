@@ -5,6 +5,8 @@ import { API_API } from '@/lib/config'
 import { useRouter } from 'next/navigation'
 import { useAuthStore } from '@/lib/auth-store'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from '@/components/ui/dialog'
+import Swal from 'sweetalert2'
+import 'sweetalert2/dist/sweetalert2.min.css'
 
 type Doc = { filename?: string; url?: string };
 type UserRef = { username?: string; email?: string };
@@ -179,11 +181,11 @@ export default function AdminVerificationPage() {
           setSelectedProperty(json?.property || null);
         }
       }
-      alert(`Property ${action === 'verify' ? 'approved' : 'rejected'} successfully.`);
+      await Swal.fire({ title: 'Success', text: `Property ${action === 'verify' ? 'approved' : 'rejected'} successfully.`, icon: 'success' });
       setViewerOpen(false)
       setSelectedProperty(null)
     } catch (err: any) {
-      alert('Error: ' + (err.message || String(err)));
+      await Swal.fire({ title: 'Error', text: String(err.message || err || 'Unknown error'), icon: 'error' });
     } finally {
       setActionLoading(false);
     }
@@ -256,13 +258,38 @@ export default function AdminVerificationPage() {
 
                   <div className="mt-4 flex gap-2">
                     <button onClick={() => { setSelectedProperty(p); setActionNotes(''); setViewerDocs(p.verification_documents || []); setViewerOpen(true); }} className="flex-1 px-3 py-2 text-sm rounded bg-slate-100">View</button>
-                    <button onClick={() => { setSelectedProperty(p); setActionNotes('Approved via admin UI'); doAction(p._id, 'verify', 'Approved via admin UI'); }} disabled={actionLoading} className="px-3 py-2 rounded bg-emerald-600 text-white text-sm hover:opacity-90">Approve</button>
-                    <button onClick={() => {
-                      const reason = prompt('Rejection reason (required):', '')
-                      if (reason === null) return
-                      const trimmed = reason.trim()
-                      if (!trimmed) { alert('Rejection reason required'); return }
-                      setSelectedProperty(p); setActionNotes(trimmed); doAction(p._id, 'reject', trimmed)
+                    <button onClick={async () => {
+                      const res = await Swal.fire({
+                        title: 'Approve property?',
+                        text: 'Are you sure you want to approve this property?',
+                        icon: 'question',
+                        showCancelButton: true,
+                        confirmButtonText: 'Yes, approve',
+                        cancelButtonText: 'Cancel'
+                      })
+                      if (res.isConfirmed) {
+                        setSelectedProperty(p); setActionNotes('Approved via admin UI'); doAction(p._id, 'verify', 'Approved via admin UI');
+                      }
+                    }} disabled={actionLoading} className="px-3 py-2 rounded bg-emerald-600 text-white text-sm hover:opacity-90">Approve</button>
+                    <button onClick={async () => {
+                      const { value: text } = await Swal.fire({
+                        title: 'Reject property',
+                        input: 'textarea',
+                        inputPlaceholder: 'Enter rejection reason...',
+                        inputAttributes: { 'aria-label': 'Rejection reason' },
+                        showCancelButton: true,
+                        confirmButtonText: 'Reject',
+                        cancelButtonText: 'Cancel',
+                        preConfirm: (v) => {
+                          if (!v || !v.trim()) {
+                            Swal.showValidationMessage('Rejection reason is required')
+                          }
+                          return v
+                        }
+                      })
+                      if (text) {
+                        setSelectedProperty(p); setActionNotes(text.trim()); doAction(p._id, 'reject', text.trim())
+                      }
                     }} disabled={actionLoading} className="px-3 py-2 rounded bg-red-600 text-white text-sm hover:opacity-90">Reject</button>
                   </div>
                 </div>
@@ -348,12 +375,39 @@ export default function AdminVerificationPage() {
                 <textarea value={actionNotes} onChange={(e) => setActionNotes(e.target.value)} className="w-full p-2 border rounded resize-none text-sm" rows={5} />
 
                 <div className="mt-3 flex gap-2">
-                  <button disabled={!selectedProperty || actionLoading} onClick={() => selectedProperty && doAction(selectedProperty._id, 'verify', actionNotes)} className="flex-1 px-3 py-2 bg-emerald-600 text-white rounded text-sm sm:text-base">Approve</button>
-                  <button disabled={!selectedProperty || actionLoading} onClick={() => {
+                  <button disabled={!selectedProperty || actionLoading} onClick={async () => {
+                    const res = await Swal.fire({
+                      title: 'Approve property?',
+                      text: 'Are you sure you want to approve this property?',
+                      icon: 'question',
+                      showCancelButton: true,
+                      confirmButtonText: 'Yes, approve',
+                      cancelButtonText: 'Cancel'
+                    })
+                    if (res.isConfirmed && selectedProperty) {
+                      doAction(selectedProperty._id, 'verify', actionNotes)
+                    }
+                  }} className="flex-1 px-3 py-2 bg-emerald-600 text-white rounded text-sm sm:text-base">Approve</button>
+                  <button disabled={!selectedProperty || actionLoading} onClick={async () => {
                     if (!selectedProperty) return;
-                    const reason = actionNotes.trim() || prompt('Provide rejection reason (required):', '') || '';
-                    if (!reason.trim()) { alert('Rejection reason required'); return }
-                    doAction(selectedProperty._id, 'reject', reason.trim())
+                    const { value: text } = await Swal.fire({
+                      title: 'Reject property',
+                      input: 'textarea',
+                      inputPlaceholder: 'Enter rejection reason...',
+                      inputAttributes: { 'aria-label': 'Rejection reason' },
+                      showCancelButton: true,
+                      confirmButtonText: 'Reject',
+                      cancelButtonText: 'Cancel',
+                      preConfirm: (v) => {
+                        if (!v || !v.trim()) {
+                          Swal.showValidationMessage('Rejection reason is required')
+                        }
+                        return v
+                      }
+                    })
+                    if (text) {
+                      doAction(selectedProperty._id, 'reject', text.trim())
+                    }
                   }} className="flex-1 px-3 py-2 bg-red-600 text-white rounded text-sm sm:text-base">Reject</button>
                 </div>
 
