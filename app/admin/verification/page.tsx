@@ -283,27 +283,27 @@ export default function AdminVerificationPage() {
 
       {/* Document viewer modal */}
       <Dialog open={viewerOpen} onOpenChange={(open) => { setViewerOpen(open); if (!open) { setViewerDocs(null); setSelectedProperty(null); setActionNotes('') } }}>
-        <DialogContent className="max-w-4xl">
+        <DialogContent className="w-[calc(100%-1rem)] sm:max-w-5xl max-h-[92vh] overflow-auto p-4 sm:p-6">
           <DialogHeader>
             <DialogTitle>Property Details</DialogTitle>
             <DialogDescription className="text-sm text-gray-500">Review documents and verification history, then approve or reject.</DialogDescription>
           </DialogHeader>
 
-          <div className="mt-3 grid grid-cols-1 lg:grid-cols-3 gap-4">
-            <div className="lg:col-span-2 space-y-3">
+          <div className="mt-3 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="md:col-span-2 lg:col-span-2 space-y-3">
               {selectedProperty ? (
                 <>
                   <div className="text-lg font-semibold">{selectedProperty.name}</div>
                   <div className="text-sm text-gray-500">Owner: {selectedProperty.postedBy?.username || selectedProperty.postedBy?.email || 'unknown'}</div>
                   <div className="mt-2 text-sm text-gray-700">{selectedProperty.verification_notes || <span className="italic text-gray-400">No notes provided</span>}</div>
-                  <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-3">
                     {viewerDocs && viewerDocs.length > 0 ? (
                       viewerDocs.map((d, i) => (
                         <div key={i} className="border rounded overflow-hidden bg-white">
                           {d.url ? (
-                            <img src={d.url} alt={d.filename || `doc-${i}`} className="w-full h-48 object-cover cursor-pointer" onClick={() => window.open(d.url, '_blank')} />
+                            <img src={d.url} alt={d.filename || `doc-${i}`} className="w-full h-40 sm:h-48 md:h-56 object-contain cursor-pointer bg-gray-50" onClick={() => window.open(d.url, '_blank')} />
                           ) : (
-                            <div className="w-full h-48 flex items-center justify-center text-gray-400">No preview</div>
+                            <div className="w-full h-40 sm:h-48 md:h-56 flex items-center justify-center text-gray-400">No preview</div>
                           )}
                           <div className="p-2 text-xs text-gray-700">{d.filename || 'document'}</div>
                         </div>
@@ -342,19 +342,19 @@ export default function AdminVerificationPage() {
               )}
             </div>
 
-            <div className="lg:col-span-1">
-              <div className="p-3 bg-slate-50 rounded border">
+            <div className="md:col-span-2 lg:col-span-1">
+              <div className="p-3 bg-slate-50 rounded border sticky top-4">
                 <div className="text-sm text-gray-600 mb-2">Verification Notes</div>
                 <textarea value={actionNotes} onChange={(e) => setActionNotes(e.target.value)} className="w-full p-2 border rounded resize-none text-sm" rows={5} />
 
                 <div className="mt-3 flex gap-2">
-                  <button disabled={!selectedProperty || actionLoading} onClick={() => selectedProperty && doAction(selectedProperty._id, 'verify', actionNotes)} className="flex-1 px-3 py-2 bg-emerald-600 text-white rounded">Approve</button>
+                  <button disabled={!selectedProperty || actionLoading} onClick={() => selectedProperty && doAction(selectedProperty._id, 'verify', actionNotes)} className="flex-1 px-3 py-2 bg-emerald-600 text-white rounded text-sm sm:text-base">Approve</button>
                   <button disabled={!selectedProperty || actionLoading} onClick={() => {
                     if (!selectedProperty) return;
                     const reason = actionNotes.trim() || prompt('Provide rejection reason (required):', '') || '';
                     if (!reason.trim()) { alert('Rejection reason required'); return }
                     doAction(selectedProperty._id, 'reject', reason.trim())
-                  }} className="flex-1 px-3 py-2 bg-red-600 text-white rounded">Reject</button>
+                  }} className="flex-1 px-3 py-2 bg-red-600 text-white rounded text-sm sm:text-base">Reject</button>
                 </div>
 
                 <div className="mt-3 text-xs text-gray-500">Actions are recorded in verification history. Closing this dialog does not auto-approve.</div>
