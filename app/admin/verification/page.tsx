@@ -33,6 +33,9 @@ export default function AdminVerificationPage() {
   // modal viewer
   const [viewerOpen, setViewerOpen] = useState(false)
   const [viewerDocs, setViewerDocs] = useState<Doc[] | null>(null)
+  const [selectedProperty, setSelectedProperty] = useState<Property | null>(null)
+  const [actionLoading, setActionLoading] = useState(false)
+  const [actionNotes, setActionNotes] = useState('')
 
   const router = useRouter()
   const { user, token } = useAuthStore()
@@ -154,7 +157,7 @@ export default function AdminVerificationPage() {
   }, [page, query, token, statusFilter]);
 
   async function doAction(id: string, action: 'verify' | 'reject', notes = '') {
-    setLoading(true);
+    setActionLoading(true);
     try {
       const url = `${API_API}/api/properties/admin/${id}/${action === 'verify' ? 'verify' : 'reject'}`;
       const res = await fetch(url, {
@@ -166,12 +169,23 @@ export default function AdminVerificationPage() {
         const body = await res.json().catch(() => ({}));
         throw new Error(body?.message || `Action failed: ${res.status}`);
       }
+      // Refresh list and selected property details
       await fetchByStatus();
+      if (selectedProperty && selectedProperty._id === id) {
+        // reload fresh data for modal if still open
+        const refreshed = await fetch(`${API_API}/api/properties/${id}`, { headers: { Authorization: `Bearer ${token}` } });
+        if (refreshed.ok) {
+          const json = await refreshed.json().catch(() => null);
+          setSelectedProperty(json?.property || null);
+        }
+      }
       alert(`Property ${action === 'verify' ? 'approved' : 'rejected'} successfully.`);
+      setViewerOpen(false)
+      setSelectedProperty(null)
     } catch (err: any) {
       alert('Error: ' + (err.message || String(err)));
     } finally {
-      setLoading(false);
+      setActionLoading(false);
     }
   }
 
@@ -207,98 +221,51 @@ export default function AdminVerificationPage() {
       {/* paginated server-driven items */}
       {items.length > 0 && (
         <>
-          <div className="space-y-4 mt-4">
+          <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {items.map((p) => (
-              <div key={p._id} className="p-4 border rounded shadow-sm bg-white">
-                <div className="flex justify-between items-start">
-                  <div>
-                    <div className="font-medium text-lg">{p.name || 'Untitled property'}</div>
-                    <div className="text-sm text-gray-500">Owner: {p.postedBy?.email || p.postedBy?.username || 'unknown'}</div>
-                    <div className="text-xs text-gray-400 mt-1">Status: {p.verification_status || 'unverified'}</div>
-                    {/* Verification notes and recent history for admin context */}
-                    {(p.verification_notes || (p.verification_history && p.verification_history.length > 0)) && (
-                      <div className="mt-2 text-sm text-slate-600">
-                        {p.verification_notes ? (
-                          <div className="mb-1"><span className="font-medium">Notes:</span> <span className="ml-1">{p.verification_notes}</span></div>
-                        ) : null}
-
-                        {p.verification_history && p.verification_history.length > 0 ? (
-                          <div>
-                            <div className="text-xs text-gray-500 mb-1">Recent activity:</div>
-                            <ul className="text-xs space-y-1">
-                              {(p.verification_history as any).slice(-3).reverse().map((h: any, i: number) => (
-                                <li key={i} className="flex flex-col">
-                                  <div className="flex items-center gap-2">
-                                    <span className="font-medium">{formatActionLabel(h.action)}</span>
-                                    <span className="text-gray-500">by {(typeof h.by === 'string' ? h.by : (h.by?.username || h.by?.email || 'user'))}</span>
-                                    <span className="text-gray-400">{formatTimestamp(h.at)}</span>
-                                  </div>
-                                  {h.notes ? <div className="text-gray-700 ml-1">{h.notes}</div> : null}
-                                </li>
-                              ))}
-                            </ul>
-                          </div>
-                        ) : null}
-                      </div>
-                    )}
+              <div key={p._id} className="bg-white rounded-lg shadow-md overflow-hidden border">
+                <div className="h-48 bg-gray-100">
+                  {p.verification_documents && p.verification_documents.length > 0 && p.verification_documents[0].url ? (
+                    <img src={p.verification_documents[0].url} alt={p.verification_documents[0].filename || p.name || 'property'} className="w-full h-full object-cover" onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }} />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-gray-400">No image</div>
+                  )}
+                </div>
+                <div className="p-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex-1">
+                      <div className="font-semibold text-lg truncate">{p.name || 'Untitled property'}</div>
+                      <div className="text-sm text-gray-500">{p.postedBy?.username || p.postedBy?.email || 'owner unknown'}</div>
+                      <div className="mt-2 text-xs text-gray-600">{p.verification_notes ? p.verification_notes : (<span className="italic text-gray-400">No notes</span>)}</div>
+                    </div>
+                    <div className="flex flex-col items-end gap-2">
+                      <div className={`px-2 py-1 rounded text-xs ${p.verification_status === 'verified' ? 'bg-emerald-600 text-white' : p.verification_status === 'rejected' ? 'bg-red-600 text-white' : 'bg-yellow-400 text-black'}`}>{p.verification_status || 'unverified'}</div>
+                      <button
+                        onClick={async () => {
+                          setSelectedProperty(p);
+                          setActionNotes(p.verification_notes || '');
+                          setViewerDocs(p.verification_documents || []);
+                          setViewerOpen(true);
+                        }}
+                        className="text-sm text-blue-600 hover:underline"
+                      >
+                        See details
+                      </button>
+                    </div>
                   </div>
-                    <div className="flex gap-2">
-                    <button
-                      onClick={() => {
-                        if (!p.verification_documents || p.verification_documents.length === 0) {
-                          alert('No verification documents uploaded');
-                          return;
-                        }
-                        setViewerDocs(p.verification_documents || [])
-                        setViewerOpen(true)
-                      }}
-                      className="px-3 py-1 rounded bg-gray-100 hover:bg-gray-200"
-                    >
-                      View Documents
-                    </button>
-                    <button
-                      onClick={() => doAction(p._id, 'verify', 'Approved via admin dashboard')}
-                      className="px-3 py-1 rounded bg-green-600 text-white hover:opacity-90"
-                    >
-                      Approve
-                    </button>
-                    <button
-                      onClick={() => {
-                        // Require non-empty rejection reason
-                        let reason = prompt('Rejection reason (required):', '');
-                        if (reason === null) return; // cancelled
-                        reason = reason.trim();
-                        while (!reason) {
-                          reason = prompt('Rejection reason is required. Please provide details:', '') || '';
-                          if (reason === null) return; // cancelled
-                          reason = reason.trim();
-                        }
-                        doAction(p._id, 'reject', reason);
-                      }}
-                      className="px-3 py-1 rounded bg-red-600 text-white hover:opacity-90"
-                    >
-                      Reject
-                    </button>
+
+                  <div className="mt-4 flex gap-2">
+                    <button onClick={() => { setSelectedProperty(p); setActionNotes(''); setViewerDocs(p.verification_documents || []); setViewerOpen(true); }} className="flex-1 px-3 py-2 text-sm rounded bg-slate-100">View</button>
+                    <button onClick={() => { setSelectedProperty(p); setActionNotes('Approved via admin UI'); doAction(p._id, 'verify', 'Approved via admin UI'); }} disabled={actionLoading} className="px-3 py-2 rounded bg-emerald-600 text-white text-sm hover:opacity-90">Approve</button>
+                    <button onClick={() => {
+                      const reason = prompt('Rejection reason (required):', '')
+                      if (reason === null) return
+                      const trimmed = reason.trim()
+                      if (!trimmed) { alert('Rejection reason required'); return }
+                      setSelectedProperty(p); setActionNotes(trimmed); doAction(p._id, 'reject', trimmed)
+                    }} disabled={actionLoading} className="px-3 py-2 rounded bg-red-600 text-white text-sm hover:opacity-90">Reject</button>
                   </div>
                 </div>
-
-                {p.verification_documents && p.verification_documents.length > 0 && (
-                  <div className="mt-3 grid grid-cols-3 gap-2">
-                    {p.verification_documents.map((d, i) => (
-                      <div key={i} className="border rounded overflow-hidden">
-                        {d.url ? (
-                          <img src={d.url} alt={d.filename || `doc-${i}`} className="w-full h-28 object-cover" onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }} />
-                        ) : null}
-                        <div className="p-2 text-xs">
-                          <div className="truncate">{d.filename || 'document'}</div>
-                          {d.url && (
-                            <a href={d.url} target="_blank" rel="noreferrer" className="text-blue-600 text-xs">Open</a>
-                          )}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
               </div>
             ))}
           </div>
@@ -315,27 +282,84 @@ export default function AdminVerificationPage() {
       )}
 
       {/* Document viewer modal */}
-      <Dialog open={viewerOpen} onOpenChange={(open) => { setViewerOpen(open); if (!open) setViewerDocs(null) }}>
-        <DialogContent className="max-w-3xl">
+      <Dialog open={viewerOpen} onOpenChange={(open) => { setViewerOpen(open); if (!open) { setViewerDocs(null); setSelectedProperty(null); setActionNotes('') } }}>
+        <DialogContent className="max-w-4xl">
           <DialogHeader>
-            <DialogTitle>Verification Documents</DialogTitle>
-            <DialogDescription className="text-sm text-gray-500">Click an image to open in a new tab.</DialogDescription>
+            <DialogTitle>Property Details</DialogTitle>
+            <DialogDescription className="text-sm text-gray-500">Review documents and verification history, then approve or reject.</DialogDescription>
           </DialogHeader>
 
-          <div className="mt-3 grid grid-cols-1 gap-3">
-            {viewerDocs && viewerDocs.length > 0 ? (
-              viewerDocs.map((d, i) => (
-                <div key={i} className="flex flex-col gap-2">
-                  {d.url ? (
-                    // allow click to open in new tab
-                    <img src={d.url} alt={d.filename || `doc-${i}`} className="w-full max-h-[60vh] object-contain cursor-pointer" onClick={() => window.open(d.url, '_blank')} />
-                  ) : null}
-                  <div className="text-sm text-gray-700">{d.filename}</div>
+          <div className="mt-3 grid grid-cols-1 lg:grid-cols-3 gap-4">
+            <div className="lg:col-span-2 space-y-3">
+              {selectedProperty ? (
+                <>
+                  <div className="text-lg font-semibold">{selectedProperty.name}</div>
+                  <div className="text-sm text-gray-500">Owner: {selectedProperty.postedBy?.username || selectedProperty.postedBy?.email || 'unknown'}</div>
+                  <div className="mt-2 text-sm text-gray-700">{selectedProperty.verification_notes || <span className="italic text-gray-400">No notes provided</span>}</div>
+                  <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    {viewerDocs && viewerDocs.length > 0 ? (
+                      viewerDocs.map((d, i) => (
+                        <div key={i} className="border rounded overflow-hidden bg-white">
+                          {d.url ? (
+                            <img src={d.url} alt={d.filename || `doc-${i}`} className="w-full h-48 object-cover cursor-pointer" onClick={() => window.open(d.url, '_blank')} />
+                          ) : (
+                            <div className="w-full h-48 flex items-center justify-center text-gray-400">No preview</div>
+                          )}
+                          <div className="p-2 text-xs text-gray-700">{d.filename || 'document'}</div>
+                        </div>
+                      ))
+                    ) : (
+                      <div className="text-sm text-gray-600">No documents uploaded for this property.</div>
+                    )}
+                  </div>
+
+                  <div className="mt-4">
+                    <div className="text-sm font-medium text-gray-600">Recent Verification Activity</div>
+                    <div className="mt-2 text-sm text-gray-700">
+                      {selectedProperty.verification_history && selectedProperty.verification_history.length > 0 ? (
+                        <ul className="space-y-2">
+                          {(selectedProperty.verification_history as any).slice().reverse().map((h: any, idx: number) => (
+                            <li key={idx} className="p-2 border rounded">
+                              <div className="flex items-center justify-between">
+                                <div>
+                                  <div className="font-medium">{formatActionLabel(h.action)}</div>
+                                  <div className="text-xs text-gray-500">by {(typeof h.by === 'string' ? h.by : (h.by?.username || h.by?.email || 'user'))}</div>
+                                </div>
+                                <div className="text-xs text-gray-400">{formatTimestamp(h.at)}</div>
+                              </div>
+                              {h.notes ? <div className="mt-2 text-sm text-gray-700">{h.notes}</div> : null}
+                            </li>
+                          ))}
+                        </ul>
+                      ) : (
+                        <div className="text-sm text-gray-500">No activity yet.</div>
+                      )}
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <div className="text-sm text-gray-600">Select a property to view details.</div>
+              )}
+            </div>
+
+            <div className="lg:col-span-1">
+              <div className="p-3 bg-slate-50 rounded border">
+                <div className="text-sm text-gray-600 mb-2">Verification Notes</div>
+                <textarea value={actionNotes} onChange={(e) => setActionNotes(e.target.value)} className="w-full p-2 border rounded resize-none text-sm" rows={5} />
+
+                <div className="mt-3 flex gap-2">
+                  <button disabled={!selectedProperty || actionLoading} onClick={() => selectedProperty && doAction(selectedProperty._id, 'verify', actionNotes)} className="flex-1 px-3 py-2 bg-emerald-600 text-white rounded">Approve</button>
+                  <button disabled={!selectedProperty || actionLoading} onClick={() => {
+                    if (!selectedProperty) return;
+                    const reason = actionNotes.trim() || prompt('Provide rejection reason (required):', '') || '';
+                    if (!reason.trim()) { alert('Rejection reason required'); return }
+                    doAction(selectedProperty._id, 'reject', reason.trim())
+                  }} className="flex-1 px-3 py-2 bg-red-600 text-white rounded">Reject</button>
                 </div>
-              ))
-            ) : (
-              <div className="text-sm text-gray-600">No documents to show.</div>
-            )}
+
+                <div className="mt-3 text-xs text-gray-500">Actions are recorded in verification history. Closing this dialog does not auto-approve.</div>
+              </div>
+            </div>
           </div>
 
           <DialogFooter>
