@@ -21,8 +21,9 @@ interface EditListingFormProps {
   onClose?: () => void
 }
 
-const MIN_PRICE = 1000
-const MAX_PRICE = 20000
+// Match backend defaults: allow no minimum and up to 50k by default
+const MIN_PRICE = 0
+const MAX_PRICE = 50000
 
 export default function EditListingForm({ propertyId, onSaveSuccess, onClose }: EditListingFormProps) {
   const { token } = useAuthStore()
@@ -627,9 +628,32 @@ export default function EditListingForm({ propertyId, onSaveSuccess, onClose }: 
                                   // keep items whose key differs from the removed key
                                   return key !== keyToRemove
                                 }))
-                                    // refresh from server to ensure property record is updated for admins
-                                    await refreshVerificationDocs()
-                                    await Swal.fire({ icon: 'success', title: 'Removed', text: 'Document removed.' })
+                                // refresh from server to ensure property record is updated for admins
+                                try {
+                                  await refreshVerificationDocs()
+                                  // also reload the main property to update status/initial data
+                                  const pEp = `${API_BASE.replace(/\/$/, '')}/api/properties/${propertyId}`
+                                  const pRes = await authFetch(pEp, { method: 'GET' })
+                                  if (pRes && pRes.ok) {
+                                    const pdata = await pRes.json()
+                                    const prop = pdata.property || pdata
+                                    const normalized = {
+                                      name: prop.name || '',
+                                      description: prop.description || '',
+                                      price: prop.price ? String(prop.price) : '',
+                                      address: prop.location?.address || prop.address || '',
+                                      latitude: String(prop.location?.latitude ?? prop.latitude ?? ''),
+                                      longitude: String(prop.location?.longitude ?? prop.longitude ?? ''),
+                                      propertyType: prop.propertyType || '',
+                                      amenities: prop.amenities || [],
+                                      status: prop.status || 'available',
+                                      phoneNumber: prop.phoneNumber || prop.phone || '',
+                                    }
+                                    setFormData(normalized)
+                                    setInitialData(normalized)
+                                  }
+                                } catch (e) { /* ignore reload errors */ }
+                                await Swal.fire({ icon: 'success', title: 'Removed', text: 'Document removed.' })
                               } catch (err: any) {
                                 console.error('Remove doc failed', err)
                                 await Swal.fire({ icon: 'error', title: 'Error', text: err?.message || 'Failed to remove document' })
@@ -708,6 +732,32 @@ export default function EditListingForm({ propertyId, onSaveSuccess, onClose }: 
                           (el as HTMLInputElement).value = ''
                           // show both in-page banner and modal indicating pending verification
                           setSuccessMessage('Verification documents uploaded — waiting for admin verification.')
+                          // refresh server-side property and verification docs so admins will see this property in pending
+                          try {
+                            await refreshVerificationDocs();
+                            // also reload the main property to update status/initial data
+                            const pEp = `${API_BASE.replace(/\/$/, '')}/api/properties/${propertyId}`
+                            const pRes = await authFetch(pEp, { method: 'GET' })
+                            if (pRes && pRes.ok) {
+                              const pdata = await pRes.json()
+                              const prop = pdata.property || pdata
+                              const normalized = {
+                                name: prop.name || '',
+                                description: prop.description || '',
+                                price: prop.price ? String(prop.price) : '',
+                                address: prop.location?.address || prop.address || '',
+                                latitude: String(prop.location?.latitude ?? prop.latitude ?? ''),
+                                longitude: String(prop.location?.longitude ?? prop.longitude ?? ''),
+                                propertyType: prop.propertyType || '',
+                                amenities: prop.amenities || [],
+                                status: prop.status || 'available',
+                                phoneNumber: prop.phoneNumber || prop.phone || '',
+                              }
+                              setFormData(normalized)
+                              setInitialData(normalized)
+                            }
+                          } catch (e) { /* ignore reload errors */ }
+
                           await Swal.fire({ icon: 'success', title: 'Uploaded', text: 'Verification documents uploaded — waiting for admin verification.' })
                         } catch (err: any) {
                           console.error('Upload docs error', err)
