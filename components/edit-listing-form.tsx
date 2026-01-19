@@ -21,7 +21,8 @@ interface EditListingFormProps {
   onClose?: () => void
 }
 
-const MAX_PRICE = 50000
+const MIN_PRICE = 1000
+const MAX_PRICE = 20000
 
 export default function EditListingForm({ propertyId, onSaveSuccess, onClose }: EditListingFormProps) {
   const { token } = useAuthStore()
@@ -213,15 +214,22 @@ export default function EditListingForm({ propertyId, onSaveSuccess, onClose }: 
     }
   }
 
-  const priceNumber = Number(formData.price || 0)
-  const isPriceValid = !isNaN(priceNumber) && priceNumber > 0 && priceNumber <= MAX_PRICE
+  const parsePriceInput = (s: any) => {
+    if (s === null || s === undefined) return NaN
+    // remove non-numeric characters except dot and minus
+    const cleaned = String(s).replace(/[^0-9.-]/g, '')
+    return Number(cleaned)
+  }
+
+  const priceNumber = parsePriceInput(formData.price || '0')
+  const isPriceValid = !isNaN(priceNumber) && priceNumber >= MIN_PRICE && priceNumber <= MAX_PRICE
 
   const handleSave = async () => {
     setSaving(true)
     setError(null)
     setSuccessMessage(null)
     try {
-      if (!isPriceValid) throw new Error(`Price must be at most ₱${MAX_PRICE.toLocaleString()}`)
+      if (!isPriceValid) throw new Error(`Price must be between ₱${MIN_PRICE.toLocaleString()} and ₱${MAX_PRICE.toLocaleString()}`)
 
       const body = {
         name: formData.name,
@@ -379,7 +387,7 @@ export default function EditListingForm({ propertyId, onSaveSuccess, onClose }: 
                   {!isPriceValid && formData.price !== '' && (
                     <p className="text-xs text-red-600 flex items-center gap-1 mt-1">
                       <X className="h-3 w-3" />
-                      Price must be at most ₱{MAX_PRICE.toLocaleString()}
+                      Price must be between ₱{MIN_PRICE.toLocaleString()} and ₱{MAX_PRICE.toLocaleString()}
                     </p>
                   )}
                 </div>
