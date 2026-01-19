@@ -44,6 +44,7 @@ export default function EditListingForm({ propertyId, onSaveSuccess, onClose }: 
   })
 
   const [initialData, setInitialData] = useState<any>(null)
+  const [initialVerificationKeys, setInitialVerificationKeys] = useState<string[]>([])
   const [newAmenity, setNewAmenity] = useState('')
   const [verificationDocs, setVerificationDocs] = useState<Array<{ filename?: string; url?: string; _id?: string; public_id?: string; status?: string }>>([])
   const [uploadingDocs, setUploadingDocs] = useState(false)
@@ -103,13 +104,18 @@ export default function EditListingForm({ propertyId, onSaveSuccess, onClose }: 
         try {
           const docsRaw = property.verification_documents || property.verificationDocuments || []
           const docs = Array.isArray(docsRaw)
-            ? docsRaw.map((d: any) => ({
-                ...d,
-                _id: d?._id ? String(d._id) : (d?.id ? String(d.id) : undefined),
-                status: d?.status ?? d?.verification_status ?? 'pending'
-              }))
-            : []
-          setVerificationDocs(docs)
+              ? docsRaw.map((d: any) => ({
+                  ...d,
+                  _id: d?._id ? String(d._id) : (d?.id ? String(d.id) : undefined),
+                  status: d?.status ?? d?.verification_status ?? 'pending'
+                }))
+              : []
+            setVerificationDocs(docs)
+            // store initial verification doc keys so we can detect changes (uploads/removals)
+            try {
+              const keys = docs.map((x: any) => getDocKey(x)).filter((k): k is string => Boolean(k))
+              setInitialVerificationKeys(keys)
+            } catch (e) { setInitialVerificationKeys([]) }
         } catch (e) { setVerificationDocs([]) }
       } catch (err: any) {
         setError(err?.message || 'Failed to load property')
@@ -194,7 +200,17 @@ export default function EditListingForm({ propertyId, onSaveSuccess, onClose }: 
 
   const hasChanges = () => {
     if (!initialData) return false
-    return JSON.stringify(initialData) !== JSON.stringify(formData)
+    // compare main form fields
+    const baseChanged = JSON.stringify(initialData) !== JSON.stringify(formData)
+    // compare verification docs by normalized keys
+    try {
+      const currentKeys = verificationDocs.map(getDocKey).filter((k): k is string => Boolean(k))
+      const initialKeys = initialVerificationKeys || []
+      const keysChanged = currentKeys.length !== initialKeys.length || initialKeys.some(k => !currentKeys.includes(k))
+      return baseChanged || keysChanged
+    } catch (e) {
+      return baseChanged
+    }
   }
 
   const priceNumber = Number(formData.price || 0)
