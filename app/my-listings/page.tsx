@@ -351,7 +351,11 @@ export default function MyListingsPage() {
                   <h3 className="text-lg md:text-xl font-bold text-slate-900 line-clamp-2 mb-2">{property.name}</h3>
                   
                   {/* Reminder to add verification docs */}
-                  {(!property.verification_documents || property.verification_documents.length === 0) && (
+                  {(
+                    !(property.verification_documents && property.verification_documents.length > 0) &&
+                    property.verification_status !== 'pending' &&
+                    property.verified !== true
+                  ) && (
                     <div className="mb-3 text-sm text-yellow-800 bg-yellow-50 border border-yellow-100 rounded-md px-3 py-2">
                       No verification documents — <button onClick={() => handleEditClick(property._id)} className="underline text-yellow-900 font-medium">Add now</button> to speed up verification.
                     </div>
