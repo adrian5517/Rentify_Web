@@ -705,9 +705,17 @@ export default function EditListingForm({ propertyId, onSaveSuccess, onClose }: 
                           const res = await authFetch(ep, { method: 'POST', body: fd })
                           if (!res || !res.ok) throw new Error(`Upload failed (${res?.status})`)
                           const rdata = await res.json()
-                          // Expect backend to return the saved documents
+                          // Expect backend to return the saved documents or the updated property
                           const added = rdata.docs || rdata.added || rdata.verification_documents || []
                           const addedArr = Array.isArray(added) ? added : (added ? [added] : [])
+
+                          // If backend didn't actually add documents and didn't mark property pending, treat as failure
+                          const backendProperty = rdata.property || rdata
+                          const backendHasDocs = Array.isArray(backendProperty?.verification_documents) && backendProperty.verification_documents.length > 0
+                          const backendPending = backendProperty && backendProperty.verification_status === 'pending'
+                          if (addedArr.length === 0 && !backendHasDocs && !backendPending) {
+                            throw new Error('Server did not save any documents')
+                          }
                           setVerificationDocs(prev => {
                             // Build a set of existing keys (normalized to strings)
                             const existingKeysArr = prev
