@@ -291,6 +291,16 @@ export default function EditListingForm({ propertyId, onSaveSuccess, onClose }: 
       setInitialData(formData)
 
       try {
+        // Show a SweetAlert confirmation to the user
+        try {
+          await Swal.fire({
+            icon: 'success',
+            title: 'Saved',
+            text: 'Listing updated successfully',
+            confirmButtonText: 'OK'
+          })
+        } catch (e) { /* ignore Swal errors */ }
+
         if (onSaveSuccess) onSaveSuccess()
       } catch (e) { }
     } catch (err: any) {
