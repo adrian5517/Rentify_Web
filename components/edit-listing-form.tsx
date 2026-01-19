@@ -55,6 +55,30 @@ export default function EditListingForm({ propertyId, onSaveSuccess, onClose }: 
     return raw ? String(raw) : null
   }
 
+  // Refresh verification documents from server and update local state
+  const refreshVerificationDocs = async () => {
+    try {
+      const ep = `${API_BASE.replace(/\/$/, '')}/api/properties/${propertyId}`
+      const res = await authFetch(ep, { method: 'GET' })
+      if (!res || !res.ok) return
+      const data = await res.json()
+      const property = data.property || data
+      const docsRaw = property.verification_documents || property.verificationDocuments || []
+      const docs = Array.isArray(docsRaw)
+        ? docsRaw.map((d: any) => ({
+            ...d,
+            _id: d?._id ? String(d._id) : (d?.id ? String(d.id) : undefined),
+            status: d?.status ?? d?.verification_status ?? 'pending'
+          }))
+        : []
+      setVerificationDocs(docs)
+      const keys = docs.map((x: any) => getDocKey(x)).filter((k): k is string => Boolean(k))
+      setInitialVerificationKeys(keys)
+    } catch (e) {
+      // ignore refresh errors
+    }
+  }
+
   const API_BASE: string = config.API_API
   mapboxgl.accessToken = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN || mapboxgl.accessToken || 'pk.eyJ1IjoiYWRyaWFuNTUxNyIsImEiOiJjbWZkdTg4dmIwMThpMnFyNG10cWJwZjRhIn0.JLRzE6qmyDfePYgSs11ALg'
 
@@ -603,7 +627,9 @@ export default function EditListingForm({ propertyId, onSaveSuccess, onClose }: 
                                   // keep items whose key differs from the removed key
                                   return key !== keyToRemove
                                 }))
-                                await Swal.fire({ icon: 'success', title: 'Removed', text: 'Document removed.' })
+                                    // refresh from server to ensure property record is updated for admins
+                                    await refreshVerificationDocs()
+                                    await Swal.fire({ icon: 'success', title: 'Removed', text: 'Document removed.' })
                               } catch (err: any) {
                                 console.error('Remove doc failed', err)
                                 await Swal.fire({ icon: 'error', title: 'Error', text: err?.message || 'Failed to remove document' })
