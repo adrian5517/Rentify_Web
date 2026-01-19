@@ -613,24 +613,28 @@ export default function AddPropertyModal({ isOpen, onClose, onPropertyAdded, pro
         const createdProperty = data.property || data
         if (docFiles.length > 0 && createdProperty && createdProperty._id) {
           // Use the sequential uploader to show progress and results
-          try {
-            const r = await uploadDocsForProperty(createdProperty._id, token)
-            if (!r.ok) {
-              console.warn('Some document uploads failed during create')
-            }
-            // Attempt to auto-submit after uploads
             try {
-              await fetch(`${API_BASE.replace(/\/$/, '')}/api/properties/${createdProperty._id}/verification/submit`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-                body: JSON.stringify({ notes: 'Submitted with listing creation' })
-              })
+              const r = await uploadDocsForProperty(createdProperty._id, token)
+              if (!r.ok) {
+                console.warn('Some document uploads failed during create')
+              }
+              // Attempt to auto-submit after uploads
+              try {
+                const subRes = await fetch(`${API_BASE.replace(/\/$/, '')}/api/properties/${createdProperty._id}/verification/submit`, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                  body: JSON.stringify({ notes: 'Submitted with listing creation' })
+                })
+                // If submission succeeded, notify parent immediately so lists refresh
+                if (subRes && subRes.ok) {
+                  try { if (onPropertyAdded) await onPropertyAdded() } catch (e) {}
+                }
+              } catch (err) {
+                console.warn('Auto-submit failed:', err)
+              }
             } catch (err) {
-              console.warn('Auto-submit failed:', err)
+              console.warn('Error uploading docs after property creation:', err)
             }
-          } catch (err) {
-            console.warn('Error uploading docs after property creation:', err)
-          }
         }
       } catch (err) {
         console.warn('Error while uploading/submitting verification docs:', err)

@@ -653,6 +653,8 @@ export default function EditListingForm({ propertyId, onSaveSuccess, onClose }: 
                                     setInitialData(normalized)
                                   }
                                 } catch (e) { /* ignore reload errors */ }
+                                // notify parent that property changed so lists refresh
+                                try { if (onSaveSuccess) onSaveSuccess() } catch (e) {}
                                 await Swal.fire({ icon: 'success', title: 'Removed', text: 'Document removed.' })
                               } catch (err: any) {
                                 console.error('Remove doc failed', err)
@@ -756,6 +758,8 @@ export default function EditListingForm({ propertyId, onSaveSuccess, onClose }: 
                               setFormData(normalized)
                               setInitialData(normalized)
                             }
+                            // notify parent that property changed so lists refresh
+                            try { if (onSaveSuccess) onSaveSuccess() } catch (e) {}
                           } catch (e) { /* ignore reload errors */ }
 
                           await Swal.fire({ icon: 'success', title: 'Uploaded', text: 'Verification documents uploaded — waiting for admin verification.' })
