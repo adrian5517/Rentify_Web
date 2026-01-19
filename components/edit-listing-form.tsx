@@ -552,15 +552,14 @@ export default function EditListingForm({ propertyId, onSaveSuccess, onClose }: 
                               if (!confirm.isConfirmed) return
                               try {
                                 const ep = `${API_BASE.replace(/\/$/, '')}/api/properties/${propertyId}/verification/docs`
-                                const res = await fetch(ep, {
+                                const res = await authFetch(ep, {
                                   method: 'DELETE',
                                   headers: {
-                                    'Content-Type': 'application/json',
-                                    ...(token ? { Authorization: `Bearer ${token}` } : {})
+                                    'Content-Type': 'application/json'
                                   },
                                   body: JSON.stringify({ filename: d.filename, url: d.url, id: d._id })
                                 })
-                                if (!res.ok) throw new Error('Failed to remove document')
+                                if (!res || !res.ok) throw new Error('Failed to remove document')
                                 setVerificationDocs(prev => prev.filter(x => x !== d))
                                 await Swal.fire({ icon: 'success', title: 'Removed', text: 'Document removed.' })
                               } catch (err: any) {
@@ -589,7 +588,7 @@ export default function EditListingForm({ propertyId, onSaveSuccess, onClose }: 
                         try {
                           const ep = `${API_BASE.replace(/\/$/, '')}/api/properties/${propertyId}/verification/docs`
                           const fd = new FormData()
-                          files.forEach(f => fd.append('files', f))
+                          files.forEach(f => fd.append('docs', f))
                           const res = await authFetch(ep, { method: 'POST', body: fd })
                           if (!res.ok) throw new Error(`Upload failed (${res.status})`)
                           const rdata = await res.json()
