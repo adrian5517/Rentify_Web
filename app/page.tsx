@@ -1,7 +1,6 @@
-﻿import { Button } from '@/components/ui/button'
+﻿"use client"
 import Swal from 'sweetalert2'
 import 'sweetalert2/dist/sweetalert2.min.css'
-"use client"
 import { useState, useEffect, useRef, useMemo } from "react"
 import Image from "next/image"
 import {
@@ -13,24 +12,18 @@ import {
   Grid,
   Map,
   Star,
-  Bath,
-  Bed,
-  Car,
   Plus,
-  MessageCircle,
-  User,
-  Navigation,
-  List,
   ChevronLeft,
   ChevronRight,
-  X,
   Calendar,
+  Bed,
+  Bath,
 } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
+import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardFooter } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Input } from "@/components/ui/input"
 import { Slider } from "@/components/ui/slider"
 import PropertyMap from "@/components/property-map"
 import ProfilePage from "@/components/profile-page"
@@ -2223,11 +2216,13 @@ export default function PropertyListingPage() {
                     <Button 
                       onClick={async () => {
                         // Get owner ID from postedBy or createdBy
-                        const owner = typeof selectedProperty.postedBy === 'object' ? selectedProperty.postedBy : 
-                                     typeof selectedProperty.createdBy === 'object' ? selectedProperty.createdBy : null
+                        const owner = typeof selectedProperty?.postedBy === 'object' ? selectedProperty.postedBy : 
+                                     typeof selectedProperty?.createdBy === 'object' ? selectedProperty.createdBy : null
 
+                        if (!owner) {
                           await Swal.fire({ icon: 'info', title: 'Owner info', text: 'Owner information not available' })
                           return
+                        }
 
                         // Try one-click Send Now behavior: send a greeting and open Messages
                         // Get current user id from persisted auth (fallback)
@@ -2235,14 +2230,15 @@ export default function PropertyListingPage() {
                         try {
                           const authData = localStorage.getItem('auth-storage')
                           if (authData) {
-                            const parsed = JSON.parse(authData)
-                            const u = parsed.state?.user
+                            const parsed = JSON.parse(authData as string)
+                            const u = parsed?.state?.user
                             senderId = u?._id || u?.id || null
                           }
                         } catch (e) {
                           // ignore parse errors
                         }
 
+                        if (!senderId) {
                           const res = await Swal.fire({ title: 'Sign in required', text: 'You need to sign in to message the owner. Would you like to sign in now?', icon: 'question', showCancelButton: true, confirmButtonText: 'Sign in', cancelButtonText: 'Cancel' })
                           if (res.isConfirmed) {
                             setCurrentPage('auth')
@@ -2250,9 +2246,15 @@ export default function PropertyListingPage() {
                             window.history.pushState({}, '', '/auth')
                           }
                           return
+                        }
 
-                        const ownerId = owner._id
-                        const prefill = `I want to rent this property: ${selectedProperty.name}`
+                        if (!selectedProperty) {
+                          await Swal.fire({ icon: 'info', title: 'Property missing', text: 'Please select a property first.' })
+                          return
+                        }
+
+                        const ownerId = (owner as any)._id || (owner as any).id
+                        const prefill = `I want to rent this property: ${selectedProperty?.name || ''}`
 
                         try {
                           await sendMessageAPI(String(senderId), String(ownerId), prefill)
@@ -2281,12 +2283,14 @@ export default function PropertyListingPage() {
                       Contact
                     </Button>
                     <Button 
-                      onClick={() => {
+                      onClick={async () => {
                         const owner = typeof selectedProperty.postedBy === 'object' ? selectedProperty.postedBy : 
                                      typeof selectedProperty.createdBy === 'object' ? selectedProperty.createdBy : null
                         const isAvailable = selectedProperty.status === 'available' || selectedProperty.status === 'For rent'
+                        if (!isAvailable) {
                           await Swal.fire({ icon: 'info', title: 'Unavailable', text: 'This property is not currently available.' })
                           return
+                        }
                         if (owner && owner._id) {
                           const prefill = `I want to rent this property: ${selectedProperty.name}`
                           setCurrentPage('messages')

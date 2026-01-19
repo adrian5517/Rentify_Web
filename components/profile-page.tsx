@@ -236,7 +236,7 @@ export default function ProfilePage() {
       if (confirm('Would you like to try saving the image locally instead? (Note: Image will not be uploaded to cloud)')) {
         try {
           const reader = new FileReader()
-          reader.onloadend = () => {
+          reader.onloadend = async () => {
             const base64String = reader.result as string
             setProfilePicture(base64String)
             useAuthStore.setState({ 
@@ -245,7 +245,7 @@ export default function ProfilePage() {
             await Swal.fire({ icon: 'success', title: 'Saved locally', text: 'Profile picture saved locally (not uploaded to cloud)' })
             setUploadingImage(false)
           }
-          reader.onerror = () => {
+          reader.onerror = async () => {
             await Swal.fire({ icon: 'error', title: 'Read error', text: 'Failed to read image file' })
             setUploadingImage(false)
           }

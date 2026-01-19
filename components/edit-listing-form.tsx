@@ -45,8 +45,13 @@ export default function EditListingForm({ propertyId, onSaveSuccess, onClose }: 
 
   const [initialData, setInitialData] = useState<any>(null)
   const [newAmenity, setNewAmenity] = useState('')
-  const [verificationDocs, setVerificationDocs] = useState<Array<{ filename?: string; url?: string; _id?: string }>>([])
+  const [verificationDocs, setVerificationDocs] = useState<Array<{ filename?: string; url?: string; _id?: string; public_id?: string }>>([])
   const [uploadingDocs, setUploadingDocs] = useState(false)
+
+  const getDocKey = (d: any): string | null => {
+    const raw = d?._id ?? d?.id ?? d?.filename ?? d?.url
+    return raw ? String(raw) : null
+  }
 
   const API_BASE: string = config.API_API
   mapboxgl.accessToken = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN || mapboxgl.accessToken || 'pk.eyJ1IjoiYWRyaWFuNTUxNyIsImEiOiJjbWZkdTg4dmIwMThpMnFyNG10cWJwZjRhIn0.JLRzE6qmyDfePYgSs11ALg'
@@ -62,9 +67,7 @@ export default function EditListingForm({ propertyId, onSaveSuccess, onClose }: 
       setError(null)
       try {
         const ep = `${API_BASE.replace(/\/$/, '')}/api/properties/${propertyId}`
-        const headers: Record<string, string> = {}
-        if (token) headers['Authorization'] = `Bearer ${token}`
-        const res = await fetch(ep, { headers })
+        const res = await authFetch(ep, { method: 'GET' })
         if (!res || !res.ok) throw new Error(`Fetch failed (${res?.status})`)
         const data = await res.json()
 
@@ -86,9 +89,13 @@ export default function EditListingForm({ propertyId, onSaveSuccess, onClose }: 
 
         setFormData(normalized)
         setInitialData(normalized)
-        // verification documents (owner/admin only)
+        // verification documents (owner/admin only) - normalize ids to strings
         try {
-          setVerificationDocs(property.verification_documents || property.verificationDocuments || [])
+          const docsRaw = property.verification_documents || property.verificationDocuments || []
+          const docs = Array.isArray(docsRaw)
+            ? docsRaw.map((d: any) => ({ ...d, _id: d?._id ? String(d._id) : (d?.id ? String(d.id) : undefined) }))
+            : []
+          setVerificationDocs(docs)
         } catch (e) { setVerificationDocs([]) }
       } catch (err: any) {
         setError(err?.message || 'Failed to load property')
@@ -201,11 +208,10 @@ export default function EditListingForm({ propertyId, onSaveSuccess, onClose }: 
 
       const endpoint = `${API_BASE.replace(/\/$/, '')}/api/properties/${propertyId}`
 
-      const res = await fetch(endpoint, {
+      const res = await authFetch(endpoint, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
         body: JSON.stringify(body),
       })
@@ -538,7 +544,7 @@ export default function EditListingForm({ propertyId, onSaveSuccess, onClose }: 
                   {verificationDocs && verificationDocs.length > 0 ? (
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       {verificationDocs.map((d, idx) => (
-                        <div key={d._id || d.filename || idx} className="p-3 bg-white border rounded-md flex items-center justify-between">
+                        <div key={getDocKey(d) || d.filename || idx} className="p-3 bg-white border rounded-md flex items-center justify-between">
                           <div className="flex items-center gap-3">
                             <FileText className="h-5 w-5 text-violet-600" />
                             <div>
@@ -560,7 +566,12 @@ export default function EditListingForm({ propertyId, onSaveSuccess, onClose }: 
                                   body: JSON.stringify({ filename: d.filename, url: d.url, id: d._id })
                                 })
                                 if (!res || !res.ok) throw new Error('Failed to remove document')
-                                setVerificationDocs(prev => prev.filter(x => x !== d))
+                                const keyToRemove = getDocKey(d)
+                                setVerificationDocs(prev => prev.filter(x => {
+                                  const key = getDocKey(x)
+                                  // keep items whose key differs from the removed key
+                                  return key !== keyToRemove
+                                }))
                                 await Swal.fire({ icon: 'success', title: 'Removed', text: 'Document removed.' })
                               } catch (err: any) {
                                 console.error('Remove doc failed', err)
@@ -590,11 +601,37 @@ export default function EditListingForm({ propertyId, onSaveSuccess, onClose }: 
                           const fd = new FormData()
                           files.forEach(f => fd.append('docs', f))
                           const res = await authFetch(ep, { method: 'POST', body: fd })
-                          if (!res.ok) throw new Error(`Upload failed (${res.status})`)
+                          if (!res || !res.ok) throw new Error(`Upload failed (${res?.status})`)
                           const rdata = await res.json()
                           // Expect backend to return the saved documents
                           const added = rdata.docs || rdata.added || rdata.verification_documents || []
-                          setVerificationDocs(prev => [...prev, ...added])
+                          const addedArr = Array.isArray(added) ? added : (added ? [added] : [])
+                          setVerificationDocs(prev => {
+                            // Build a set of existing keys (normalized to strings)
+                            const existingKeysArr = prev
+                              .map(x => {
+                                const raw = x._id ?? (x as any).id ?? x.filename ?? x.url
+                                return raw ? String(raw) : null
+                              })
+                              .filter((k): k is string => Boolean(k))
+
+                            const existingKeys = new Set(existingKeysArr)
+
+                            // Normalize added items and filter duplicates against existingKeys
+                            const mappedAdded = addedArr
+                              .map(a => {
+                                const raw = a._id ?? a.id ?? a.filename ?? a.url
+                                return raw ? { key: String(raw), item: a } : null
+                              })
+                              .filter((v): v is { key: string; item: any } => v !== null)
+
+                            const filteredToAdd = mappedAdded
+                              .filter(m => !existingKeys.has(m.key))
+                              .map(m => m.item)
+
+                            return [...prev, ...filteredToAdd]
+                          })
+;
                           (el as HTMLInputElement).value = ''
                           await Swal.fire({ icon: 'success', title: 'Uploaded', text: 'Verification documents uploaded.' })
                         } catch (err: any) {

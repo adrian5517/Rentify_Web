@@ -8,6 +8,19 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import Swal from 'sweetalert2'
 import 'sweetalert2/dist/sweetalert2.min.css'
 
+// Small helpers for rendering labels/timestamps
+const formatActionLabel = (action?: string) => {
+  if (!action) return 'Action'
+  try { return String(action).replace(/[_\-]/g, ' ').replace(/\b\w/g, c => c.toUpperCase()) }
+  catch { return String(action) }
+}
+
+const formatTimestamp = (iso?: string) => {
+  if (!iso) return ''
+  try { return new Date(iso).toLocaleString() }
+  catch { return String(iso) }
+}
+
 type Doc = { filename?: string; url?: string };
 type UserRef = { username?: string; email?: string };
 type Property = {
@@ -44,110 +57,10 @@ export default function AdminVerificationPage() {
   const [selectedProperty, setSelectedProperty] = useState<Property | null>(null)
   const [actionLoading, setActionLoading] = useState(false)
   const [actionNotes, setActionNotes] = useState('')
-
-            {items.map((p) => (
-              <div key={p._id} className="bg-white rounded-lg shadow-md overflow-hidden border">
-                <div className="relative h-48 bg-gray-100">
-                  {p.verification_documents && p.verification_documents.length > 0 && p.verification_documents[0].url ? (
-                    <img src={p.verification_documents[0].url} alt={p.verification_documents[0].filename || p.name || 'property'} className="w-full h-full object-cover" onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }} />
-                  ) : p.images && p.images.length > 0 && p.images[0] ? (
-                    <img src={p.images[0]} alt={p.name || 'property'} className="w-full h-full object-cover" onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }} />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center text-gray-400">No image</div>
-                  )}
-
-                  {typeof p.price === 'number' && (
-                    <div className="absolute top-3 left-3 bg-white/90 text-sm font-semibold px-2 py-1 rounded shadow">
-                      ₱{p.price.toLocaleString()}
-                    </div>
-                  )}
-                </div>
-                <div className="p-4">
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="flex-1">
-                      <div className="font-semibold text-lg truncate">{p.name || 'Untitled property'}</div>
-                      <div className="text-sm text-gray-500">{p.propertyType || p.postedBy?.username || p.postedBy?.email || 'owner unknown'}</div>
-                      <div className="mt-2 text-xs text-gray-600">{p.verification_notes ? p.verification_notes : (<span className="italic text-gray-400">No notes</span>)}</div>
-                      {p.description && (
-                        <div className="mt-2 text-sm text-gray-700 line-clamp-2">{p.description}</div>
-                      )}
-                    </div>
-                    <div className="flex flex-col items-end gap-2">
-                      <div className={`px-2 py-1 rounded text-xs ${p.verification_status === 'verified' ? 'bg-emerald-600 text-white' : p.verification_status === 'rejected' ? 'bg-red-600 text-white' : 'bg-yellow-400 text-black'}`}>{p.verification_status || 'unverified'}</div>
-                      <button
-                        onClick={async () => {
-                          setSelectedProperty(p);
-                          setActionNotes(p.verification_notes || '');
-                          setViewerDocs(p.verification_documents || []);
-                          setViewerOpen(true);
-                        }}
-                        className="text-sm text-blue-600 hover:underline"
-                      >
-                        See details
-                      </button>
-                    </div>
-                  </div>
-
-                  <div className="mt-4 flex gap-2">
-                    <button onClick={() => { setSelectedProperty(p); setActionNotes(''); setViewerDocs(p.verification_documents || []); setViewerOpen(true); }} className="flex-1 px-3 py-2 text-sm rounded bg-slate-100">View</button>
-                    <button onClick={async () => {
-                      const res = await Swal.fire({
-                        title: 'Approve property?',
-                        text: 'Are you sure you want to approve this property?',
-                        icon: 'question',
-                        showCancelButton: true,
-                        confirmButtonText: 'Yes, approve',
-                        cancelButtonText: 'Cancel'
-                      })
-                      if (res.isConfirmed) {
-                        setSelectedProperty(p); setActionNotes('Approved via admin UI'); doAction(p._id, 'verify', 'Approved via admin UI');
-                      }
-                    }} disabled={actionLoading} className="px-3 py-2 rounded bg-emerald-600 text-white text-sm hover:opacity-90">Approve</button>
-                    <button onClick={async () => {
-                      const { value: text } = await Swal.fire({
-                        title: 'Reject property',
-                        input: 'textarea',
-                        inputPlaceholder: 'Enter rejection reason...',
-                        inputAttributes: { 'aria-label': 'Rejection reason' },
-                        showCancelButton: true,
-                        confirmButtonText: 'Reject',
-                        cancelButtonText: 'Cancel',
-                        preConfirm: (v) => {
-                          if (!v || !v.trim()) {
-                            Swal.showValidationMessage('Rejection reason is required')
-                          }
-                          return v
-                        }
-                      })
-                      if (text) {
-                        setSelectedProperty(p); setActionNotes(text.trim()); doAction(p._id, 'reject', text.trim())
-                      }
-                    }} disabled={actionLoading} className="px-3 py-2 rounded bg-red-600 text-white text-sm hover:opacity-90">Reject</button>
-                  </div>
-                  {p.amenities && p.amenities.length > 0 && (
-                    <div className="mt-3 flex flex-wrap gap-2">
-                      {p.amenities.slice(0,6).map((a, i) => (
-                        <span key={i} className="text-xs px-2 py-1 bg-slate-100 rounded">{a}</span>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </div>
-            ))}
-    const t = setTimeout(() => {
-      if (!user) {
-        // Not logged in -> redirect to auth
-        router.replace('/auth')
-      } else if (user.role !== 'admin') {
-        // Not an admin -> redirect to home
-        router.replace('/')
-      } else {
-        setCheckedAuth(true)
-      }
-    }, 50)
-    return () => clearTimeout(t)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user])
+  const { user, token } = useAuthStore()
+  const router = useRouter()
+  const [checkedAuth, setCheckedAuth] = useState(false)
+ 
 
   async function fetchByStatus(p = page, status = statusFilter) {
     setLoading(true);

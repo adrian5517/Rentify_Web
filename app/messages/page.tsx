@@ -413,7 +413,7 @@ function MessagesPage() {
         // Contact doesn't exist yet - will fetch their info (id suppressed)
         
         fetchUsers()
-          .then(users => {
+          .then(async users => {
             const user = users.find(u => {
               const userIdToCheck = u._id || u.id
               return userIdToCheck === contactId
@@ -469,7 +469,7 @@ function MessagesPage() {
                 window.history.replaceState({}, '', '/messages')
             }
           })
-          .catch(err => {
+          .catch(async err => {
             console.error('❌ Error fetching user info:', err)
             await Swal.fire({ icon: 'error', title: 'Error', text: 'Error loading user information. Please try again.' })
             window.history.replaceState({}, '', '/messages')
