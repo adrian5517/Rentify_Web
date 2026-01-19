@@ -45,7 +45,7 @@ export default function EditListingForm({ propertyId, onSaveSuccess, onClose }: 
 
   const [initialData, setInitialData] = useState<any>(null)
   const [newAmenity, setNewAmenity] = useState('')
-  const [verificationDocs, setVerificationDocs] = useState<Array<{ filename?: string; url?: string; _id?: string; public_id?: string }>>([])
+  const [verificationDocs, setVerificationDocs] = useState<Array<{ filename?: string; url?: string; _id?: string; public_id?: string; status?: string }>>([])
   const [uploadingDocs, setUploadingDocs] = useState(false)
 
   const getDocKey = (d: any): string | null => {
@@ -74,6 +74,16 @@ export default function EditListingForm({ propertyId, onSaveSuccess, onClose }: 
         const property = data.property || data
         if (!mounted) return
 
+        // canonicalize propertyType so it matches our Select items (case/whitespace-insensitive)
+        const availableTypes = ['Apartment','House','Condo','Studio','Townhouse','Room']
+        const rawType = property.propertyType ?? ''
+        const normalizedType = (() => {
+          const s = String(rawType).trim()
+          if (!s) return ''
+          const match = availableTypes.find(t => t.toLowerCase() === s.toLowerCase())
+          return match || s
+        })()
+
         const normalized = {
           name: property.name || '',
           description: property.description || '',
@@ -81,7 +91,7 @@ export default function EditListingForm({ propertyId, onSaveSuccess, onClose }: 
           address: property.location?.address || property.address || '',
           latitude: String(property.location?.latitude ?? property.latitude ?? ''),
           longitude: String(property.location?.longitude ?? property.longitude ?? ''),
-          propertyType: property.propertyType || '',
+          propertyType: normalizedType,
           amenities: property.amenities || [],
           status: property.status || 'available',
           phoneNumber: property.phoneNumber || property.phone || '',
@@ -93,7 +103,11 @@ export default function EditListingForm({ propertyId, onSaveSuccess, onClose }: 
         try {
           const docsRaw = property.verification_documents || property.verificationDocuments || []
           const docs = Array.isArray(docsRaw)
-            ? docsRaw.map((d: any) => ({ ...d, _id: d?._id ? String(d._id) : (d?.id ? String(d.id) : undefined) }))
+            ? docsRaw.map((d: any) => ({
+                ...d,
+                _id: d?._id ? String(d._id) : (d?.id ? String(d.id) : undefined),
+                status: d?.status ?? d?.verification_status ?? 'pending'
+              }))
             : []
           setVerificationDocs(docs)
         } catch (e) { setVerificationDocs([]) }
@@ -287,11 +301,23 @@ export default function EditListingForm({ propertyId, onSaveSuccess, onClose }: 
           <CardContent className="p-4 sm:p-8">
             {successMessage && (
               <div className="p-4 mb-6 bg-gradient-to-r from-green-50 to-emerald-50 border-2 border-green-300 rounded-xl shadow-sm animate-in fade-in slide-in-from-top-2 duration-300">
-                <div className="flex items-start gap-3">
-                  <CheckCircle2 className="text-green-600 h-6 w-6 mt-0.5 flex-shrink-0" />
-                  <div>
-                    <p className="font-semibold text-green-900">{successMessage}</p>
-                    <p className="text-sm text-green-700 mt-1">Your changes have been saved successfully.</p>
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex items-start gap-3">
+                    <CheckCircle2 className="text-green-600 h-6 w-6 mt-0.5 flex-shrink-0" />
+                    <div>
+                      <p className="font-semibold text-green-900">{successMessage}</p>
+                      <p className="text-sm text-green-700 mt-1">Your changes have been saved successfully.</p>
+                    </div>
+                  </div>
+                  <div className="flex items-start">
+                    <button
+                      type="button"
+                      aria-label="Dismiss success message"
+                      onClick={() => setSuccessMessage(null)}
+                      className="text-green-800 hover:text-green-600 rounded-md p-1"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
                   </div>
                 </div>
               </div>
@@ -507,33 +533,7 @@ export default function EditListingForm({ propertyId, onSaveSuccess, onClose }: 
                 </div>
               </div>
 
-              {/* Action Buttons */}
-              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 pt-4">
-                <Button 
-                  disabled={saving || !hasChanges() || !isPriceValid} 
-                  onClick={handleSave}
-                  className="flex-1 sm:flex-initial bg-gradient-to-r from-violet-600 via-purple-600 to-fuchsia-600 hover:from-violet-700 hover:via-purple-700 hover:to-fuchsia-700 text-white font-semibold h-12 px-8 shadow-lg hover:shadow-xl transition-all disabled:opacity-50"
-                >
-                  {saving ? (
-                    <>
-                      <Loader2 className="h-5 w-5 animate-spin mr-2" /> 
-                      Saving Changes...
-                    </>
-                  ) : (
-                    <>
-                      <CheckCircle2 className="h-5 w-5 mr-2" />
-                      Save Changes
-                    </>
-                  )}
-                </Button>
-                <Button 
-                  variant="outline" 
-                  onClick={() => { setFormData(initialData); setError(null); setSuccessMessage(null); }}
-                  className="flex-1 sm:flex-initial border-2 border-violet-300 text-violet-700 hover:bg-violet-50 h-12 px-8 font-semibold"
-                >
-                  Reset Form
-                </Button>
-              </div>
+              {/* Action Buttons (moved below verification upload) - kept in component scope */}
 
               {/* Verification Documents */}
               <div className="mt-6">
@@ -548,7 +548,14 @@ export default function EditListingForm({ propertyId, onSaveSuccess, onClose }: 
                           <div className="flex items-center gap-3">
                             <FileText className="h-5 w-5 text-violet-600" />
                             <div>
-                              <div className="text-sm font-medium text-slate-900">{d.filename || (d.url ? d.url.split('/').pop() : 'Document')}</div>
+                              <div className="flex items-center gap-3">
+                                <div className="text-sm font-medium text-slate-900">{d.filename || (d.url ? d.url.split('/').pop() : 'Document')}</div>
+                                <div>
+                                  {d.status && (
+                                    <span className={"text-xs font-semibold px-2 py-0.5 rounded-full " + (d.status === 'approved' ? 'bg-emerald-50 text-emerald-800 border border-emerald-100' : d.status === 'rejected' ? 'bg-red-50 text-red-800 border border-red-100' : 'bg-yellow-50 text-yellow-800 border border-yellow-100')}>{String(d.status).replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}</span>
+                                  )}
+                                </div>
+                              </div>
                               {d.url && <a className="text-xs text-blue-600 underline" href={d.url} target="_blank" rel="noreferrer">Open</a>}
                             </div>
                           </div>
@@ -593,7 +600,16 @@ export default function EditListingForm({ propertyId, onSaveSuccess, onClose }: 
                     <div className="flex gap-2 mt-2">
                       <Button onClick={async () => {
                         const el = document.getElementById('verification-files-input') as HTMLInputElement | null
-                        if (!el || !el.files || el.files.length === 0) { await Swal.fire({ icon: 'info', title: 'No files', text: 'Please choose files to upload.' }); return }
+                        // if the input doesn't exist, inform the user
+                        if (!el) {
+                          await Swal.fire({ icon: 'info', title: 'Upload unavailable', text: 'File input not found.' })
+                          return
+                        }
+                        // if no files selected, open the file picker to prompt the user
+                        if (!el.files || el.files.length === 0) {
+                          el.click()
+                          return
+                        }
                         const files = Array.from(el.files)
                         setUploadingDocs(true)
                         try {
@@ -620,9 +636,16 @@ export default function EditListingForm({ propertyId, onSaveSuccess, onClose }: 
                             // Normalize added items and filter duplicates against existingKeys
                             const mappedAdded = addedArr
                               .map(a => {
-                                const raw = a._id ?? a.id ?? a.filename ?? a.url
-                                return raw ? { key: String(raw), item: a } : null
-                              })
+                                  const raw = a._id ?? a.id ?? a.filename ?? a.url
+                                  if (!raw) return null
+                                  // normalize returned item: ensure _id string and default status
+                                  const item = {
+                                    ...a,
+                                    _id: a?._id ? String(a._id) : (a?.id ? String(a.id) : undefined),
+                                    status: a?.status ?? a?.verification_status ?? 'pending'
+                                  }
+                                  return { key: String(raw), item }
+                                })
                               .filter((v): v is { key: string; item: any } => v !== null)
 
                             const filteredToAdd = mappedAdded
@@ -633,7 +656,9 @@ export default function EditListingForm({ propertyId, onSaveSuccess, onClose }: 
                           })
 ;
                           (el as HTMLInputElement).value = ''
-                          await Swal.fire({ icon: 'success', title: 'Uploaded', text: 'Verification documents uploaded.' })
+                          // show both in-page banner and modal indicating pending verification
+                          setSuccessMessage('Verification documents uploaded — waiting for admin verification.')
+                          await Swal.fire({ icon: 'success', title: 'Uploaded', text: 'Verification documents uploaded — waiting for admin verification.' })
                         } catch (err: any) {
                           console.error('Upload docs error', err)
                           await Swal.fire({ icon: 'error', title: 'Upload failed', text: err?.message || 'Failed to upload documents' })
@@ -641,6 +666,33 @@ export default function EditListingForm({ propertyId, onSaveSuccess, onClose }: 
                           setUploadingDocs(false)
                         }
                       }} className="bg-gradient-to-r from-violet-600 to-purple-600 text-white">{uploadingDocs ? 'Uploading...' : 'Upload Documents'}</Button>
+                    </div>
+                    {/* Move Save/Reset buttons here so they appear at the bottom of the upload area */}
+                    <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 pt-4 mt-4">
+                      <Button 
+                        disabled={saving || !hasChanges() || !isPriceValid} 
+                        onClick={handleSave}
+                        className="flex-1 sm:flex-initial bg-gradient-to-r from-violet-600 via-purple-600 to-fuchsia-600 hover:from-violet-700 hover:via-purple-700 hover:to-fuchsia-700 text-white font-semibold h-12 px-8 shadow-lg hover:shadow-xl transition-all disabled:opacity-50"
+                      >
+                        {saving ? (
+                          <>
+                            <Loader2 className="h-5 w-5 animate-spin mr-2" /> 
+                            Saving Changes...
+                          </>
+                        ) : (
+                          <>
+                            <CheckCircle2 className="h-5 w-5 mr-2" />
+                            Save Changes
+                          </>
+                        )}
+                      </Button>
+                      <Button 
+                        variant="outline" 
+                        onClick={() => { setFormData(initialData); setError(null); setSuccessMessage(null); }}
+                        className="flex-1 sm:flex-initial border-2 border-violet-300 text-violet-700 hover:bg-violet-50 h-12 px-8 font-semibold"
+                      >
+                        Reset Form
+                      </Button>
                     </div>
                   </div>
                 </div>
