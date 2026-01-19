@@ -1,3 +1,65 @@
+import { useAuthStore } from './auth-store'
+import { API_API } from './config'
+
+type FetchInput = RequestInfo
+type FetchInit = RequestInit | undefined
+
+async function safeParseJson(res: Response) {
+  const ct = res.headers.get('content-type') || ''
+  if (ct.includes('application/json')) return res.json()
+  const text = await res.text()
+  try { return JSON.parse(text) } catch { return { message: text } }
+}
+
+/**
+ * authFetch: like fetch but automatically attempts a refresh on 401 once.
+ * - includes Authorization header if token exists
+ * - on 401: calls POST /api/auth/refresh with credentials included, updates useAuthStore token, and retries once
+ */
+export async function authFetch(input: FetchInput, init?: FetchInit) {
+  const base = (API_API || '').replace(/\/$/, '')
+  const url = typeof input === 'string' ? input : (input as Request).url
+
+  const state = useAuthStore.getState()
+  const token = state.token
+
+  const headers = new Headers(init && init.headers ? init.headers as HeadersInit : undefined)
+  if (token) headers.set('Authorization', `Bearer ${token}`)
+
+  const reqInit: RequestInit = { ...init, headers }
+
+  let res = await fetch(typeof input === 'string' ? input : input as Request, reqInit)
+
+  if (res.status !== 401) return res
+
+  // Attempt refresh
+  try {
+    const refreshRes = await fetch(`${base}/api/auth/refresh`, { method: 'POST', credentials: 'include' })
+    if (!refreshRes.ok) {
+      // refresh failed: clear auth and return original 401
+      useAuthStore.setState({ user: null, token: null, profilePicture: null })
+      return res
+    }
+
+    const data = await safeParseJson(refreshRes)
+    if (data && data.token) {
+      useAuthStore.setState({ token: data.token, user: data.user || useAuthStore.getState().user, profilePicture: (data.user && data.user.profilePicture) || useAuthStore.getState().profilePicture })
+      // retry original request with new token
+      const newHeaders = new Headers(headers)
+      newHeaders.set('Authorization', `Bearer ${data.token}`)
+      const retryInit: RequestInit = { ...reqInit, headers: newHeaders }
+      return fetch(typeof input === 'string' ? input : input as Request, retryInit)
+    }
+  } catch (e) {
+    // ignore and fall through
+  }
+
+  // If refresh didn't yield a token, clear auth state
+  useAuthStore.setState({ user: null, token: null, profilePicture: null })
+  return res
+}
+
+export default authFetch
 const API_BASE_URL = 'https://rentify-server-ge0f.onrender.com/api';
 
 // Helper function to handle 401 errors (expired token)

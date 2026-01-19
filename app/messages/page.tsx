@@ -18,6 +18,8 @@ import {
   type MessageData
 } from "@/lib/api"
 import Conversations from '@/components/conversations'
+import Swal from 'sweetalert2'
+import 'sweetalert2/dist/sweetalert2.min.css'
 
 function MessagesPage() {
   // Enhanced message type with MongoDB structure
@@ -463,13 +465,13 @@ function MessagesPage() {
                 window.history.replaceState({}, '', '/messages')
             } else {
               // User not found in database
-              alert('Unable to find this user. They may not exist or have been deleted.')
-              window.history.replaceState({}, '', '/messages')
+                await Swal.fire({ icon: 'info', title: 'User not found', text: 'Unable to find this user. They may not exist or have been deleted.' })
+                window.history.replaceState({}, '', '/messages')
             }
           })
           .catch(err => {
             console.error('❌ Error fetching user info:', err)
-            alert('Error loading user information. Please try again.')
+            await Swal.fire({ icon: 'error', title: 'Error', text: 'Error loading user information. Please try again.' })
             window.history.replaceState({}, '', '/messages')
           })
       }

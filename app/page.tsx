@@ -1,4 +1,7 @@
-﻿"use client"
+﻿import { Button } from '@/components/ui/button'
+import Swal from 'sweetalert2'
+import 'sweetalert2/dist/sweetalert2.min.css'
+"use client"
 import { useState, useEffect, useRef, useMemo } from "react"
 import Image from "next/image"
 import {
@@ -2223,10 +2226,8 @@ export default function PropertyListingPage() {
                         const owner = typeof selectedProperty.postedBy === 'object' ? selectedProperty.postedBy : 
                                      typeof selectedProperty.createdBy === 'object' ? selectedProperty.createdBy : null
 
-                        if (!owner || !owner._id) {
-                          alert('Owner information not available')
+                          await Swal.fire({ icon: 'info', title: 'Owner info', text: 'Owner information not available' })
                           return
-                        }
 
                         // Try one-click Send Now behavior: send a greeting and open Messages
                         // Get current user id from persisted auth (fallback)
@@ -2242,15 +2243,13 @@ export default function PropertyListingPage() {
                           // ignore parse errors
                         }
 
-                        if (!senderId) {
-                          // Not logged in or missing id — prompt login
-                          if (confirm('You need to sign in to message the owner. Would you like to sign in now?')) {
+                          const res = await Swal.fire({ title: 'Sign in required', text: 'You need to sign in to message the owner. Would you like to sign in now?', icon: 'question', showCancelButton: true, confirmButtonText: 'Sign in', cancelButtonText: 'Cancel' })
+                          if (res.isConfirmed) {
                             setCurrentPage('auth')
                             setSelectedProperty(null)
                             window.history.pushState({}, '', '/auth')
                           }
                           return
-                        }
 
                         const ownerId = owner._id
                         const prefill = `I want to rent this property: ${selectedProperty.name}`
@@ -2265,7 +2264,8 @@ export default function PropertyListingPage() {
                           console.error('❌ Send Now failed', err)
                           const message = err instanceof Error ? err.message : String(err)
                           if (message.toLowerCase().includes('auth') || message.toLowerCase().includes('token')) {
-                            if (confirm('You need to sign in to message the owner. Would you like to sign in now?')) {
+                            const res2 = await Swal.fire({ title: 'Sign in required', text: 'You need to sign in to message the owner. Would you like to sign in now?', icon: 'question', showCancelButton: true, confirmButtonText: 'Sign in', cancelButtonText: 'Cancel' })
+                            if (res2.isConfirmed) {
                               setCurrentPage('auth')
                               setSelectedProperty(null)
                               window.history.pushState({}, '', '/auth')
@@ -2285,17 +2285,14 @@ export default function PropertyListingPage() {
                         const owner = typeof selectedProperty.postedBy === 'object' ? selectedProperty.postedBy : 
                                      typeof selectedProperty.createdBy === 'object' ? selectedProperty.createdBy : null
                         const isAvailable = selectedProperty.status === 'available' || selectedProperty.status === 'For rent'
-                        if (!isAvailable) {
-                          alert('This property is not currently available.')
+                          await Swal.fire({ icon: 'info', title: 'Unavailable', text: 'This property is not currently available.' })
                           return
-                        }
                         if (owner && owner._id) {
                           const prefill = `I want to rent this property: ${selectedProperty.name}`
                           setCurrentPage('messages')
                           setSelectedProperty(null)
                           window.history.pushState({}, '', `/messages?contact=${owner._id}&prefill=${encodeURIComponent(prefill)}`)
-                        } else {
-                          alert('Owner information not available')
+                          await Swal.fire({ icon: 'info', title: 'Owner info', text: 'Owner information not available' })
                         }
                       }}
                       className="flex-1 text-sm h-10 sm:h-11 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white"

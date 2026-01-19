@@ -9,6 +9,9 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Button } from '@/components/ui/button'
+import Swal from 'sweetalert2'
+import 'sweetalert2/dist/sweetalert2.min.css'
+import authFetch from '@/lib/api'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Loader2, CheckCircle2, MapPin, Home, Phone, DollarSign, FileText, Tag, X, Plus, Sparkles } from 'lucide-react'
 
@@ -42,6 +45,8 @@ export default function EditListingForm({ propertyId, onSaveSuccess, onClose }: 
 
   const [initialData, setInitialData] = useState<any>(null)
   const [newAmenity, setNewAmenity] = useState('')
+  const [verificationDocs, setVerificationDocs] = useState<Array<{ filename?: string; url?: string; _id?: string }>>([])
+  const [uploadingDocs, setUploadingDocs] = useState(false)
 
   const API_BASE: string = config.API_API
   mapboxgl.accessToken = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN || mapboxgl.accessToken || 'pk.eyJ1IjoiYWRyaWFuNTUxNyIsImEiOiJjbWZkdTg4dmIwMThpMnFyNG10cWJwZjRhIn0.JLRzE6qmyDfePYgSs11ALg'
@@ -81,6 +86,10 @@ export default function EditListingForm({ propertyId, onSaveSuccess, onClose }: 
 
         setFormData(normalized)
         setInitialData(normalized)
+        // verification documents (owner/admin only)
+        try {
+          setVerificationDocs(property.verification_documents || property.verificationDocuments || [])
+        } catch (e) { setVerificationDocs([]) }
       } catch (err: any) {
         setError(err?.message || 'Failed to load property')
       } finally {
@@ -518,6 +527,87 @@ export default function EditListingForm({ propertyId, onSaveSuccess, onClose }: 
                 >
                   Reset Form
                 </Button>
+              </div>
+
+              {/* Verification Documents */}
+              <div className="mt-6">
+                <Label className="text-sm font-semibold text-violet-900 flex items-center gap-2">Verification Documents</Label>
+                <p className="text-sm text-slate-600 mb-3">Upload government IDs or ownership documents. These files are private and only visible to you and admins.</p>
+
+                <div className="space-y-3">
+                  {verificationDocs && verificationDocs.length > 0 ? (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      {verificationDocs.map((d, idx) => (
+                        <div key={d._id || d.filename || idx} className="p-3 bg-white border rounded-md flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            <FileText className="h-5 w-5 text-violet-600" />
+                            <div>
+                              <div className="text-sm font-medium text-slate-900">{d.filename || (d.url ? d.url.split('/').pop() : 'Document')}</div>
+                              {d.url && <a className="text-xs text-blue-600 underline" href={d.url} target="_blank" rel="noreferrer">Open</a>}
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Button variant="outline" onClick={async () => {
+                              const confirm = await Swal.fire({ title: 'Remove document?', text: 'This will remove the document from the listing. Continue?', icon: 'warning', showCancelButton: true })
+                              if (!confirm.isConfirmed) return
+                              try {
+                                const ep = `${API_BASE.replace(/\/$/, '')}/api/properties/${propertyId}/verification/docs`
+                                const res = await fetch(ep, {
+                                  method: 'DELETE',
+                                  headers: {
+                                    'Content-Type': 'application/json',
+                                    ...(token ? { Authorization: `Bearer ${token}` } : {})
+                                  },
+                                  body: JSON.stringify({ filename: d.filename, url: d.url, id: d._id })
+                                })
+                                if (!res.ok) throw new Error('Failed to remove document')
+                                setVerificationDocs(prev => prev.filter(x => x !== d))
+                                await Swal.fire({ icon: 'success', title: 'Removed', text: 'Document removed.' })
+                              } catch (err: any) {
+                                console.error('Remove doc failed', err)
+                                await Swal.fire({ icon: 'error', title: 'Error', text: err?.message || 'Failed to remove document' })
+                              }
+                            }}>
+                              Remove
+                            </Button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="p-3 bg-yellow-50 border border-yellow-100 rounded-md text-yellow-800">No verification documents uploaded yet.</div>
+                  )}
+
+                  <div className="mt-3">
+                    <input id="verification-files-input" type="file" multiple accept="image/*,.pdf" className="block w-full" />
+                    <div className="flex gap-2 mt-2">
+                      <Button onClick={async () => {
+                        const el = document.getElementById('verification-files-input') as HTMLInputElement | null
+                        if (!el || !el.files || el.files.length === 0) { await Swal.fire({ icon: 'info', title: 'No files', text: 'Please choose files to upload.' }); return }
+                        const files = Array.from(el.files)
+                        setUploadingDocs(true)
+                        try {
+                          const ep = `${API_BASE.replace(/\/$/, '')}/api/properties/${propertyId}/verification/docs`
+                          const fd = new FormData()
+                          files.forEach(f => fd.append('files', f))
+                          const res = await authFetch(ep, { method: 'POST', body: fd })
+                          if (!res.ok) throw new Error(`Upload failed (${res.status})`)
+                          const rdata = await res.json()
+                          // Expect backend to return the saved documents
+                          const added = rdata.docs || rdata.added || rdata.verification_documents || []
+                          setVerificationDocs(prev => [...prev, ...added])
+                          (el as HTMLInputElement).value = ''
+                          await Swal.fire({ icon: 'success', title: 'Uploaded', text: 'Verification documents uploaded.' })
+                        } catch (err: any) {
+                          console.error('Upload docs error', err)
+                          await Swal.fire({ icon: 'error', title: 'Upload failed', text: err?.message || 'Failed to upload documents' })
+                        } finally {
+                          setUploadingDocs(false)
+                        }
+                      }} className="bg-gradient-to-r from-violet-600 to-purple-600 text-white">{uploadingDocs ? 'Uploading...' : 'Upload Documents'}</Button>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           </CardContent>

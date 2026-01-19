@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useAuthStore } from '@/lib/auth-store'
 import config from '@/lib/config'
+import authFetch from '@/lib/api'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Loader2, Edit, Trash2, Plus, MapPin, Home, Eye, AlertCircle } from 'lucide-react'
@@ -17,6 +18,7 @@ interface PropertyItem {
   price: number
   images?: string[]
   location?: { address?: string }
+  verification_documents?: Array<{ filename?: string; url?: string }>
 }
 
 export default function MyListingsPage() {
@@ -44,11 +46,7 @@ export default function MyListingsPage() {
       if (!originBase) throw new Error('API base URL not available')
 
       const ep = `${originBase.replace(/\/$/, '')}/api/properties/user/${user._id}`
-      const res = await fetch(ep, {
-        headers: {
-          ...(token ? { Authorization: `Bearer ${token}` } : {})
-        }
-      })
+      const res = await authFetch(ep)
 
       if (res && res.status === 401) {
         try {
@@ -352,6 +350,13 @@ export default function MyListingsPage() {
                 <div className="p-6">
                   <h3 className="text-lg md:text-xl font-bold text-slate-900 line-clamp-2 mb-2">{property.name}</h3>
                   
+                  {/* Reminder to add verification docs */}
+                  {(!property.verification_documents || property.verification_documents.length === 0) && (
+                    <div className="mb-3 text-sm text-yellow-800 bg-yellow-50 border border-yellow-100 rounded-md px-3 py-2">
+                      No verification documents — <button onClick={() => handleEditClick(property._id)} className="underline text-yellow-900 font-medium">Add now</button> to speed up verification.
+                    </div>
+                  )}
+
                   {property.location?.address && (
                     <div className="flex items-start gap-2 mb-6">
                       <MapPin className="w-4 h-4 text-violet-600 flex-shrink-0 mt-0.5" />

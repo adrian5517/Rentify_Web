@@ -1,6 +1,7 @@
 "use client"
 
 import React, { useEffect, useState } from 'react'
+import authFetch from '@/lib/api'
 import { useParams, useRouter } from 'next/navigation'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -23,6 +24,9 @@ export default function EditListingPage() {
   const [property, setProperty] = useState<any>(null)
   const [imageFiles, setImageFiles] = useState<File[]>([])
   const [imagePreviews, setImagePreviews] = useState<string[]>([])
+  const [docFiles, setDocFiles] = useState<File[]>([])
+  const [uploadingDocs, setUploadingDocs] = useState(false)
+  const [docUploadResults, setDocUploadResults] = useState<any[]>([])
   const [newAmenity, setNewAmenity] = useState('')
 
   const API_BASE = config.API_API
@@ -228,6 +232,105 @@ export default function EditListingPage() {
                   <span className="text-sm text-slate-600">Add photos</span>
                 </label>
               </div>
+            </div>
+
+            {/* Verification Documents */}
+            <div>
+              <Label>Verification Documents</Label>
+              {property.verification_documents && property.verification_documents.length > 0 ? (
+                <div className="mt-2 grid grid-cols-2 sm:grid-cols-3 gap-3">
+                  {property.verification_documents.map((d: any, idx: number) => (
+                    <div key={idx} className="border rounded overflow-hidden">
+                      {d.url ? (
+                        <img src={d.url} alt={d.filename || `doc-${idx}`} className="w-full h-28 object-cover" onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none' }} />
+                      ) : (
+                        <div className="h-28 flex items-center justify-center text-sm text-gray-500">{d.filename || 'Document'}</div>
+                      )}
+                      <div className="p-2 text-xs">
+                        <div className="truncate">{d.filename || 'document'}</div>
+                        {d.url && <a href={d.url} target="_blank" rel="noreferrer" className="text-blue-600 text-xs">Open</a>}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="mt-2 p-3 rounded bg-yellow-50 border border-yellow-200 text-sm text-yellow-800">
+                  No verification documents uploaded yet. Please add ID, proof of ownership or lease agreement to speed up verification.
+                </div>
+              )}
+
+              <div className="mt-3 flex items-center gap-3">
+                <label className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-white border cursor-pointer">
+                  <Upload className="w-4 h-4 text-slate-600" />
+                  <input type="file" accept="image/*,application/pdf" multiple onChange={(e) => {
+                    const files = e.target.files
+                    if (!files) return
+                    setDocFiles(prev => [...prev, ...Array.from(files)])
+                    e.currentTarget.value = ''
+                  }} className="hidden" />
+                  <span className="text-sm text-slate-600">Add documents</span>
+                </label>
+
+                <Button onClick={async () => {
+                  if (!docFiles || docFiles.length === 0) return
+                  setUploadingDocs(true)
+                  setDocUploadResults([])
+                  try {
+                    const fd = new FormData()
+                    for (const f of docFiles) fd.append('docs', f)
+                    const ep = `${API_BASE.replace(/\/$/, '')}/api/properties/${id}/verification/docs`
+                    const res = await authFetch(ep, {
+                      method: 'POST',
+                      body: fd
+                    })
+                    const json = await res.json().catch(() => ({ success: res.ok }))
+                    if (!res.ok || !json.success) throw new Error(json.message || `Upload failed (${res.status})`)
+                    setDocUploadResults(json.added || [])
+                    // refresh property representation in-page
+                    try {
+                      const ep2 = `${API_BASE.replace(/\/$/, '')}/api/properties/${id}`
+                        const propRes = await authFetch(ep2)
+                        if (propRes && propRes.ok) {
+                          const pjson = await propRes.json()
+                          setProperty(pjson.property || pjson)
+                        }
+                    } catch (e) { /* ignore refresh failure */ }
+                    setDocFiles([])
+                  } catch (err: any) {
+                    alert(err?.message || 'Failed to upload documents')
+                  } finally {
+                    setUploadingDocs(false)
+                  }
+                }} disabled={uploadingDocs || docFiles.length === 0}>
+                  {uploadingDocs ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Upload'}
+                </Button>
+
+                <Button variant="secondary" onClick={async () => {
+                  // submit for verification
+                  try {
+                    const ep = `${API_BASE.replace(/\/$/, '')}/api/properties/${id}/verification/submit`
+                    const res = await authFetch(ep, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ notes: 'Submitted from edit page' }) })
+                    const js = await res.json().catch(() => ({ success: res.ok }))
+                    if (!res.ok || !js.success) throw new Error(js.message || `Submit failed (${res.status})`)
+                    // refresh
+                    const ep2 = `${API_BASE.replace(/\/$/, '')}/api/properties/${id}`
+                    const propRes = await authFetch(ep2)
+                    if (propRes && propRes.ok) {
+                      const pjson = await propRes.json()
+                      setProperty(pjson.property || pjson)
+                    }
+                    alert('Property submitted for verification')
+                  } catch (err: any) {
+                    alert(err?.message || 'Failed to submit for verification')
+                  }
+                }}>Submit for verification</Button>
+              </div>
+
+              {docFiles.length > 0 && (
+                <div className="mt-3 text-sm text-slate-600">
+                  {docFiles.map((f, i) => <div key={i} className="flex items-center justify-between"><span>{f.name}</span><button onClick={() => setDocFiles(prev => prev.filter((_, idx) => idx !== i))} className="text-xs text-red-600">Remove</button></div>)}
+                </div>
+              )}
             </div>
 
             <div className="flex items-center gap-3">

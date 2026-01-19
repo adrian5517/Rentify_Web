@@ -9,6 +9,8 @@ import { Badge } from "@/components/ui/badge"
 import { escapeHTML, sanitizeInput } from "@/lib/security"
 import { useAuthStore } from "@/lib/auth-store"
 import { sendMessageAPI } from "@/lib/api"
+import Swal from 'sweetalert2'
+import 'sweetalert2/dist/sweetalert2.min.css'
 
 // Modern Design System with Professional Icons
 const modernStyles = `
@@ -317,18 +319,17 @@ export default function PropertyMap({
       await sendMessageAPI(String(confirmPayload.senderId), String(confirmPayload.ownerId), confirmPayload.prefill)
       try { localStorage.setItem('messages-contact', String(confirmPayload.ownerId)) } catch (e) { /* ignore */ }
       router.push(`/messages?contact=${confirmPayload.ownerId}`)
-      alert('Message sent to owner. Opened Messages.')
+      await Swal.fire({ icon: 'success', title: 'Message sent', text: 'Message sent to owner. Opened Messages.' })
     } catch (err) {
       console.error('❌ Send Now failed', err)
       // If the error indicates missing authentication, navigate to login
       const message = err instanceof Error ? err.message : String(err)
       if (message.toLowerCase().includes('auth') || message.toLowerCase().includes('token')) {
         // Friendly prompt and redirect to login/signup
-        if (confirm('You need to sign in to message the owner. Would you like to sign in now?')) {
-          router.push('/auth')
-        }
+        const r = await Swal.fire({ title: 'Sign in required', text: 'You need to sign in to message the owner. Would you like to sign in now?', icon: 'question', showCancelButton: true, confirmButtonText: 'Sign in', cancelButtonText: 'Cancel' })
+        if (r.isConfirmed) router.push('/auth')
       } else {
-        alert('Failed to send message. Please try again.')
+        await Swal.fire({ icon: 'error', title: 'Error', text: 'Failed to send message. Please try again.' })
       }
     } finally {
       setIsSendingNow(false)
@@ -1534,7 +1535,7 @@ export default function PropertyMap({
             <button
               aria-label="Refresh location"
               title="Refresh my location for better accuracy"
-              onClick={() => {
+              onClick={async () => {
                 console.log("🔄 Manually refreshing location...")
                 if (navigator.geolocation) {
                   navigator.geolocation.getCurrentPosition(
@@ -1558,7 +1559,7 @@ export default function PropertyMap({
                     },
                     (error) => {
                       console.error("❌ Manual location refresh failed:", error.message)
-                      alert("Could not refresh location. Please check your browser's location permissions.")
+                      void Swal.fire({ icon: 'warning', title: 'Location error', text: "Could not refresh location. Please check your browser's location permissions." })
                     },
                     { 
                       enableHighAccuracy: true, 
@@ -1895,7 +1896,7 @@ export default function PropertyMap({
                   // Check if user is logged in
                   if (!currentUser) {
                     console.log('❌ User not logged in')
-                    alert('Please log in to contact property owners')
+                    await Swal.fire({ icon: 'info', title: 'Sign in required', text: 'Please log in to contact property owners.' })
                     return
                   }
 
@@ -1903,7 +1904,7 @@ export default function PropertyMap({
 
                   if (!ownerInfo) {
                     console.log('❌ No owner info available')
-                    alert('Owner information not available for this property. This may be a demo listing.')
+                    await Swal.fire({ icon: 'info', title: 'Owner not available', text: 'Owner information not available for this property. This may be a demo listing.' })
                     return
                   }
 
@@ -1912,7 +1913,7 @@ export default function PropertyMap({
                     const ownerId = ownerInfo.id
                     const senderId = (currentUser as any)?._id || (currentUser as any)?.id
                     if (!senderId) {
-                      alert('Your account ID not found. Please log in again.')
+                      await Swal.fire({ icon: 'warning', title: 'Account issue', text: 'Your account ID not found. Please log in again.' })
                       return
                     }
 
@@ -1926,11 +1927,10 @@ export default function PropertyMap({
                       console.error('❌ Send Now failed', err)
                       const message = err instanceof Error ? err.message : String(err)
                       if (message.toLowerCase().includes('auth') || message.toLowerCase().includes('token')) {
-                        if (confirm('You need to sign in to message the owner. Would you like to sign in now?')) {
-                          router.push('/auth')
-                        }
+                        const r = await Swal.fire({ title: 'Sign in required', text: 'You need to sign in to message the owner. Would you like to sign in now?', icon: 'question', showCancelButton: true, confirmButtonText: 'Sign in', cancelButtonText: 'Cancel' })
+                        if (r.isConfirmed) router.push('/auth')
                       } else {
-                        alert('Failed to send message. Please try again.')
+                        await Swal.fire({ icon: 'error', title: 'Error', text: 'Failed to send message. Please try again.' })
                       }
                     }
                     return
@@ -1939,17 +1939,17 @@ export default function PropertyMap({
                   // Fallbacks: show phone/email if no owner ID
                   if (ownerInfo.phone) {
                     console.log('📱 Showing phone number')
-                    alert(`Contact Owner\n\nPhone: ${ownerInfo.phone}\n\nYou can call or text this number to inquire about the property.`)
+                    await Swal.fire({ icon: 'info', title: 'Contact Owner', html: `<p><strong>Phone:</strong> ${ownerInfo.phone}</p><p>You can call or text this number to inquire about the property.</p>` })
                     return
                   }
 
                   if (ownerInfo.email) {
                     console.log('📧 Showing email')
-                    alert(`Contact Owner\n\nEmail: ${ownerInfo.email}\n\nYou can email to inquire about the property.`)
+                    await Swal.fire({ icon: 'info', title: 'Contact Owner', html: `<p><strong>Email:</strong> ${ownerInfo.email}</p><p>You can email to inquire about the property.</p>` })
                     return
                   }
 
-                  alert('Owner contact information is available. Please check the property details.')
+                  await Swal.fire({ icon: 'info', title: 'Info', text: 'Owner contact information is available. Please check the property details.' })
                 }}
                 className="modern-button flex-1 bg-purple-600 hover:bg-purple-700 text-white rounded-lg px-3 py-2 text-sm font-medium transition-all duration-300 hover:scale-105 hover:shadow-lg flex items-center justify-center gap-1"
               >
@@ -1957,15 +1957,15 @@ export default function PropertyMap({
                 <span>Contact Owner</span>
               </button>
               <button 
-                onClick={() => {
+                onClick={async () => {
                   const isAvailable = selectedProperty.status === 'available' || selectedProperty.status === 'For rent'
                   if (!isAvailable) {
-                    alert('This property is not currently available.')
+                    await Swal.fire({ icon: 'info', title: 'Not available', text: 'This property is not currently available.' })
                     return
                   }
 
                   if (!currentUser) {
-                    alert('Please log in to contact property owners')
+                    await Swal.fire({ icon: 'info', title: 'Sign in required', text: 'Please log in to contact property owners.' })
                     return
                   }
 
@@ -1976,14 +1976,14 @@ export default function PropertyMap({
                     if (ownerInfo.id && ownerInfo.id !== 'unknown') {
                       router.push(`/messages?contact=${ownerInfo.id}&prefill=${encodeURIComponent(prefill)}`)
                     } else if (ownerInfo.phone) {
-                      alert(`Contact Owner\n\nPhone: ${ownerInfo.phone}\n\nYou can call or text this number to inquire about the property.`)
+                      await Swal.fire({ icon: 'info', title: 'Contact Owner', html: `<p><strong>Phone:</strong> ${ownerInfo.phone}</p><p>You can call or text this number to inquire about the property.</p>` })
                     } else if (ownerInfo.email) {
-                      alert(`Contact Owner\n\nEmail: ${ownerInfo.email}\n\nYou can email to inquire about the property.`)
+                      await Swal.fire({ icon: 'info', title: 'Contact Owner', html: `<p><strong>Email:</strong> ${ownerInfo.email}</p><p>You can email to inquire about the property.</p>` })
                     } else {
-                      alert('Owner contact information is available. Please check the property details.')
+                      await Swal.fire({ icon: 'info', title: 'Info', text: 'Owner contact information is available. Please check the property details.' })
                     }
                   } else {
-                    alert('Owner information not available for this property.')
+                    await Swal.fire({ icon: 'info', title: 'Owner not available', text: 'Owner information not available for this property.' })
                   }
                 }}
                 className={`modern-button flex-1 rounded-lg px-3 py-2 text-sm font-medium transition-all duration-300 hover:scale-105 hover:shadow-lg flex items-center justify-center gap-1 ${

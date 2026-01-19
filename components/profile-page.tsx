@@ -12,6 +12,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { useAuthStore } from "@/lib/auth-store"
 import config from '@/lib/config'
 import ProfilePictureUploader from '@/components/profile-picture-uploader'
+import Swal from 'sweetalert2'
+import 'sweetalert2/dist/sweetalert2.min.css'
 
 // Property interface
 interface Property {
@@ -79,19 +81,19 @@ export default function ProfilePage() {
 
     // Validate file type
     if (!file.type.startsWith('image/')) {
-      alert('Please select an image file')
+      await Swal.fire({ icon: 'warning', title: 'Invalid file', text: 'Please select an image file' })
       return
     }
 
     // Validate file size (max 5MB)
     if (file.size > 5 * 1024 * 1024) {
-      alert('Image size should be less than 5MB')
+      await Swal.fire({ icon: 'warning', title: 'File too large', text: 'Image size should be less than 5MB' })
       return
     }
 
     // Check authentication
     if (!user?._id) {
-      alert('You must be logged in to update your profile picture')
+      await Swal.fire({ icon: 'info', title: 'Not signed in', text: 'You must be logged in to update your profile picture' })
       return
     }
 
@@ -228,7 +230,7 @@ export default function ProfilePage() {
       try {
         if (!uploadErrorRaw) setUploadErrorRaw(error instanceof Error ? error.message : String(error))
       } catch (e) { /* ignore */ }
-      alert(`Upload failed: ${errorMessage}\n\nCheck browser console for details. You can also view the server response below.`)
+      await Swal.fire({ icon: 'error', title: 'Upload failed', text: `Upload failed: ${errorMessage}\n\nCheck browser console for details.` })
       
       // Optional: Offer fallback to base64 storage
       if (confirm('Would you like to try saving the image locally instead? (Note: Image will not be uploaded to cloud)')) {
@@ -240,11 +242,11 @@ export default function ProfilePage() {
             useAuthStore.setState({ 
               user: { ...user!, profilePicture: base64String }
             })
-            alert('Profile picture saved locally (not uploaded to cloud)')
+            await Swal.fire({ icon: 'success', title: 'Saved locally', text: 'Profile picture saved locally (not uploaded to cloud)' })
             setUploadingImage(false)
           }
           reader.onerror = () => {
-            alert('Failed to read image file')
+            await Swal.fire({ icon: 'error', title: 'Read error', text: 'Failed to read image file' })
             setUploadingImage(false)
           }
           // Use the file variable that's already in scope
@@ -309,7 +311,7 @@ export default function ProfilePage() {
       setShowSuccessModal(true)
     } catch (error) {
       console.error('Error updating profile:', error)
-      alert(error instanceof Error ? error.message : 'Failed to update profile')
+      await Swal.fire({ icon: 'error', title: 'Update failed', text: error instanceof Error ? error.message : 'Failed to update profile' })
     } finally {
       setIsSaving(false)
     }
