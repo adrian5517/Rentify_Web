@@ -145,6 +145,7 @@ export default function AdminVerificationPage() {
             <Button variant="secondary" size="sm" onClick={() => { setStatusFilter('pending'); setPage(1); }}>Pending</Button>
             <Button variant="ghost" size="sm" onClick={() => { setStatusFilter('verified'); setPage(1); }}>Approved</Button>
             <Button variant="ghost" size="sm" onClick={() => { setStatusFilter('rejected'); setPage(1); }}>Rejected</Button>
+            <Button variant="ghost" size="sm" onClick={() => { setStatusFilter('unverified'); setPage(1); }}>Unverified</Button>
           </div>
         </div>
       </div>
@@ -158,6 +159,7 @@ export default function AdminVerificationPage() {
               <button onClick={() => { setStatusFilter('pending'); setPage(1); }} className={`px-3 py-1 rounded ${statusFilter === 'pending' ? 'bg-white text-violet-700' : 'bg-slate-100 text-slate-700'}`}>Pending</button>
               <button onClick={() => { setStatusFilter('verified'); setPage(1); }} className={`px-3 py-1 rounded ${statusFilter === 'verified' ? 'bg-white text-emerald-700' : 'bg-slate-100 text-slate-700'}`}>Approved</button>
               <button onClick={() => { setStatusFilter('rejected'); setPage(1); }} className={`px-3 py-1 rounded ${statusFilter === 'rejected' ? 'bg-white text-red-700' : 'bg-slate-100 text-slate-700'}`}>Rejected</button>
+              <button onClick={() => { setStatusFilter('unverified'); setPage(1); }} className={`px-3 py-1 rounded ${statusFilter === 'unverified' ? 'bg-white text-gray-700' : 'bg-slate-100 text-slate-700'}`}>Unverified</button>
             </div>
           </div>
         </div>
