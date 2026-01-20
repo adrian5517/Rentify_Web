@@ -5,6 +5,10 @@ import { API_API } from '@/lib/config'
 import { useRouter } from 'next/navigation'
 import { useAuthStore } from '@/lib/auth-store'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from '@/components/ui/dialog'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
+import { Input } from '@/components/ui/input'
 import Swal from 'sweetalert2'
 import 'sweetalert2/dist/sweetalert2.min.css'
 
@@ -130,120 +134,127 @@ export default function AdminVerificationPage() {
 
   return (
     <div className="p-6">
-      <h1 className="text-2xl font-semibold mb-4">Admin — Verification Queue</h1>
-
-      <div className="flex items-center gap-3 mb-4">
-        <input
-          value={query}
-          onChange={(e) => { setQuery(e.target.value); setPage(1) }}
-          placeholder="Search by property name or owner email"
-          className="border rounded px-3 py-2 w-full max-w-md"
-        />
-        <div className="text-sm text-gray-500">{total} total</div>
-      </div>
-
-      {/* Status tabs */}
-      <div className="flex items-center gap-2 mb-4">
-        <button onClick={() => { setStatusFilter('pending'); setPage(1); }} className={`px-3 py-1 rounded ${statusFilter === 'pending' ? 'bg-blue-600 text-white' : 'bg-slate-100'}`}>Pending</button>
-        <button onClick={() => { setStatusFilter('verified'); setPage(1); }} className={`px-3 py-1 rounded ${statusFilter === 'verified' ? 'bg-emerald-600 text-white' : 'bg-slate-100'}`}>Approved</button>
-        <button onClick={() => { setStatusFilter('rejected'); setPage(1); }} className={`px-3 py-1 rounded ${statusFilter === 'rejected' ? 'bg-red-600 text-white' : 'bg-slate-100'}`}>Rejected</button>
-        <button onClick={() => { setStatusFilter('unverified'); setPage(1); }} className={`px-3 py-1 rounded ${statusFilter === 'unverified' ? 'bg-gray-600 text-white' : 'bg-slate-100'}`}>Unverified</button>
-      </div>
-
-      {(!checkedAuth || loading) && <div className="mb-4">Loading…</div>}
-      {error && <div className="mb-4 text-red-600">{error}</div>}
-
-      {items.length === 0 && !loading ? (
-        <div className="text-sm text-gray-600">No pending properties.</div>
-      ) : null}
-
-      {/* paginated server-driven items */}
-      {items.length > 0 && (
-        <>
-          <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {items.map((p) => (
-              <div key={p._id} className="bg-white rounded-lg shadow-md overflow-hidden border">
-                <div className="h-48 bg-gray-100">
-                  {p.verification_documents && p.verification_documents.length > 0 && p.verification_documents[0].url ? (
-                    <img src={p.verification_documents[0].url} alt={p.verification_documents[0].filename || p.name || 'property'} className="w-full h-full object-cover" onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }} />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center text-gray-400">No image</div>
-                  )}
-                </div>
-                <div className="p-4">
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="flex-1">
-                      <div className="font-semibold text-lg truncate">{p.name || 'Untitled property'}</div>
-                      <div className="text-sm text-gray-500">{p.postedBy?.username || p.postedBy?.email || 'owner unknown'}</div>
-                      <div className="mt-2 text-xs text-gray-600">{p.verification_notes ? p.verification_notes : (<span className="italic text-gray-400">No notes</span>)}</div>
-                    </div>
-                    <div className="flex flex-col items-end gap-2">
-                      <div className={`px-2 py-1 rounded text-xs ${p.verification_status === 'verified' ? 'bg-emerald-600 text-white' : p.verification_status === 'rejected' ? 'bg-red-600 text-white' : 'bg-yellow-400 text-black'}`}>{p.verification_status || 'unverified'}</div>
-                      <button
-                        onClick={async () => {
-                          setSelectedProperty(p);
-                          setActionNotes(p.verification_notes || '');
-                          setViewerDocs(p.verification_documents || []);
-                          setViewerOpen(true);
-                        }}
-                        className="text-sm text-blue-600 hover:underline"
-                      >
-                        See details
-                      </button>
-                    </div>
-                  </div>
-
-                  <div className="mt-4 flex gap-2">
-                    <button onClick={() => { setSelectedProperty(p); setActionNotes(''); setViewerDocs(p.verification_documents || []); setViewerOpen(true); }} className="flex-1 px-3 py-2 text-sm rounded bg-slate-100">View</button>
-                    <button onClick={async () => {
-                      const res = await Swal.fire({
-                        title: 'Approve property?',
-                        text: 'Are you sure you want to approve this property?',
-                        icon: 'question',
-                        showCancelButton: true,
-                        confirmButtonText: 'Yes, approve',
-                        cancelButtonText: 'Cancel'
-                      })
-                      if (res.isConfirmed) {
-                        setSelectedProperty(p); setActionNotes('Approved via admin UI'); doAction(p._id, 'verify', 'Approved via admin UI');
-                      }
-                    }} disabled={actionLoading} className="px-3 py-2 rounded bg-emerald-600 text-white text-sm hover:opacity-90">Approve</button>
-                    <button onClick={async () => {
-                      const { value: text } = await Swal.fire({
-                        title: 'Reject property',
-                        input: 'textarea',
-                        inputPlaceholder: 'Enter rejection reason...',
-                        inputAttributes: { 'aria-label': 'Rejection reason' },
-                        showCancelButton: true,
-                        confirmButtonText: 'Reject',
-                        cancelButtonText: 'Cancel',
-                        preConfirm: (v) => {
-                          if (!v || !v.trim()) {
-                            Swal.showValidationMessage('Rejection reason is required')
-                          }
-                          return v
-                        }
-                      })
-                      if (text) {
-                        setSelectedProperty(p); setActionNotes(text.trim()); doAction(p._id, 'reject', text.trim())
-                      }
-                    }} disabled={actionLoading} className="px-3 py-2 rounded bg-red-600 text-white text-sm hover:opacity-90">Reject</button>
-                  </div>
-                </div>
-              </div>
-            ))}
+      <div className="rounded-xl bg-gradient-to-r from-violet-600 to-purple-600 text-white p-6 shadow-xl mb-6">
+        <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div>
+            <div className="text-2xl font-bold">Admin Dashboard</div>
+            <div className="text-sm text-violet-100/90 mt-1">Verification Queue — review and manage property verifications</div>
           </div>
+          <div className="flex items-center gap-3">
+            <div className="text-sm text-violet-100">{total} total</div>
+            <Button variant="secondary" size="sm" onClick={() => { setStatusFilter('pending'); setPage(1); }}>Pending</Button>
+            <Button variant="ghost" size="sm" onClick={() => { setStatusFilter('verified'); setPage(1); }}>Approved</Button>
+            <Button variant="ghost" size="sm" onClick={() => { setStatusFilter('rejected'); setPage(1); }}>Rejected</Button>
+          </div>
+        </div>
+      </div>
 
-          {/* pagination controls */}
-          {total > PAGE_SIZE && (
-            <div className="mt-4 flex items-center gap-3">
-              <button onClick={() => setPage((p) => Math.max(1, p - 1))} className="px-3 py-1 rounded bg-slate-100">Prev</button>
-              <div className="text-sm text-gray-600">Page {page} of {totalPages}</div>
-              <button onClick={() => setPage((p) => Math.min(totalPages, p + 1))} className="px-3 py-1 rounded bg-slate-100">Next</button>
+      <div className="max-w-7xl mx-auto">
+        <div className="flex items-center gap-3 mb-4">
+          <Input value={query} onChange={(e) => { setQuery(e.target.value); setPage(1) }} placeholder="Search by property name or owner email" className="max-w-md" />
+          <div className="ml-auto flex items-center gap-2">
+            <div className="text-sm text-gray-500">Filter:</div>
+            <div className="flex items-center gap-2">
+              <button onClick={() => { setStatusFilter('pending'); setPage(1); }} className={`px-3 py-1 rounded ${statusFilter === 'pending' ? 'bg-white text-violet-700' : 'bg-slate-100 text-slate-700'}`}>Pending</button>
+              <button onClick={() => { setStatusFilter('verified'); setPage(1); }} className={`px-3 py-1 rounded ${statusFilter === 'verified' ? 'bg-white text-emerald-700' : 'bg-slate-100 text-slate-700'}`}>Approved</button>
+              <button onClick={() => { setStatusFilter('rejected'); setPage(1); }} className={`px-3 py-1 rounded ${statusFilter === 'rejected' ? 'bg-white text-red-700' : 'bg-slate-100 text-slate-700'}`}>Rejected</button>
             </div>
-          )}
-        </>
-      )}
+          </div>
+        </div>
+
+        {(!checkedAuth || loading) && <div className="mb-4">Loading…</div>}
+        {error && <div className="mb-4 text-red-600">{error}</div>}
+
+        {items.length === 0 && !loading ? (
+          <div className="text-sm text-gray-600">No properties found for this filter.</div>
+        ) : null}
+
+        {items.length > 0 && (
+          <>
+            <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              {items.map((p) => (
+                <Card key={p._id} className="overflow-hidden">
+                  <div className="h-44 bg-gray-50">
+                    {p.verification_documents && p.verification_documents.length > 0 && p.verification_documents[0].url ? (
+                      <img src={p.verification_documents[0].url} alt={p.verification_documents[0].filename || p.name || 'property'} className="w-full h-full object-cover" onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }} />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-gray-400">No image</div>
+                    )}
+                  </div>
+                  <CardContent className="p-4">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex-1">
+                        <div className="font-semibold text-lg truncate">{p.name || 'Untitled property'}</div>
+                        <div className="text-sm text-gray-500">{p.postedBy?.username || p.postedBy?.email || 'owner unknown'}</div>
+                        <div className="mt-2 text-xs text-gray-600">{p.verification_notes ? p.verification_notes : (<span className="italic text-gray-400">No notes</span>)}</div>
+                      </div>
+                      <div className="flex flex-col items-end gap-2">
+                        <Badge className="capitalize" variant={p.verification_status === 'verified' ? 'default' : p.verification_status === 'rejected' ? 'destructive' : 'outline'}>{p.verification_status || 'unverified'}</Badge>
+                        <button
+                          onClick={async () => {
+                            setSelectedProperty(p);
+                            setActionNotes(p.verification_notes || '');
+                            setViewerDocs(p.verification_documents || []);
+                            setViewerOpen(true);
+                          }}
+                          className="text-sm text-violet-600 hover:underline"
+                        >
+                          See details
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="mt-4 flex gap-2">
+                      <Button variant="outline" className="flex-1" onClick={() => { setSelectedProperty(p); setActionNotes(''); setViewerDocs(p.verification_documents || []); setViewerOpen(true); }}>View</Button>
+                      <Button className="bg-emerald-600 text-white" onClick={async () => {
+                        const res = await Swal.fire({
+                          title: 'Approve property?',
+                          text: 'Are you sure you want to approve this property?',
+                          icon: 'question',
+                          showCancelButton: true,
+                          confirmButtonText: 'Yes, approve',
+                          cancelButtonText: 'Cancel'
+                        })
+                        if (res.isConfirmed) {
+                          setSelectedProperty(p); setActionNotes('Approved via admin UI'); doAction(p._id, 'verify', 'Approved via admin UI');
+                        }
+                      }} disabled={actionLoading}>Approve</Button>
+                      <Button variant="destructive" onClick={async () => {
+                        const { value: text } = await Swal.fire({
+                          title: 'Reject property',
+                          input: 'textarea',
+                          inputPlaceholder: 'Enter rejection reason...',
+                          inputAttributes: { 'aria-label': 'Rejection reason' },
+                          showCancelButton: true,
+                          confirmButtonText: 'Reject',
+                          cancelButtonText: 'Cancel',
+                          preConfirm: (v) => {
+                            if (!v || !v.trim()) {
+                              Swal.showValidationMessage('Rejection reason is required')
+                            }
+                            return v
+                          }
+                        })
+                        if (text) {
+                          setSelectedProperty(p); setActionNotes(text.trim()); doAction(p._id, 'reject', text.trim())
+                        }
+                      }} disabled={actionLoading}>Reject</Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+
+            {total > PAGE_SIZE && (
+              <div className="mt-6 flex items-center gap-3 justify-center">
+                <Button variant="outline" onClick={() => setPage((p) => Math.max(1, p - 1))}>Prev</Button>
+                <div className="text-sm text-gray-600">Page {page} of {totalPages}</div>
+                <Button variant="outline" onClick={() => setPage((p) => Math.min(totalPages, p + 1))}>Next</Button>
+              </div>
+            )}
+          </>
+        )}
+      </div>
 
       {/* Document viewer modal */}
       <Dialog open={viewerOpen} onOpenChange={(open) => { setViewerOpen(open); if (!open) { setViewerDocs(null); setSelectedProperty(null); setActionNotes('') } }}>
