@@ -1246,8 +1246,8 @@ export default function PropertyListingPage() {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2 sm:gap-4">
               <Image
-                src="/rentify-logo.png"
-                alt="Rentify - Find Your Perfect Home"
+                src="/RentNova.png"
+                alt="RentNova - Find Your Perfect Home"
                 width={80}
                 height={24}
                 priority
