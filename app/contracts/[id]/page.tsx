@@ -2,7 +2,6 @@ import React from 'react'
 import config from '@/lib/config'
 import dynamic from 'next/dynamic'
 
-const PaymentWidget = dynamic(() => import('@/components/payment-widget'))
 const ContractChat = dynamic(() => import('@/components/contract-chat'))
 
 interface PageProps { params: { id: string } }
@@ -32,8 +31,6 @@ export default async function Page({ params }: PageProps) {
     )
   }
 
-  const firstAmount = contract?.paymentSchedule?.[0]?.amount || contract?.rentAmount || 0
-
   return (
     <main className="min-h-screen bg-slate-50 py-8">
       <div className="container mx-auto px-4 max-w-3xl">
@@ -59,28 +56,7 @@ export default async function Page({ params }: PageProps) {
             </div>
           </div>
 
-          <div className="mt-6">
-            <h3 className="font-semibold">Make a payment</h3>
-            <div className="mt-2">
-              <PaymentWidget contractId={contract._id} amount={firstAmount} currency={contract.currency} />
-            </div>
-          </div>
-
-          <div className="mt-6">
-            <h3 className="font-semibold">Payments</h3>
-            <div className="mt-2 divide-y">
-              {(contract.payments || []).length === 0 && <div className="text-sm text-slate-600">No payments yet.</div>}
-              {(contract.payments || []).map((p:any) => (
-                <div key={p._id || p.id} className="py-2 flex justify-between items-center">
-                  <div>
-                    <div className="font-medium">{p.amount} {p.currency}</div>
-                    <div className="text-sm text-slate-500">{new Date(p.createdAt || p.timestamp || p.date).toLocaleString()}</div>
-                  </div>
-                  <div className="text-sm text-slate-700">{p.status}</div>
-                </div>
-              ))}
-            </div>
-          </div>
+          {/* Payment UI removed: contracts/agreement only view per product decision */}
 
           <div className="mt-6">
             <h3 className="font-semibold">Conversation</h3>

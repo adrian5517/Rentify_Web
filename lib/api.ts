@@ -194,6 +194,10 @@ export const sendMessageAPI = async (
   images?: File[]
 ): Promise<MessageData> => {
   try {
+    // Defensive validation: ensure receiverId is provided before attempting to send.
+    if (!receiverId) {
+      throw new Error('No receiverId provided - cannot send message')
+    }
     const formData = new FormData();
     formData.append('senderId', senderId);
     formData.append('receiverId', receiverId);

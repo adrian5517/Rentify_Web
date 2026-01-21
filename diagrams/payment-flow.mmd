@@ -1,0 +1,31 @@
+%% Payment flowchart for Rentify web app (Mermaid)
+flowchart TD
+  Start([Start]) --> Login[Renter Logs In]
+  Login --> Select[Select Property]
+  Select --> View[View Rental Details & Contract]
+  View --> Accept[Accept Contract (Checkbox + E-sign)]
+  Accept --> ChooseType{Choose Payment Type}
+  ChooseType -->|Monthly Rent| Monthly[Monthly Rent]
+  ChooseType -->|Security Deposit| Deposit[Security Deposit]
+  ChooseType -->|Advance Payment| Advance[Advance Payment]
+  Monthly --> MethodSelect[Select Payment Method]
+  Deposit --> MethodSelect
+  Advance --> MethodSelect
+  MethodSelect -->|GCash| GCash[GCash]
+  MethodSelect -->|Maya| Maya[Maya]
+  MethodSelect -->|Bank Transfer| Bank[Bank Transfer]
+  MethodSelect -->|Card| Card[Credit/Debit Card]
+  GCash --> Gateway[Payment Gateway Processing]
+  Maya --> Gateway
+  Bank --> Gateway
+  Card --> Gateway
+  Gateway --> Success{Payment Successful?}
+  Success -->|No| Error[Show Error → Retry Payment] --> MethodSelect
+  Success -->|Yes| Receipt[Generate Receipt]
+  Receipt --> Notify[Notify Renter & Rentee]
+  Notify --> Update[Update Payment Status in Database]
+  Update --> Grant[Access Granted / Rental Active]
+  Grant --> End([End])
+
+%% Optional features notes
+%% - Auto-reminders, late fee automation, PDF generation, admin override, audit logs

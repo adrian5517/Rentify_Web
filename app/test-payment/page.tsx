@@ -1,7 +1,7 @@
 "use client"
 
 import React, { useState } from 'react'
-import PaymentWidget from '@/components/payment-widget'
+// Payment UI removed — payments are no longer handled in the frontend.
 import { useAuthStore } from '@/lib/auth-store'
 import config, { CLIENT_URL } from '@/lib/config'
 
@@ -27,7 +27,9 @@ export default function TestPaymentPage() {
       </div>
 
       <div style={{ marginBottom: 20 }}>
-        <PaymentWidget contractId={contractId || undefined} amount={amount} onSuccess={(p) => setMessage(`Payment succeeded: ${p?._id || p?.provider_id || JSON.stringify(p)}`)} />
+        <div style={{ padding: 12, background: '#fff7ed', border: '1px solid #fcd34d', borderRadius: 6 }}>
+          Payments UI removed. Contract/agreement flows remain available.
+        </div>
       </div>
 
       {message && <div style={{ marginTop: 12, padding: 12, background: '#ecfdf5', border: '1px solid #bbf7d0', borderRadius: 6 }}>{message}</div>}

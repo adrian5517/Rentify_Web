@@ -3,61 +3,31 @@
 import React, { useState, useEffect } from 'react'
 import { useAuthStore } from '@/lib/auth-store'
 import config, { CLIENT_URL } from '@/lib/config'
-import ContractScheduleEditor from './contract-schedule-editor'
-import PaymentWidget from './payment-widget'
 import ContractChat from './contract-chat'
+import ContractAgreement from './contract-agreement'
 import Swal from 'sweetalert2'
 import { useRouter } from 'next/navigation'
 
 export default function ContractModal({ contract: initialContract, contracts, onClose, onSaved }: { contract: any, contracts?: any[], onClose?: ()=>void, onSaved?: (c:any)=>void }) {
   const token = useAuthStore((s:any)=>s.token)
   const [contract, setContract] = useState<any>(initialContract)
-  const [name, setName] = useState('')
-  const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState<string | null>(null)
   const router = useRouter()
 
   useEffect(()=>{ setContract(initialContract) }, [initialContract])
 
-  const handleAccept = async () => {
-    setLoading(true)
-    setMessage(null)
-    try {
-      const res = await fetch(`${config.API_API}/api/contracts/${contract._id}/accept`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', ...(token?{ Authorization: `Bearer ${token}` }: {}) },
-        credentials: 'include',
-        body: JSON.stringify({ signature: { name } })
-      })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data?.message || 'Failed to accept')
+  const handleAccept = (c:any) => {
+    // Called when ContractAgreement reports the contract was accepted/saved
+    if (c) {
+      setContract(c)
+      if (onSaved) onSaved(c)
       setMessage('Accepted successfully')
-      setContract(data.contract)
-      if (onSaved) onSaved(data.contract)
-
-      if (data.contract?.status === 'active') {
-        const r = await Swal.fire({ icon: 'success', title: 'Contract activated', text: 'The contract is now active.', showCancelButton: true, confirmButtonText: 'View contract', cancelButtonText: 'Close' })
-        if (r.isConfirmed) router.push(`/contracts/${data.contract._id}`)
+      if (c?.status === 'active') {
+        // show modal and optionally navigate
+        Swal.fire({ icon: 'success', title: 'Contract activated', text: 'The contract is now active.' }).then((r)=>{
+          if (r.isConfirmed) router.push(`/contracts/${c._id}`)
+        })
       }
-    } catch (e:any) {
-      setMessage(e?.message || String(e))
-      Swal.fire({ icon: 'error', title: 'Error', text: e?.message || String(e) })
-    }
-    setLoading(false)
-  }
-
-  const handleScheduleSaved = (c:any) => {
-    setMessage('Schedule saved')
-    setContract(c)
-    if (onSaved) onSaved(c)
-  }
-
-  const handlePaymentSuccess = async (payment:any) => {
-    try {
-      const r = await Swal.fire({ icon: 'success', title: 'Payment succeeded', text: 'Thank you.', showCancelButton: true, confirmButtonText: 'View contract', cancelButtonText: 'Close' })
-      if (r.isConfirmed) router.push(`/contracts/${contract._id}`)
-    } catch (e) {
-      // ignore
     }
   }
 
@@ -66,7 +36,6 @@ export default function ContractModal({ contract: initialContract, contracts, on
     if (found) setContract(found)
   }
 
-  const firstPaymentAmount = contract?.paymentSchedule?.[0]?.amount || contract?.rentAmount || 0
 
   return (
     <div style={{ maxWidth:780, margin: '16px auto', padding: 16, borderRadius:8, boxShadow:'0 6px 18px rgba(15,23,42,0.08)', background:'#fff' }}>
@@ -95,24 +64,11 @@ export default function ContractModal({ contract: initialContract, contracts, on
       </div>
 
       <div style={{ marginTop: 16 }}>
-        <label style={{ display:'block', marginBottom:6 }}>Signature name</label>
-        <input value={name} onChange={(e)=>setName(e.target.value)} placeholder="Your full name as signature" style={{ padding:8, borderRadius:6, border:'1px solid #e5e7eb', width:360 }} />
-        <div style={{ marginTop:10 }}>
-          <button onClick={handleAccept} disabled={loading} style={{ padding:'8px 12px', background:'#10b981', color:'#fff', borderRadius:6, border:'none' }}>{loading? 'Saving…' : 'Accept Contract'}</button>
-        </div>
+        <ContractAgreement contract={contract} onAccepted={handleAccept} />
         {message && <div style={{ marginTop:8, color:'#064e3b' }}>{message}</div>}
       </div>
 
-      <div style={{ marginTop:18 }}>
-        <ContractScheduleEditor contractId={contract._id} initialSchedule={contract.paymentSchedule} onSaved={handleScheduleSaved} />
-      </div>
-
-      <div style={{ marginTop:18 }}>
-        <h4>Payments</h4>
-        <div style={{ marginTop:8 }}>
-          <PaymentWidget contractId={contract._id} amount={firstPaymentAmount} currency={contract?.currency} onSuccess={handlePaymentSuccess} />
-        </div>
-      </div>
+      {/* Payment-related UI removed: agreement-only flow per product decision */}
 
       {/* Inline chat between renter and owner */}
       <div style={{ marginTop: 18 }}>

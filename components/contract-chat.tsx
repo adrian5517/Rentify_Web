@@ -85,6 +85,11 @@ export default function ContractChat({ userA, userB, contractId }: { userA: stri
     if (!currentUser) return alert('Please login to send messages')
     setLoading(true)
     const receiver = userA === currentUser._id ? userB : userA
+    if (!receiver) {
+      setLoading(false)
+      console.warn('ContractChat: receiver is undefined — cannot send message', { userA, userB, currentUser })
+      return alert('Cannot determine message recipient (recipient is missing)')
+    }
     try {
       // Use REST API to persist message. Server is expected to broadcast via socket to other clients.
       const res = await sendMessageAPI(currentUser._id, receiver, text.trim())
