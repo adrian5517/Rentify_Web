@@ -17,16 +17,28 @@ export default function ContractModal({ contract: initialContract, contracts, on
 
   useEffect(()=>{ setContract(initialContract) }, [initialContract])
 
-  const labelFor = (obj: any) => {
-    if (!obj) return '—'
-    if (typeof obj === 'string') return obj
-    return obj.address || obj.name || obj.fullName || obj._id || obj.id || '—'
-  }
-
   const idFor = (obj: any) => {
     if (!obj) return ''
     if (typeof obj === 'string') return obj
     return obj._id || obj.id || ''
+  }
+
+  const propertyLabel = (p: any) => {
+    if (!p) return '—'
+    if (typeof p === 'string') return p
+    return p.name || p.title || p.propertyName || p.address || p._id || '—'
+  }
+
+  const propertyAddress = (p: any) => {
+    if (!p) return ''
+    if (typeof p === 'string') return ''
+    return p.address || p.location || ''
+  }
+
+  const personLabel = (u: any) => {
+    if (!u) return '—'
+    if (typeof u === 'string') return u
+    return u.fullName || u.name || u.displayName || u.email || u._id || '—'
   }
 
   const handleAccept = (c:any) => {
@@ -62,12 +74,18 @@ export default function ContractModal({ contract: initialContract, contracts, on
           </div>
         )}
 
-        <div style={{ marginBottom:12 }}>
-          <div style={{ color:'rgba(255,255,255,0.9)', fontWeight:700 }}>{labelFor(contract?.property)}</div>
-            <div style={{ fontSize:13, color:'rgba(255,255,255,0.7)', marginTop:6 }}>
-              Owner: {labelFor(contract?.owner)} • Renter: {labelFor(contract?.renter)}
-            </div>
-            <div style={{ marginTop:8, fontSize:13, color:'rgba(255,255,255,0.8)' }}>Rent: {contract?.rentAmount} {contract?.currency} — Status: {contract?.status}</div>
+        <div style={{ marginBottom:12, padding:12, borderRadius:8, background:'linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01))' }}>
+          <div style={{ color:'rgba(255,255,255,0.95)', fontWeight:800, fontSize:16 }}>{propertyLabel(contract?.property)}</div>
+          {propertyAddress(contract?.property) ? (
+            <div style={{ fontSize:13, color:'rgba(255,255,255,0.75)', marginTop:6 }}>Address: {propertyAddress(contract?.property)}</div>
+          ) : null}
+
+          <div style={{ display:'flex', gap:12, marginTop:8, alignItems:'center' }}>
+            <div style={{ fontSize:13, color:'rgba(255,255,255,0.8)' }}><strong style={{ fontWeight:700 }}>Owner:</strong> {personLabel(contract?.owner)}</div>
+            <div style={{ fontSize:13, color:'rgba(255,255,255,0.8)' }}><strong style={{ fontWeight:700 }}>Renter:</strong> {personLabel(contract?.renter)}</div>
+          </div>
+
+          <div style={{ marginTop:8, fontSize:13, color:'rgba(255,255,255,0.8)' }}><strong>Rent:</strong> {contract?.rentAmount || '—'} {contract?.currency || ''} — <strong>Status:</strong> {contract?.status || '—'}</div>
         </div>
 
         <div style={{ marginTop: 16 }}>

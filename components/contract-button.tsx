@@ -77,14 +77,30 @@ export default function ContractButton({ propertyId }: { propertyId: string }) {
       {showList && (
         <ContractListModal propertyId={propertyId} onClose={() => setShowList(false)} />
       )}
-      {open && contract && (
-        typeof document !== 'undefined' ? ReactDOM.createPortal(
-          <ContractModal contract={contract} contracts={contractsList || undefined} onClose={() => setOpen(false)} onSaved={(c) => setContract(c)} readOnly={true} hideChat={true} modalZIndex={99999} />,
-          document.body
-        ) : (
-          <ContractModal contract={contract} contracts={contractsList || undefined} onClose={() => setOpen(false)} onSaved={(c) => setContract(c)} readOnly={true} hideChat={true} modalZIndex={99999} />
+      {open && contract && (() => {
+        if (typeof document === 'undefined') {
+          return <ContractModal contract={contract} contracts={contractsList || undefined} onClose={() => setOpen(false)} onSaved={(c) => setContract(c)} readOnly={true} hideChat={true} modalZIndex={99999} />
+        }
+
+        let portalRoot = document.getElementById('rentify-modal-root') as HTMLElement | null
+        if (!portalRoot) {
+          portalRoot = document.createElement('div')
+          portalRoot.id = 'rentify-modal-root'
+          Object.assign(portalRoot.style, {
+            position: 'fixed',
+            inset: '0',
+            zIndex: '2147483647',
+            pointerEvents: 'auto'
+          })
+          // append to documentElement to avoid stacking context issues
+          document.documentElement.appendChild(portalRoot)
+        }
+
+        return ReactDOM.createPortal(
+          <ContractModal contract={contract} contracts={contractsList || undefined} onClose={() => setOpen(false)} onSaved={(c) => setContract(c)} readOnly={true} hideChat={true} modalZIndex={2147483646} />,
+          portalRoot
         )
-      )}
+      })()}
     </>
   )
 }
