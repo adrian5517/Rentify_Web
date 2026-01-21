@@ -3,6 +3,7 @@
 import React, { useState } from 'react'
 import config from '@/lib/config'
 import { useAuthStore } from '@/lib/auth-store'
+import ContractListModal from '@/components/contract-list-modal'
 import ContractModal from '@/components/contract-modal'
 
 export default function ContractButton({ propertyId }: { propertyId: string }) {
@@ -11,6 +12,7 @@ export default function ContractButton({ propertyId }: { propertyId: string }) {
   const [contractsList, setContractsList] = useState<any[] | null>(null)
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [showList, setShowList] = useState(false)
 
   const createOrOpen = async () => {
     if (!token) {
@@ -28,7 +30,7 @@ export default function ContractButton({ propertyId }: { propertyId: string }) {
             const propData = await propRes.json()
             const list = propData.contracts || []
             if (list.length > 0) {
-              // If there are contracts, if exactly one use it, otherwise set a list view
+              // If there are contracts, if exactly one use it, otherwise show the list modal
               if (list.length === 1) {
                 setContract(list[0])
                 setContractsList(list)
@@ -36,10 +38,9 @@ export default function ContractButton({ propertyId }: { propertyId: string }) {
                 setLoading(false)
                 return
               }
-              // multiple contracts: store the list and open modal with selector
-              setContract(list[0])
+              // multiple contracts: store the list and open list modal
               setContractsList(list)
-              setOpen(true)
+              setShowList(true)
               setLoading(false)
               return
             }
@@ -72,6 +73,9 @@ export default function ContractButton({ propertyId }: { propertyId: string }) {
         {loading ? 'Working…' : 'Create / Manage Contract'}
       </button>
 
+      {showList && (
+        <ContractListModal propertyId={propertyId} onClose={() => setShowList(false)} />
+      )}
       {open && contract && (
         <ContractModal contract={contract} contracts={contractsList || undefined} onClose={() => setOpen(false)} onSaved={(c) => setContract(c)} />
       )}

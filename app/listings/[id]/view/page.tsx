@@ -8,7 +8,9 @@ interface PageProps {
 import config from '@/lib/config'
 import dynamic from 'next/dynamic'
 
-const ContractButton = dynamic(() => import('@/components/contract-button'), { ssr: false })
+// Use a relative import here to avoid alias resolution issues during Next.js build
+// Note: do not set `ssr: false` from a Server Component — Next will handle client components.
+const ContractButton = dynamic(() => import('../../../../components/contract-button'))
 
 const API_BASE = config.API_API
 

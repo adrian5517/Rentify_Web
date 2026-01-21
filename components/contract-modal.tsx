@@ -35,8 +35,8 @@ export default function ContractModal({ contract: initialContract, contracts, on
       if (onSaved) onSaved(data.contract)
 
       if (data.contract?.status === 'active') {
-        await Swal.fire({ icon: 'success', title: 'Contract activated', text: 'The contract is now active. You will be redirected.' })
-        router.push(`/contracts/${data.contract._id}`)
+        const r = await Swal.fire({ icon: 'success', title: 'Contract activated', text: 'The contract is now active.', showCancelButton: true, confirmButtonText: 'View contract', cancelButtonText: 'Close' })
+        if (r.isConfirmed) router.push(`/contracts/${data.contract._id}`)
       }
     } catch (e:any) {
       setMessage(e?.message || String(e))
@@ -53,8 +53,8 @@ export default function ContractModal({ contract: initialContract, contracts, on
 
   const handlePaymentSuccess = async (payment:any) => {
     try {
-      await Swal.fire({ icon: 'success', title: 'Payment succeeded', text: 'Thank you — redirecting to contract details.' })
-      router.push(`/contracts/${contract._id}`)
+      const r = await Swal.fire({ icon: 'success', title: 'Payment succeeded', text: 'Thank you.', showCancelButton: true, confirmButtonText: 'View contract', cancelButtonText: 'Close' })
+      if (r.isConfirmed) router.push(`/contracts/${contract._id}`)
     } catch (e) {
       // ignore
     }
