@@ -26,13 +26,23 @@ export default function ContractModal({ contract: initialContract, contracts, on
   const propertyLabel = (p: any) => {
     if (!p) return '—'
     if (typeof p === 'string') return p
-    return p.name || p.title || p.propertyName || p.address || p._id || '—'
+    const name = p.name || p.title || p.propertyName
+    if (name) return String(name)
+    // address may be a string or an object { address, latitude, longitude }
+    if (p.address) {
+      if (typeof p.address === 'string') return p.address
+      if (typeof p.address === 'object') return String(p.address.address || p.address.formatted || `${p.address.latitude || ''}${p.address.longitude ? ',' + p.address.longitude : ''}`)
+    }
+    return String(p._id || p.id || '—')
   }
 
   const propertyAddress = (p: any) => {
     if (!p) return ''
     if (typeof p === 'string') return ''
-    return p.address || p.location || ''
+    if (!p.address) return String(p.location || '')
+    if (typeof p.address === 'string') return p.address
+    if (typeof p.address === 'object') return String(p.address.address || p.address.formatted || `${p.address.latitude || ''}${p.address.longitude ? ',' + p.address.longitude : ''}`)
+    return ''
   }
 
   const personLabel = (u: any) => {
