@@ -28,12 +28,15 @@ import { Slider } from "@/components/ui/slider"
 import PropertyMap from "@/components/property-map"
 import ProfilePage from "@/components/profile-page"
 import Navbar from "@/components/navbar"
+import dynamic from 'next/dynamic'
 import { type Property } from "@/lib/property-data"
 import { getRecommendations, clusterProperties } from "@/lib/ml-utils"
 import AddPropertyModal from "@/components/add-property-modal"
 import AuthProtected from "@/components/auth-protected"
 import MessagesPage from "@/app/messages/page"
 import { sendMessageAPI } from "@/lib/api"
+
+const ContractButton = dynamic(() => import('@/components/contract-button'), { ssr: false })
 
 interface APIProperty {
   _id: string
@@ -2282,27 +2285,9 @@ export default function PropertyListingPage() {
                       <Phone className="h-4 w-4" />
                       Contact
                     </Button>
-                    <Button 
-                      onClick={async () => {
-                        const owner = typeof selectedProperty.postedBy === 'object' ? selectedProperty.postedBy : 
-                                     typeof selectedProperty.createdBy === 'object' ? selectedProperty.createdBy : null
-                        const isAvailable = selectedProperty.status === 'available' || selectedProperty.status === 'For rent'
-                        if (!isAvailable) {
-                          await Swal.fire({ icon: 'info', title: 'Unavailable', text: 'This property is not currently available.' })
-                          return
-                        }
-                        if (owner && owner._id) {
-                          const prefill = `I want to rent this property: ${selectedProperty.name}`
-                          setCurrentPage('messages')
-                          setSelectedProperty(null)
-                          window.history.pushState({}, '', `/messages?contact=${owner._id}&prefill=${encodeURIComponent(prefill)}`)
-                          await Swal.fire({ icon: 'info', title: 'Owner info', text: 'Owner information not available' })
-                        }
-                      }}
-                      className="flex-1 text-sm h-10 sm:h-11 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white"
-                    >
-                      Rent Now
-                    </Button>
+                    <div className="flex-1">
+                      <ContractButton propertyId={selectedProperty?._id || selectedProperty?.id || ''} />
+                    </div>
                   </div>
                 </div>
               </div>

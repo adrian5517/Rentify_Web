@@ -8,6 +8,7 @@ import ContractModal from '@/components/contract-modal'
 export default function ContractButton({ propertyId }: { propertyId: string }) {
   const token = useAuthStore((s: any) => s.token)
   const [contract, setContract] = useState<any | null>(null)
+  const [contractsList, setContractsList] = useState<any[] | null>(null)
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
 
@@ -30,13 +31,14 @@ export default function ContractButton({ propertyId }: { propertyId: string }) {
               // If there are contracts, if exactly one use it, otherwise set a list view
               if (list.length === 1) {
                 setContract(list[0])
+                setContractsList(list)
                 setOpen(true)
                 setLoading(false)
                 return
               }
-              // multiple contracts: store the first as placeholder and open modal — user can switch inside modal
+              // multiple contracts: store the list and open modal with selector
               setContract(list[0])
-              // attach a lightweight selector by opening and showing message; the modal can be used to inspect others
+              setContractsList(list)
               setOpen(true)
               setLoading(false)
               return
@@ -71,7 +73,7 @@ export default function ContractButton({ propertyId }: { propertyId: string }) {
       </button>
 
       {open && contract && (
-        <ContractModal contract={contract} onClose={() => setOpen(false)} onSaved={(c) => setContract(c)} />
+        <ContractModal contract={contract} contracts={contractsList || undefined} onClose={() => setOpen(false)} onSaved={(c) => setContract(c)} />
       )}
     </>
   )
