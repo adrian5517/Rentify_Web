@@ -3,6 +3,7 @@ import config from '@/lib/config'
 import dynamic from 'next/dynamic'
 
 const PaymentWidget = dynamic(() => import('@/components/payment-widget'))
+const ContractChat = dynamic(() => import('@/components/contract-chat'), { ssr: false })
 
 interface PageProps { params: { id: string } }
 

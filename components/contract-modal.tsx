@@ -112,6 +112,11 @@ export default function ContractModal({ contract: initialContract, contracts, on
           <PaymentWidget contractId={contract._id} amount={firstPaymentAmount} currency={contract?.currency} onSuccess={handlePaymentSuccess} />
         </div>
       </div>
+
+      {/* Inline chat between renter and owner */}
+      <div style={{ marginTop: 18 }}>
+        <ContractChat userA={contract?.owner?._id || contract?.owner} userB={contract?.renter?._id || contract?.renter} />
+      </div>
     </div>
   )
 }
