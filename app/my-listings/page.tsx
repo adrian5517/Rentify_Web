@@ -19,6 +19,9 @@ interface PropertyItem {
   images?: string[]
   location?: { address?: string }
   verification_documents?: Array<{ filename?: string; url?: string }>
+  // optional props returned by backend for verification status
+  verification_status?: string
+  verified?: boolean
 }
 
 export default function MyListingsPage() {

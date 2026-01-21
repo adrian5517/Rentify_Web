@@ -1,6 +1,7 @@
 "use client"
 
 import React, { useEffect, useState, useRef } from 'react'
+import 'mapbox-gl/dist/mapbox-gl.css'
 import mapboxgl from 'mapbox-gl'
 import { useAuthStore } from '@/lib/auth-store'
 import config from '@/lib/config'
@@ -27,6 +28,8 @@ const MAX_PRICE = 50000
 
 export default function EditListingForm({ propertyId, onSaveSuccess, onClose }: EditListingFormProps) {
   const { token } = useAuthStore()
+  // API base must be defined before any functions that use it (refresh, fetch, upload, delete)
+  const API_BASE: string = config.API_API
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -81,7 +84,6 @@ export default function EditListingForm({ propertyId, onSaveSuccess, onClose }: 
     }
   }
 
-  const API_BASE: string = config.API_API
   mapboxgl.accessToken = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN || mapboxgl.accessToken || 'pk.eyJ1IjoiYWRyaWFuNTUxNyIsImEiOiJjbWZkdTg4dmIwMThpMnFyNG10cWJwZjRhIn0.JLRzE6qmyDfePYgSs11ALg'
 
   const mapContainerRef = useRef<HTMLDivElement | null>(null)
@@ -206,6 +208,17 @@ export default function EditListingForm({ propertyId, onSaveSuccess, onClose }: 
       } catch (e) { }
     }
   }, [loading, formData.latitude, formData.longitude])
+
+  // Cleanup Mapbox instance on unmount to prevent memory leaks
+  useEffect(() => {
+    return () => {
+      try {
+        mapRef.current?.remove()
+      } catch (e) { /* ignore */ }
+      mapRef.current = null
+      markerRef.current = null
+    }
+  }, [])
 
   const handleChange = (field: string, value: any) => {
     setFormData((p) => ({ ...p, [field]: value }))
@@ -754,8 +767,7 @@ export default function EditListingForm({ propertyId, onSaveSuccess, onClose }: 
                               .map(m => m.item)
 
                             return [...prev, ...filteredToAdd]
-                          })
-;
+                          });
                           (el as HTMLInputElement).value = ''
                           // show both in-page banner and modal indicating pending verification
                           setSuccessMessage('Verification documents uploaded — waiting for admin verification.')
@@ -817,7 +829,7 @@ export default function EditListingForm({ propertyId, onSaveSuccess, onClose }: 
                       </Button>
                       <Button 
                         variant="outline" 
-                        onClick={() => { setFormData(initialData); setError(null); setSuccessMessage(null); }}
+                        onClick={() => { if (initialData) { setFormData(initialData); setError(null); setSuccessMessage(null); } }}
                         className="flex-1 sm:flex-initial border-2 border-violet-300 text-violet-700 hover:bg-violet-50 h-12 px-8 font-semibold"
                       >
                         Reset Form
@@ -827,6 +839,7 @@ export default function EditListingForm({ propertyId, onSaveSuccess, onClose }: 
                 </div>
               </div>
             </div>
+          </div>
           </CardContent>
         </Card>
       </div>

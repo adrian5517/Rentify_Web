@@ -6,6 +6,9 @@ interface PageProps {
 }
 
 import config from '@/lib/config'
+import dynamic from 'next/dynamic'
+
+const ContractButton = dynamic(() => import('@/components/contract-button'), { ssr: false })
 
 const API_BASE = config.API_API
 
@@ -62,6 +65,7 @@ export default async function Page({ params }: PageProps) {
                 <Link href={`/listings/${id}`} className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
                   Edit Listing
                 </Link>
+                <ContractButton propertyId={id} />
                 <a href={`tel:${property.phoneNumber || property.phone || ''}`} className="inline-flex items-center px-4 py-2 border rounded text-sm">
                   Contact
                 </a>

@@ -1,0 +1,78 @@
+"use client"
+
+import React, { useState } from 'react'
+import config from '@/lib/config'
+import { useAuthStore } from '@/lib/auth-store'
+import ContractModal from '@/components/contract-modal'
+
+export default function ContractButton({ propertyId }: { propertyId: string }) {
+  const token = useAuthStore((s: any) => s.token)
+  const [contract, setContract] = useState<any | null>(null)
+  const [open, setOpen] = useState(false)
+  const [loading, setLoading] = useState(false)
+
+  const createOrOpen = async () => {
+    if (!token) {
+      alert('Please log in to create a contract')
+      return
+    }
+
+    setLoading(true)
+    try {
+      if (!contract) {
+        // Fetch contracts for this property and show choices
+        try {
+          const propRes = await fetch(`${config.API_API}/api/contracts/property/${propertyId}`, { headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) }, credentials: 'include' })
+          if (propRes.ok) {
+            const propData = await propRes.json()
+            const list = propData.contracts || []
+            if (list.length > 0) {
+              // If there are contracts, if exactly one use it, otherwise set a list view
+              if (list.length === 1) {
+                setContract(list[0])
+                setOpen(true)
+                setLoading(false)
+                return
+              }
+              // multiple contracts: store the first as placeholder and open modal — user can switch inside modal
+              setContract(list[0])
+              // attach a lightweight selector by opening and showing message; the modal can be used to inspect others
+              setOpen(true)
+              setLoading(false)
+              return
+            }
+          }
+        } catch (e) {
+          // ignore and fallback to creating
+        }
+
+        // No existing contract found — create a new one
+        const res = await fetch(`${config.API_API}/api/contracts`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+          credentials: 'include',
+          body: JSON.stringify({ propertyId })
+        })
+        const data = await res.json()
+        if (!res.ok) throw new Error(data?.message || 'Failed to create contract')
+        setContract(data.contract)
+      }
+      setOpen(true)
+    } catch (e: any) {
+      alert(e?.message || String(e))
+    }
+    setLoading(false)
+  }
+
+  return (
+    <>
+      <button onClick={createOrOpen} className="inline-flex items-center px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700" disabled={loading}>
+        {loading ? 'Working…' : 'Create / Manage Contract'}
+      </button>
+
+      {open && contract && (
+        <ContractModal contract={contract} onClose={() => setOpen(false)} onSaved={(c) => setContract(c)} />
+      )}
+    </>
+  )
+}
