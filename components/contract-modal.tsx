@@ -99,8 +99,8 @@ export default function ContractModal({ contract: initialContract, contracts, on
       <div style={{ maxWidth:740, margin: '0 auto', padding: 8 }}>
         {contracts && contracts.length > 1 && (
           <div style={{ marginBottom: 12 }}>
-            <label style={{ display:'block', marginBottom:6 }}>Choose contract</label>
-            <select onChange={(e)=>switchContract(e.target.value)} value={contract?._id} style={{ padding:8, borderRadius:6, border:'1px solid #0f172a' }}>
+            <label htmlFor="contract-select" style={{ display:'block', marginBottom:6 }}>Choose contract</label>
+            <select id="contract-select" name="contractSelect" onChange={(e)=>switchContract(e.target.value)} value={contract?._id} style={{ padding:8, borderRadius:6, border:'1px solid #0f172a' }}>
               {contracts.map((c:any)=> <option key={c._id} value={c._id}>{c._id} — {c.status}</option>)}
             </select>
           </div>

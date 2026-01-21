@@ -272,30 +272,41 @@ export default function ContractAgreement({ contract, onAccepted, readOnly }: { 
       </div>
 
       <div style={{ marginTop:8 }}>
-        <label style={{ display:'flex', alignItems:'center', gap:8 }}>
-          <input type="checkbox" checked={agree} onChange={(e)=>setAgree(e.target.checked)} />
+        <label htmlFor="contract-agree" style={{ display:'flex', alignItems:'center', gap:8 }}>
+          <input id="contract-agree" name="contractAgree" type="checkbox" checked={agree} onChange={(e)=>setAgree(e.target.checked)} />
           <span style={{ color:'inherit' }}>{readOnly ? 'I have read the terms of this Rental Agreement.' : 'I have read and agree to the terms of this Rental Agreement.'}</span>
         </label>
 
         <div style={{ marginTop:8 }}>
-          <label style={{ display:'block', marginBottom:6, color:'#374151', fontSize:13 }}>Signature name</label>
+          <label htmlFor="contract-signature-name" style={{ display:'block', marginBottom:6, color:'#374151', fontSize:13 }}>Signature name</label>
           <input
+            id="contract-signature-name"
+            name="signatureName"
+            type="text"
+            autoComplete="name"
+            aria-label="Signature full name"
+            tabIndex={0}
             value={name}
             onChange={(e)=>setName(e.target.value)}
-            onFocus={() => setDebugFocus('Signature input focused')}
-            onClick={() => setDebugFocus('Signature clicked')}
+            onFocus={() => { setDebugFocus('Signature input focused'); console.log('contract-signature-name focused') }}
+            onClick={() => { setDebugFocus('Signature clicked'); console.log('contract-signature-name clicked') }}
             placeholder="Full name"
             style={{ width:'100%', padding:10, borderRadius:8, border:'1px solid #e5e7eb', background:'#fff', color:'#0f172a', boxShadow:'inset 0 1px 2px rgba(16,24,40,0.04)' }}
           />
         </div>
 
         <div style={{ marginTop:8 }}>
-          <label style={{ display:'block', marginBottom:6, color:'#374151', fontSize:13 }}>Propose Changes (optional)</label>
+          <label htmlFor="contract-propose-text" style={{ display:'block', marginBottom:6, color:'#374151', fontSize:13 }}>Propose Changes (optional)</label>
           <textarea
+            id="contract-propose-text"
+            name="proposeText"
+            aria-label="Proposed changes description"
+            tabIndex={0}
+            autoComplete="off"
             value={proposeText}
             onChange={(e)=>setProposeText(e.target.value)}
-            onFocus={() => setDebugFocus('Propose textarea focused')}
-            onClick={() => setDebugFocus('Propose textarea clicked')}
+            onFocus={() => { setDebugFocus('Propose textarea focused'); console.log('contract-propose-text focused') }}
+            onClick={() => { setDebugFocus('Propose textarea clicked'); console.log('contract-propose-text clicked') }}
             placeholder="Describe changes..."
             rows={3}
             style={{ width:'100%', padding:10, borderRadius:8, border:'1px solid #e5e7eb', background:'#fafafa', color:'#0f172a', minHeight:80 }}
