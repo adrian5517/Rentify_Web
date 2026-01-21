@@ -1,6 +1,7 @@
 "use client"
 
 import React, { useState } from 'react'
+import ReactDOM from 'react-dom'
 import config from '@/lib/config'
 import { useAuthStore } from '@/lib/auth-store'
 import ContractListModal from '@/components/contract-list-modal'
@@ -70,14 +71,19 @@ export default function ContractButton({ propertyId }: { propertyId: string }) {
   return (
     <>
       <button onClick={createOrOpen} className="inline-flex items-center px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700" disabled={loading}>
-        {loading ? 'Working…' : 'Create / Manage Contract'}
+        {loading ? 'Working…' : 'Rent / Manage Lease'}
       </button>
 
       {showList && (
         <ContractListModal propertyId={propertyId} onClose={() => setShowList(false)} />
       )}
       {open && contract && (
-        <ContractModal contract={contract} contracts={contractsList || undefined} onClose={() => setOpen(false)} onSaved={(c) => setContract(c)} />
+        typeof document !== 'undefined' ? ReactDOM.createPortal(
+          <ContractModal contract={contract} contracts={contractsList || undefined} onClose={() => setOpen(false)} onSaved={(c) => setContract(c)} />,
+          document.body
+        ) : (
+          <ContractModal contract={contract} contracts={contractsList || undefined} onClose={() => setOpen(false)} onSaved={(c) => setContract(c)} />
+        )
       )}
     </>
   )
