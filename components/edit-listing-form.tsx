@@ -50,6 +50,7 @@ export default function EditListingForm({ propertyId, onSaveSuccess, onClose }: 
   const [newAmenity, setNewAmenity] = useState('')
   const [verificationDocs, setVerificationDocs] = useState<Array<{ filename?: string; url?: string; _id?: string; public_id?: string; status?: string }>>([])
   const [uploadingDocs, setUploadingDocs] = useState(false)
+  const [submitOnUpload, setSubmitOnUpload] = useState(false)
 
   const getDocKey = (d: any): string | null => {
     const raw = d?._id ?? d?.id ?? d?.filename ?? d?.url
@@ -683,7 +684,12 @@ export default function EditListingForm({ propertyId, onSaveSuccess, onClose }: 
 
                   <div className="mt-3">
                     <input id="verification-files-input" type="file" multiple accept="image/*,.pdf" className="block w-full" />
-                    <div className="flex gap-2 mt-2">
+                    <div className="flex flex-col sm:flex-row gap-2 mt-2 items-start sm:items-center">
+                      <label className="flex items-center gap-2 text-sm">
+                        <input type="checkbox" checked={submitOnUpload} onChange={(e) => setSubmitOnUpload(e.target.checked)} className="h-4 w-4" />
+                        <span>Submit for verification after upload</span>
+                      </label>
+                      <div className="flex gap-2">
                       <Button onClick={async () => {
                         const el = document.getElementById('verification-files-input') as HTMLInputElement | null
                         // if the input doesn't exist, inform the user
@@ -702,6 +708,7 @@ export default function EditListingForm({ propertyId, onSaveSuccess, onClose }: 
                           const ep = `${API_BASE.replace(/\/$/, '')}/api/properties/${propertyId}/verification/docs`
                           const fd = new FormData()
                           files.forEach(f => fd.append('docs', f))
+                          if (submitOnUpload) fd.append('submit', 'true')
                           const res = await authFetch(ep, { method: 'POST', body: fd })
                           if (!res || !res.ok) throw new Error(`Upload failed (${res?.status})`)
                           const rdata = await res.json()
