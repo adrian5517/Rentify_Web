@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useMemo, useState, useEffect } from 'react'
+import React, { useMemo, useState, useEffect, useRef } from 'react'
 import { useAuthStore } from '@/lib/auth-store'
 import config from '@/lib/config'
 
@@ -100,6 +100,8 @@ export default function ContractAgreement({ contract, onAccepted, readOnly }: { 
   const [message, setMessage] = useState<string | null>(null)
   const [proposeText, setProposeText] = useState('')
   const [debugFocus, setDebugFocus] = useState<string | null>(null)
+  const sigRef = useRef<HTMLInputElement | null>(null)
+  const proposeRef = useRef<HTMLTextAreaElement | null>(null)
 
   const [signed, setSigned] = useState<boolean>(() => {
     try {
@@ -280,6 +282,7 @@ export default function ContractAgreement({ contract, onAccepted, readOnly }: { 
         <div style={{ marginTop:8 }}>
           <label htmlFor="contract-signature-name" style={{ display:'block', marginBottom:6, color:'#374151', fontSize:13 }}>Signature name</label>
           <input
+            ref={sigRef}
             id="contract-signature-name"
             name="signatureName"
             type="text"
@@ -289,7 +292,8 @@ export default function ContractAgreement({ contract, onAccepted, readOnly }: { 
             value={name}
             onChange={(e)=>setName(e.target.value)}
             onFocus={() => { setDebugFocus('Signature input focused'); console.log('contract-signature-name focused') }}
-            onClick={() => { setDebugFocus('Signature clicked'); console.log('contract-signature-name clicked') }}
+            onClick={() => { setDebugFocus('Signature clicked'); console.log('contract-signature-name clicked'); try { sigRef.current?.focus() } catch(e){} }}
+            onMouseDown={(e)=>{ e.preventDefault(); try { sigRef.current?.focus() } catch(e){} }}
             placeholder="Full name"
             style={{ width:'100%', padding:10, borderRadius:8, border:'1px solid #e5e7eb', background:'#fff', color:'#0f172a', boxShadow:'inset 0 1px 2px rgba(16,24,40,0.04)' }}
           />
@@ -298,6 +302,7 @@ export default function ContractAgreement({ contract, onAccepted, readOnly }: { 
         <div style={{ marginTop:8 }}>
           <label htmlFor="contract-propose-text" style={{ display:'block', marginBottom:6, color:'#374151', fontSize:13 }}>Propose Changes (optional)</label>
           <textarea
+            ref={proposeRef}
             id="contract-propose-text"
             name="proposeText"
             aria-label="Proposed changes description"
@@ -306,7 +311,8 @@ export default function ContractAgreement({ contract, onAccepted, readOnly }: { 
             value={proposeText}
             onChange={(e)=>setProposeText(e.target.value)}
             onFocus={() => { setDebugFocus('Propose textarea focused'); console.log('contract-propose-text focused') }}
-            onClick={() => { setDebugFocus('Propose textarea clicked'); console.log('contract-propose-text clicked') }}
+            onClick={() => { setDebugFocus('Propose textarea clicked'); console.log('contract-propose-text clicked'); try { proposeRef.current?.focus() } catch(e){} }}
+            onMouseDown={(e)=>{ e.preventDefault(); try { proposeRef.current?.focus() } catch(e){} }}
             placeholder="Describe changes..."
             rows={3}
             style={{ width:'100%', padding:10, borderRadius:8, border:'1px solid #e5e7eb', background:'#fafafa', color:'#0f172a', minHeight:80 }}
