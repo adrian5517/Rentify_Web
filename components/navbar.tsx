@@ -26,6 +26,7 @@ export default function Navbar({ currentPage, onPageChange }: NavbarProps) {
   const navItems = [
     { id: "home", label: "Home", icon: Home },
     { id: "my-listings", label: "My Listings", icon: List },
+    { id: "contracts", label: "Contracts", icon: Navigation },
     // { id: "nearby", label: "Nearby", icon: Navigation },
     // { id: "list", label: "List", icon: List },
     { id: "messages", label: "Messages", icon: MessageCircle, badge: 3 },
@@ -37,6 +38,12 @@ export default function Navbar({ currentPage, onPageChange }: NavbarProps) {
     // For certain pages that have their own route, navigate there instead
     if (page === 'my-listings') {
       try { router.push('/my-listings') } catch (e) { /* fallback */ onPageChange(page) }
+      setIsMobileMenuOpen(false)
+      return
+    }
+
+    if (page === 'contracts') {
+      try { router.push('/contracts') } catch (e) { /* fallback */ onPageChange(page) }
       setIsMobileMenuOpen(false)
       return
     }
