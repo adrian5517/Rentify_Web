@@ -99,6 +99,7 @@ export default function ContractAgreement({ contract, onAccepted, readOnly }: { 
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState<string | null>(null)
   const [proposeText, setProposeText] = useState('')
+  const [debugFocus, setDebugFocus] = useState<string | null>(null)
 
   const [signed, setSigned] = useState<boolean>(() => {
     try {
@@ -278,12 +279,27 @@ export default function ContractAgreement({ contract, onAccepted, readOnly }: { 
 
         <div style={{ marginTop:8 }}>
           <label style={{ display:'block', marginBottom:6, color:'#374151', fontSize:13 }}>Signature name</label>
-          <input value={name} onChange={(e)=>setName(e.target.value)} placeholder="Full name" style={{ width:'100%', padding:10, borderRadius:8, border:'1px solid #e5e7eb', background:'#fff', color:'#0f172a', boxShadow:'inset 0 1px 2px rgba(16,24,40,0.04)' }} />
+          <input
+            value={name}
+            onChange={(e)=>setName(e.target.value)}
+            onFocus={() => setDebugFocus('Signature input focused')}
+            onClick={() => setDebugFocus('Signature clicked')}
+            placeholder="Full name"
+            style={{ width:'100%', padding:10, borderRadius:8, border:'1px solid #e5e7eb', background:'#fff', color:'#0f172a', boxShadow:'inset 0 1px 2px rgba(16,24,40,0.04)' }}
+          />
         </div>
 
         <div style={{ marginTop:8 }}>
           <label style={{ display:'block', marginBottom:6, color:'#374151', fontSize:13 }}>Propose Changes (optional)</label>
-          <textarea value={proposeText} onChange={(e)=>setProposeText(e.target.value)} placeholder="Describe changes..." rows={3} style={{ width:'100%', padding:10, borderRadius:8, border:'1px solid #e5e7eb', background:'#fafafa', color:'#0f172a', minHeight:80 }} />
+          <textarea
+            value={proposeText}
+            onChange={(e)=>setProposeText(e.target.value)}
+            onFocus={() => setDebugFocus('Propose textarea focused')}
+            onClick={() => setDebugFocus('Propose textarea clicked')}
+            placeholder="Describe changes..."
+            rows={3}
+            style={{ width:'100%', padding:10, borderRadius:8, border:'1px solid #e5e7eb', background:'#fafafa', color:'#0f172a', minHeight:80 }}
+          />
           <button onClick={handleProposeEdit} disabled={loading || !!readOnly} style={{ marginTop:8, padding:'8px 12px', background:'#f59e0b', color:'#072f2f', borderRadius:8, border:'none', fontWeight:600, opacity: readOnly ? 0.7 : 1 }}>Propose Changes</button>
         </div>
 
@@ -293,6 +309,7 @@ export default function ContractAgreement({ contract, onAccepted, readOnly }: { 
         </div>
 
         {message && <div style={{ marginTop:8, color:'#064e3b' }}>{message}</div>}
+        {debugFocus && <div style={{ marginTop:6, fontSize:12, color:'#374151' }}>Debug: {debugFocus}</div>}
       </div>
     </div>
   )

@@ -92,8 +92,8 @@ export default function ContractButton({ propertyId }: { propertyId: string }) {
             zIndex: '2147483647',
             pointerEvents: 'auto'
           })
-          // append to documentElement to avoid stacking context issues
-          document.documentElement.appendChild(portalRoot)
+          // append to body (safer for event handling and standard portal usage)
+          document.body.appendChild(portalRoot)
         }
 
         return ReactDOM.createPortal(
