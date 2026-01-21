@@ -1,11 +1,33 @@
 "use client"
 
-import React from 'react'
+import React, { useEffect, useState } from 'react'
+import { useSearchParams, useRouter } from 'next/navigation'
 import ContractChat from './contract-chat'
 import ContractAgreement from './contract-agreement'
 import ContractsOverview from './contracts-overview'
+import ContractModal from './contract-modal'
 
 export default function ContractPageClient({ contract }: { contract: any }) {
+  const search = useSearchParams()
+  const router = useRouter()
+  const [openModal, setOpenModal] = useState(false)
+
+  useEffect(() => {
+    const v = search.get('openModal') || search.get('modal')
+    if (v) setOpenModal(true)
+  }, [search])
+
+  const closeModal = () => {
+    setOpenModal(false)
+    // remove query param to keep URL clean
+    try {
+      router.replace(`/contracts/${contract?._id || contract?.id}`)
+    } catch (e) {
+      // fallback: reload without params
+      window.history.replaceState({}, '', `/contracts/${contract?._id || contract?.id}`)
+    }
+  }
+
   return (
     <div>
       <ContractsOverview current={contract} />
@@ -46,6 +68,10 @@ export default function ContractPageClient({ contract }: { contract: any }) {
           </div>
         </div>
       </div>
+
+      {openModal && (
+        <ContractModal contract={contract} contracts={undefined} onClose={closeModal} onSaved={() => {}} readOnly={false} hideChat={false} />
+      )}
     </div>
   )
 }

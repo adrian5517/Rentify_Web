@@ -288,12 +288,9 @@ export default function ContractAgreement({ contract, onAccepted, readOnly }: { 
             type="text"
             autoComplete="name"
             aria-label="Signature full name"
-            tabIndex={0}
             value={name}
             onChange={(e)=>setName(e.target.value)}
             onFocus={() => { setDebugFocus('Signature input focused'); console.log('contract-signature-name focused') }}
-            onClick={() => { setDebugFocus('Signature clicked'); console.log('contract-signature-name clicked'); try { sigRef.current?.focus() } catch(e){} }}
-            onMouseDown={(e)=>{ e.preventDefault(); try { sigRef.current?.focus() } catch(e){} }}
             placeholder="Full name"
             style={{ width:'100%', padding:10, borderRadius:8, border:'1px solid #e5e7eb', background:'#fff', color:'#0f172a', boxShadow:'inset 0 1px 2px rgba(16,24,40,0.04)' }}
           />
@@ -306,16 +303,13 @@ export default function ContractAgreement({ contract, onAccepted, readOnly }: { 
             id="contract-propose-text"
             name="proposeText"
             aria-label="Proposed changes description"
-            tabIndex={0}
             autoComplete="off"
             value={proposeText}
             onChange={(e)=>setProposeText(e.target.value)}
             onFocus={() => { setDebugFocus('Propose textarea focused'); console.log('contract-propose-text focused') }}
-            onClick={() => { setDebugFocus('Propose textarea clicked'); console.log('contract-propose-text clicked'); try { proposeRef.current?.focus() } catch(e){} }}
-            onMouseDown={(e)=>{ e.preventDefault(); try { proposeRef.current?.focus() } catch(e){} }}
             placeholder="Describe changes..."
             rows={3}
-            style={{ width:'100%', padding:10, borderRadius:8, border:'1px solid #e5e7eb', background:'#fafafa', color:'#0f172a', minHeight:80 }}
+            style={{ width:'100%', padding:10, borderRadius:8, border:'1px solid #e5e7eb', background:'#fafafa', color:'#0f172f', minHeight:80 }}
           />
           <button onClick={handleProposeEdit} disabled={loading || !!readOnly} style={{ marginTop:8, padding:'8px 12px', background:'#f59e0b', color:'#072f2f', borderRadius:8, border:'none', fontWeight:600, opacity: readOnly ? 0.7 : 1 }}>Propose Changes</button>
         </div>

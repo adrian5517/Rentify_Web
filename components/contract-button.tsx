@@ -32,21 +32,23 @@ export default function ContractButton({ propertyId }: { propertyId: string }) {
           if (propRes.ok) {
             const propData = await propRes.json()
             const list = propData.contracts || []
-            if (list.length > 0) {
-              // If there are contracts, if exactly one use it, otherwise show the list modal
-              if (list.length === 1) {
-                setContract(list[0])
+              if (list.length > 0) {
+                // If there are contracts, if exactly one navigate to it, otherwise show the list modal
+                if (list.length === 1) {
+                  const found = list[0]
+                  setContract(found)
+                  setContractsList(list)
+                  const cid = found._id || found.id
+                  try { router.push(`/contracts/${cid}?openModal=1`) } catch(e) { window.location.href = `/contracts/${cid}?openModal=1` }
+                  setLoading(false)
+                  return
+                }
+                // multiple contracts: store the list and open list modal
                 setContractsList(list)
-                setOpen(true)
+                setShowList(true)
                 setLoading(false)
                 return
               }
-              // multiple contracts: store the list and open list modal
-              setContractsList(list)
-              setShowList(true)
-              setLoading(false)
-              return
-            }
           }
         } catch (e) {
           // ignore and fallback to creating
@@ -61,16 +63,10 @@ export default function ContractButton({ propertyId }: { propertyId: string }) {
         })
         const data = await res.json()
         if (!res.ok) throw new Error(data?.message || 'Failed to create contract')
-        setContract(data.contract)
-      }
-      // Navigate to the contract page to avoid modal stacking/context issues
-      if (contract && (contract._id || contract.id)) {
-        try { router.push(`/contracts/${contract._id || contract.id}`) } catch(e) { window.location.href = `/contracts/${contract._id || contract.id}` }
-        setLoading(false)
-        return
-      }
-      if (contract) {
-        try { router.push(`/contracts/${contract._id || contract.id}`) } catch(e) { window.location.href = `/contracts/${contract._id || contract.id}` }
+        const created = data.contract
+        setContract(created)
+        const cid = created._id || created.id
+        try { router.push(`/contracts/${cid}?openModal=1`) } catch(e) { window.location.href = `/contracts/${cid}?openModal=1` }
         setLoading(false)
         return
       }
