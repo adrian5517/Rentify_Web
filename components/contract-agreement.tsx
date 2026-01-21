@@ -76,7 +76,7 @@ export default function ContractAgreement({ contract, onAccepted }: { contract: 
   const [name, setName] = useState(user?.fullName || user?.name || '')
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState<string | null>(null)
-  const [signed, setSigned] = useState(false)
+  const [proposeText, setProposeText] = useState('')
 
   const fields = useMemo(() => ({
     effective_date: contract?.createdAt || new Date().toISOString(),
@@ -130,20 +130,22 @@ export default function ContractAgreement({ contract, onAccepted }: { contract: 
     setLoading(false)
   }
 
-  const downloadPdf = async () => {
-    if (!contract?._id) return
+  const handleProposeEdit = async () => {
+    if (!proposeText.trim()) return alert('Please describe the proposed changes')
     setLoading(true)
     setMessage(null)
     try {
-      const res = await fetch(`${config.API_API}/api/contracts/${contract._id}/pdf`, {
-        method: 'GET',
-        headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+      // Send proposal via chat or log history
+      const res = await fetch(`${config.API_API}/api/contracts/${contract._id}/propose-edit`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...(token?{ Authorization: `Bearer ${token}` }: {}) },
+        credentials: 'include',
+        body: JSON.stringify({ proposal: proposeText })
       })
-      if (!res.ok) throw new Error('Failed to fetch PDF')
-      const blob = await res.blob()
-      const url = URL.createObjectURL(blob)
-      window.open(url, '_blank')
-      setMessage('PDF opened in new tab')
+      const data = await res.json()
+      if (!res.ok) throw new Error(data?.message || 'Failed to propose edit')
+      setMessage('Proposal sent to landlord')
+      setProposeText('')
     } catch (e:any) {
       setMessage(e?.message || String(e))
     }
@@ -169,8 +171,9 @@ export default function ContractAgreement({ contract, onAccepted }: { contract: 
         </label>
 
         <div style={{ marginTop:8 }}>
-          <label style={{ display:'block', marginBottom:6 }}>Electronic Signature (type full name)</label>
-          <input value={name} onChange={(e)=>setName(e.target.value)} placeholder="Full name" style={{ width:'100%', padding:8, borderRadius:6, border:'1px solid #e5e7eb' }} />
+          <label style={{ display:'block', marginBottom:6 }}>Propose Changes (optional)</label>
+          <textarea value={proposeText} onChange={(e)=>setProposeText(e.target.value)} placeholder="Describe changes..." rows={3} style={{ width:'100%', padding:8, borderRadius:6, border:'1px solid #e5e7eb' }} />
+          <button onClick={handleProposeEdit} disabled={loading} style={{ marginTop:6, padding:'6px 10px', background:'#f59e0b', color:'#fff', borderRadius:6, border:'none' }}>Propose Changes</button>
         </div>
 
         <div style={{ marginTop:10, display:'flex', gap:8 }}>

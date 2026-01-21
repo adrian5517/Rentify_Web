@@ -60,5 +60,11 @@ This document describes the landlord and renter flows for creating, reviewing, s
 3. Implement frontend components and permission guards.
 4. Add notifications and E2E tests.
 
+✅ PDF Storage: Implemented — PDF generated and stored in contract.documents on both parties accept.
+✅ Propose Edit: Implemented — "Propose Changes" button in ContractAgreement sends proposal to history.
+✅ Notifications: Implemented — In-app notifications via Zustand store and NotificationList component.
+✅ UI Enhancements: Implemented — History and documents sections added to ContractPageClient.
+✅ Audit/Storage: In-progress — History logging added for edits and PDF generation.
+
 ---
 File: docs/CONTRACT_USER_FLOW.md
