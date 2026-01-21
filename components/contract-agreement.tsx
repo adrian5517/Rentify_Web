@@ -78,6 +78,47 @@ export default function ContractAgreement({ contract, onAccepted }: { contract: 
   const [message, setMessage] = useState<string | null>(null)
   const [proposeText, setProposeText] = useState('')
 
+  const [signed, setSigned] = useState<boolean>(() => {
+    try {
+      const uid = user?._id || user?.id
+      if (!contract) return false
+      if (uid && (String(contract.renter?._id || contract.renter) === String(uid))) return !!contract.renterAccepted?.accepted
+      if (uid && (String(contract.owner?._id || contract.owner) === String(uid))) return !!contract.ownerAccepted?.accepted
+      return !!(contract.ownerAccepted?.accepted || contract.renterAccepted?.accepted)
+    } catch (e) {
+      return false
+    }
+  })
+
+  const downloadPdf = async () => {
+    if (!contract?._id) return
+    setLoading(true)
+    try {
+      const res = await fetch(`${config.API_API}/api/contracts/${contract._id}/pdf`, {
+        method: 'GET',
+        headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+        credentials: 'include'
+      })
+      if (!res.ok) throw new Error('PDF not available')
+      const blob = await res.blob()
+      const contentDisposition = res.headers.get('content-disposition') || ''
+      let filename = `contract-${contract._id}.pdf`
+      const m = /filename="?([^";]+)"?/.exec(contentDisposition)
+      if (m && m[1]) filename = m[1]
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = filename
+      document.body.appendChild(a)
+      a.click()
+      a.remove()
+      URL.revokeObjectURL(url)
+    } catch (e:any) {
+      setMessage(e?.message || String(e))
+    }
+    setLoading(false)
+  }
+
   const fields = useMemo(() => ({
     effective_date: contract?.createdAt || new Date().toISOString(),
     rentee_name: contract?.owner?.name || contract?.owner || '',
@@ -171,13 +212,18 @@ export default function ContractAgreement({ contract, onAccepted }: { contract: 
         </label>
 
         <div style={{ marginTop:8 }}>
+          <label style={{ display:'block', marginBottom:6 }}>Signature name</label>
+          <input value={name} onChange={(e)=>setName(e.target.value)} placeholder="Full name" style={{ width:'100%', padding:8, borderRadius:6, border:'1px solid #e5e7eb' }} />
+        </div>
+
+        <div style={{ marginTop:8 }}>
           <label style={{ display:'block', marginBottom:6 }}>Propose Changes (optional)</label>
           <textarea value={proposeText} onChange={(e)=>setProposeText(e.target.value)} placeholder="Describe changes..." rows={3} style={{ width:'100%', padding:8, borderRadius:6, border:'1px solid #e5e7eb' }} />
           <button onClick={handleProposeEdit} disabled={loading} style={{ marginTop:6, padding:'6px 10px', background:'#f59e0b', color:'#fff', borderRadius:6, border:'none' }}>Propose Changes</button>
         </div>
 
         <div style={{ marginTop:10, display:'flex', gap:8 }}>
-          <button onClick={handleSign} disabled={loading || signed} style={{ padding:'8px 12px', background:'#10b981', color:'#fff', borderRadius:6, border:'none' }}>{loading? 'Signing…' : signed ? 'Accepted' : 'Sign & Accept'}</button>
+          <button onClick={handleSign} disabled={loading || signed || !agree} style={{ padding:'8px 12px', background:'#10b981', color:'#fff', borderRadius:6, border:'none' }}>{loading? 'Signing…' : signed ? 'Accepted' : 'Sign & Accept'}</button>
           <button onClick={downloadPdf} disabled={loading} style={{ padding:'8px 12px', background:'#3b82f6', color:'#fff', borderRadius:6, border:'none' }}>Download PDF</button>
         </div>
 
