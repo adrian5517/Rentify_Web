@@ -3,7 +3,7 @@ import { GeistMono } from 'geist/font/mono'
 import { Poppins } from 'next/font/google'
 
 import './globals.css'
-import NotificationList from '@/components/notification-list'
+import ClientLayout from '@/components/client-layout'
 
 
 export const metadata: Metadata = {
@@ -27,10 +27,9 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${poppins.className} ${GeistMono.variable}`}>
-        <SocketProvider>
-          <NotificationList />
+        <ClientLayout>
           {children}
-        </SocketProvider>
+        </ClientLayout>
       </body>
     </html>
   )

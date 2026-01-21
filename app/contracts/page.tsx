@@ -5,6 +5,8 @@ import config from '@/lib/config'
 import { useAuthStore } from '@/lib/auth-store'
 import ContractModal from '@/components/contract-modal'
 
+export const dynamic = 'force-dynamic'
+
 export default function ContractsPage() {
   const token = useAuthStore((s:any)=>s.token)
   const [contracts, setContracts] = useState<any[]|null>(null)
