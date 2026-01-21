@@ -1,0 +1,4 @@
+property_name,address,price,original_index,rating,__v,price_range,latitude,longitude,predicted_price,actual_price,error_percent
+TownHouse Fully Furnished,"{'address': 'Cararayan-San Isidro Road Cararayan, Naga City, Camarines Sur, Philippines', 'latitude': 13.630582, 'longitude': 123.225157}",14000,4,0.0,0.0,Premium,13.630582,123.225157,3800.0,14000,72.85714285714285
+San felipe Grandvalle Deca 3,"{'address': 'Cokeville Road San Felipe, Naga City, Camarines Sur, Philippines', 'latitude': 13.646814, 'longitude': 123.204211}",9000,7,0.0,0.0,Mid-Range,13.646814,123.204211,3100.0,9000,65.55555555555556
+Ondevilla Rental Room,"{'address': 'Panganiban Drive Concepcion Pequeña, Naga City, Camarines Sur, Philippines', 'latitude': 13.621033, 'longitude': 123.200504}",1500,9,0.0,0.0,Budget Friendly,13.621033,123.200504,3100.0,1500,106.66666666666667

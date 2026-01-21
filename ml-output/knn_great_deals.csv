@@ -1,0 +1,5 @@
+property_name,address,price,original_index,rating,__v,price_range,latitude,longitude,predicted_price,deal_score,distance_km
+abucar aprartment,"{'address': '3rd Street Concepcion Pequeña, Naga City, Camarines Sur, Philippines', 'latitude': 13.617256, 'longitude': 123.200626}",2000,1,0.0,0.0,Budget Friendly,13.617256,123.200626,4400.0,54.54545454545454,2.1956320769936233
+Ondevilla Rental Room,"{'address': 'Panganiban Drive Concepcion Pequeña, Naga City, Camarines Sur, Philippines', 'latitude': 13.621033, 'longitude': 123.200504}",1500,9,0.0,0.0,Budget Friendly,13.621033,123.200504,3100.0,51.61290322580645,1.8559972378534544
+Abucar Room,"{'address': '2nd Street Concepcion Pequeña, Naga City, Camarines Sur, Philippines', 'latitude': 13.617388, 'longitude': 123.200421}",2500,15,0.0,0.0,Budget Friendly,13.617388,123.200421,5100.0,50.98039215686274,2.171009679682819
+Cortes BedSpace,"{'address': '3rd Street Concepcion Pequeña, Naga City, Camarines Sur, Philippines', 'latitude': 13.618535, 'longitude': 123.201845}",2000,14,0.0,0.0,Budget Friendly,13.618535,123.201845,3900.0,48.717948717948715,2.161343333633569

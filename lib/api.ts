@@ -21,7 +21,19 @@ export async function authFetch(input: FetchInput, init?: FetchInit) {
   const url = typeof input === 'string' ? input : (input as Request).url
 
   const state = useAuthStore.getState()
-  const token = state.token
+  let token = state.token
+  // If Zustand store isn't hydrated yet on page load, fall back to persisted token in localStorage
+  if (!token && typeof window !== 'undefined') {
+    try {
+      const raw = localStorage.getItem('auth-storage')
+      if (raw) {
+        const parsed = JSON.parse(raw)
+        token = parsed?.state?.token || token
+      }
+    } catch (e) {
+      // ignore
+    }
+  }
 
   const headers = new Headers(init && init.headers ? init.headers as HeadersInit : undefined)
   if (token) headers.set('Authorization', `Bearer ${token}`)
