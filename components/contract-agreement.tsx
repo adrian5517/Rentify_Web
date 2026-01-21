@@ -272,18 +272,18 @@ export default function ContractAgreement({ contract, onAccepted, readOnly }: { 
 
       <div style={{ marginTop:8 }}>
         <label style={{ display:'flex', alignItems:'center', gap:8 }}>
-          <input type="checkbox" checked={agree} onChange={(e)=>setAgree(e.target.checked)} disabled={!!readOnly} />
+          <input type="checkbox" checked={agree} onChange={(e)=>setAgree(e.target.checked)} />
           <span style={{ color:'inherit' }}>{readOnly ? 'I have read the terms of this Rental Agreement.' : 'I have read and agree to the terms of this Rental Agreement.'}</span>
         </label>
 
         <div style={{ marginTop:8 }}>
           <label style={{ display:'block', marginBottom:6, color:'#374151', fontSize:13 }}>Signature name</label>
-          <input value={name} onChange={(e)=>setName(e.target.value)} placeholder="Full name" disabled={!!readOnly} style={{ width:'100%', padding:10, borderRadius:8, border:'1px solid #e5e7eb', background:'#fff', color:'#0f172a', boxShadow:'inset 0 1px 2px rgba(16,24,40,0.04)', opacity: readOnly ? 0.7 : 1 }} />
+          <input value={name} onChange={(e)=>setName(e.target.value)} placeholder="Full name" style={{ width:'100%', padding:10, borderRadius:8, border:'1px solid #e5e7eb', background:'#fff', color:'#0f172a', boxShadow:'inset 0 1px 2px rgba(16,24,40,0.04)' }} />
         </div>
 
         <div style={{ marginTop:8 }}>
           <label style={{ display:'block', marginBottom:6, color:'#374151', fontSize:13 }}>Propose Changes (optional)</label>
-          <textarea value={proposeText} onChange={(e)=>setProposeText(e.target.value)} placeholder="Describe changes..." rows={3} disabled={!!readOnly} style={{ width:'100%', padding:10, borderRadius:8, border:'1px solid #e5e7eb', background:'#fafafa', color:'#0f172a', minHeight:80, opacity: readOnly ? 0.7 : 1 }} />
+          <textarea value={proposeText} onChange={(e)=>setProposeText(e.target.value)} placeholder="Describe changes..." rows={3} style={{ width:'100%', padding:10, borderRadius:8, border:'1px solid #e5e7eb', background:'#fafafa', color:'#0f172a', minHeight:80 }} />
           <button onClick={handleProposeEdit} disabled={loading || !!readOnly} style={{ marginTop:8, padding:'8px 12px', background:'#f59e0b', color:'#072f2f', borderRadius:8, border:'none', fontWeight:600, opacity: readOnly ? 0.7 : 1 }}>Propose Changes</button>
         </div>
 
