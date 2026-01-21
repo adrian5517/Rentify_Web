@@ -76,6 +76,7 @@ export default function ContractAgreement({ contract, onAccepted }: { contract: 
   const [name, setName] = useState(user?.fullName || user?.name || '')
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState<string | null>(null)
+  const [signed, setSigned] = useState(false)
 
   const fields = useMemo(() => ({
     effective_date: contract?.createdAt || new Date().toISOString(),
@@ -87,9 +88,9 @@ export default function ContractAgreement({ contract, onAccepted }: { contract: 
     tenant_address: contract?.renter?.address || '',
     tenant_email: contract?.renter?.email || '',
     tenant_phone: contract?.renter?.phone || '',
-    property_address: contract?.property?.address || contract?.property || '',
-    property_type: contract?.property?.type || '',
-    property_description: contract?.property?.description || '',
+    property_address: contract?.property?.address || contract?.property?.name || contract?.property?._id || '',
+    property_type: contract?.property?.type || (contract?.property?.propertyType) || '',
+    property_description: contract?.property?.description || contract?.property?.name || '',
     rental_start_date: contract?.startDate || contract?.rentalStart || '',
     rental_end_date: contract?.endDate || contract?.rentalEnd || '',
     renewal_terms: contract?.renewalTerms || 'See agreement',
@@ -118,8 +119,31 @@ export default function ContractAgreement({ contract, onAccepted }: { contract: 
       const data = await res.json()
       if (!res.ok) throw new Error(data?.message || 'Failed to sign contract')
       setMessage('Signed successfully')
+      setSigned(true)
       // Notify parent of accepted/updated contract if provided
       try { if (onAccepted && data?.contract) onAccepted(data.contract) } catch (e) { /* ignore */ }
+      // attempt to download signed PDF if available
+      try { await downloadPdf() } catch (e) { /* ignore download errors */ }
+    } catch (e:any) {
+      setMessage(e?.message || String(e))
+    }
+    setLoading(false)
+  }
+
+  const downloadPdf = async () => {
+    if (!contract?._id) return
+    setLoading(true)
+    setMessage(null)
+    try {
+      const res = await fetch(`${config.API_API}/api/contracts/${contract._id}/pdf`, {
+        method: 'GET',
+        headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+      })
+      if (!res.ok) throw new Error('Failed to fetch PDF')
+      const blob = await res.blob()
+      const url = URL.createObjectURL(blob)
+      window.open(url, '_blank')
+      setMessage('PDF opened in new tab')
     } catch (e:any) {
       setMessage(e?.message || String(e))
     }
@@ -150,7 +174,8 @@ export default function ContractAgreement({ contract, onAccepted }: { contract: 
         </div>
 
         <div style={{ marginTop:10, display:'flex', gap:8 }}>
-          <button onClick={handleSign} disabled={loading} style={{ padding:'8px 12px', background:'#10b981', color:'#fff', borderRadius:6, border:'none' }}>{loading? 'Signing…' : 'Sign & Accept'}</button>
+          <button onClick={handleSign} disabled={loading || signed} style={{ padding:'8px 12px', background:'#10b981', color:'#fff', borderRadius:6, border:'none' }}>{loading? 'Signing…' : signed ? 'Accepted' : 'Sign & Accept'}</button>
+          <button onClick={downloadPdf} disabled={loading} style={{ padding:'8px 12px', background:'#3b82f6', color:'#fff', borderRadius:6, border:'none' }}>Download PDF</button>
         </div>
 
         {message && <div style={{ marginTop:8, color:'#064e3b' }}>{message}</div>}
