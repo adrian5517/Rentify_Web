@@ -79,10 +79,10 @@ export default function ContractButton({ propertyId }: { propertyId: string }) {
       )}
       {open && contract && (
         typeof document !== 'undefined' ? ReactDOM.createPortal(
-          <ContractModal contract={contract} contracts={contractsList || undefined} onClose={() => setOpen(false)} onSaved={(c) => setContract(c)} />,
+          <ContractModal contract={contract} contracts={contractsList || undefined} onClose={() => setOpen(false)} onSaved={(c) => setContract(c)} readOnly={true} hideChat={true} modalZIndex={99999} />,
           document.body
         ) : (
-          <ContractModal contract={contract} contracts={contractsList || undefined} onClose={() => setOpen(false)} onSaved={(c) => setContract(c)} />
+          <ContractModal contract={contract} contracts={contractsList || undefined} onClose={() => setOpen(false)} onSaved={(c) => setContract(c)} readOnly={true} hideChat={true} modalZIndex={99999} />
         )
       )}
     </>

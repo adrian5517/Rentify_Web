@@ -91,7 +91,7 @@ function renderSimpleMarkdown(text: string) {
   return nodes
 }
 
-export default function ContractAgreement({ contract, onAccepted }: { contract: ContractData, onAccepted?: (c:any)=>void }) {
+export default function ContractAgreement({ contract, onAccepted, readOnly }: { contract: ContractData, onAccepted?: (c:any)=>void, readOnly?: boolean }) {
   const token = useAuthStore((s:any)=>s.token)
   const user = useAuthStore((s:any)=>s.user)
   const [agree, setAgree] = useState(false)
@@ -272,23 +272,23 @@ export default function ContractAgreement({ contract, onAccepted }: { contract: 
 
       <div style={{ marginTop:8 }}>
         <label style={{ display:'flex', alignItems:'center', gap:8 }}>
-          <input type="checkbox" checked={agree} onChange={(e)=>setAgree(e.target.checked)} />
-          <span style={{ color:'inherit' }}>I have read and agree to the terms of this Rental Agreement.</span>
+          <input type="checkbox" checked={agree} onChange={(e)=>setAgree(e.target.checked)} disabled={!!readOnly} />
+          <span style={{ color:'inherit' }}>{readOnly ? 'I have read the terms of this Rental Agreement.' : 'I have read and agree to the terms of this Rental Agreement.'}</span>
         </label>
 
         <div style={{ marginTop:8 }}>
           <label style={{ display:'block', marginBottom:6, color:'#374151', fontSize:13 }}>Signature name</label>
-          <input value={name} onChange={(e)=>setName(e.target.value)} placeholder="Full name" style={{ width:'100%', padding:10, borderRadius:8, border:'1px solid #e5e7eb', background:'#fff', color:'#0f172a', boxShadow:'inset 0 1px 2px rgba(16,24,40,0.04)' }} />
+          <input value={name} onChange={(e)=>setName(e.target.value)} placeholder="Full name" disabled={!!readOnly} style={{ width:'100%', padding:10, borderRadius:8, border:'1px solid #e5e7eb', background:'#fff', color:'#0f172a', boxShadow:'inset 0 1px 2px rgba(16,24,40,0.04)', opacity: readOnly ? 0.7 : 1 }} />
         </div>
 
         <div style={{ marginTop:8 }}>
           <label style={{ display:'block', marginBottom:6, color:'#374151', fontSize:13 }}>Propose Changes (optional)</label>
-          <textarea value={proposeText} onChange={(e)=>setProposeText(e.target.value)} placeholder="Describe changes..." rows={3} style={{ width:'100%', padding:10, borderRadius:8, border:'1px solid #e5e7eb', background:'#fafafa', color:'#0f172a', minHeight:80 }} />
-          <button onClick={handleProposeEdit} disabled={loading} style={{ marginTop:8, padding:'8px 12px', background:'#f59e0b', color:'#072f2f', borderRadius:8, border:'none', fontWeight:600 }}>Propose Changes</button>
+          <textarea value={proposeText} onChange={(e)=>setProposeText(e.target.value)} placeholder="Describe changes..." rows={3} disabled={!!readOnly} style={{ width:'100%', padding:10, borderRadius:8, border:'1px solid #e5e7eb', background:'#fafafa', color:'#0f172a', minHeight:80, opacity: readOnly ? 0.7 : 1 }} />
+          <button onClick={handleProposeEdit} disabled={loading || !!readOnly} style={{ marginTop:8, padding:'8px 12px', background:'#f59e0b', color:'#072f2f', borderRadius:8, border:'none', fontWeight:600, opacity: readOnly ? 0.7 : 1 }}>Propose Changes</button>
         </div>
 
         <div style={{ marginTop:12, display:'flex', gap:8 }}>
-          <button onClick={handleSign} disabled={loading || signed || !agree} style={{ padding:'10px 14px', background:'#10b981', color:'#fff', borderRadius:10, border:'none', fontWeight:700, boxShadow:'0 6px 18px rgba(16,185,129,0.12)' }}>{loading? 'Signing…' : signed ? 'Accepted' : 'Sign & Accept'}</button>
+          <button onClick={handleSign} disabled={loading || signed || !agree || !!readOnly} style={{ padding:'10px 14px', background:'#10b981', color:'#fff', borderRadius:10, border:'none', fontWeight:700, boxShadow:'0 6px 18px rgba(16,185,129,0.12)', opacity: readOnly ? 0.7 : 1 }}>{loading? 'Signing…' : signed ? 'Accepted' : 'Sign & Accept'}</button>
           <button onClick={downloadPdf} disabled={loading} style={{ padding:'10px 14px', background:'#3b82f6', color:'#fff', borderRadius:10, border:'none', fontWeight:600 }}>Download PDF</button>
         </div>
 

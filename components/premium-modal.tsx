@@ -2,9 +2,10 @@
 
 import React from 'react'
 
-export default function PremiumModal({ title, children, onClose }: { title?: string, children: React.ReactNode, onClose?: ()=>void }) {
+export default function PremiumModal({ title, children, onClose, zIndex }: { title?: string, children: React.ReactNode, onClose?: ()=>void, zIndex?: number }) {
+  const stack = typeof zIndex === 'number' ? zIndex : 60
   return (
-    <div style={{ position:'fixed', inset:0, background:'rgba(2,6,23,0.6)', display:'flex', alignItems:'center', justifyContent:'center', zIndex:60 }}>
+    <div style={{ position:'fixed', inset:0, background:'rgba(2,6,23,0.6)', display:'flex', alignItems:'center', justifyContent:'center', zIndex:stack }}>
       <div style={{ width:'min(900px,96%)', maxHeight:'90vh', overflow:'auto', background:'#0f172a', borderRadius:12, boxShadow:'0 12px 40px rgba(2,6,23,0.6)', padding:16, color:'#f8fafc' }}>
         <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:12 }}>
           <div style={{ display:'flex', gap:12, alignItems:'center' }}>

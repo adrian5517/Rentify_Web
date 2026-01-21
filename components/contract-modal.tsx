@@ -9,7 +9,7 @@ import PremiumModal from './premium-modal'
 import Swal from 'sweetalert2'
 import { useRouter } from 'next/navigation'
 
-export default function ContractModal({ contract: initialContract, contracts, onClose, onSaved }: { contract: any, contracts?: any[], onClose?: ()=>void, onSaved?: (c:any)=>void }) {
+export default function ContractModal({ contract: initialContract, contracts, onClose, onSaved, readOnly, hideChat, modalZIndex }: { contract: any, contracts?: any[], onClose?: ()=>void, onSaved?: (c:any)=>void, readOnly?: boolean, hideChat?: boolean, modalZIndex?: number }) {
   const token = useAuthStore((s:any)=>s.token)
   const [contract, setContract] = useState<any>(initialContract)
   const [message, setMessage] = useState<string | null>(null)
@@ -51,7 +51,7 @@ export default function ContractModal({ contract: initialContract, contracts, on
 
 
   return (
-    <PremiumModal title={`Contract ${contract?._id || ''}`} onClose={onClose}>
+    <PremiumModal title={`Contract ${contract?._id || ''}`} onClose={onClose} zIndex={modalZIndex}>
       <div style={{ maxWidth:740, margin: '0 auto', padding: 8 }}>
         {contracts && contracts.length > 1 && (
           <div style={{ marginBottom: 12 }}>
@@ -71,13 +71,15 @@ export default function ContractModal({ contract: initialContract, contracts, on
         </div>
 
         <div style={{ marginTop: 16 }}>
-          <ContractAgreement contract={contract} onAccepted={handleAccept} />
+          <ContractAgreement contract={contract} onAccepted={handleAccept} readOnly={readOnly} />
           {message && <div style={{ marginTop:8, color:'#86efac' }}>{message}</div>}
         </div>
 
-        <div style={{ marginTop: 16 }}>
-          <ContractChat userA={idFor(contract?.owner)} userB={idFor(contract?.renter)} contractId={contract?._id} />
-        </div>
+        {!hideChat && (
+          <div style={{ marginTop: 16 }}>
+            <ContractChat userA={idFor(contract?.owner)} userB={idFor(contract?.renter)} contractId={contract?._id} />
+          </div>
+        )}
       </div>
     </PremiumModal>
   )
