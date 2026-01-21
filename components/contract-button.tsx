@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react'
 import ReactDOM from 'react-dom'
+import { useRouter } from 'next/navigation'
 import config from '@/lib/config'
 import { useAuthStore } from '@/lib/auth-store'
 import ContractListModal from '@/components/contract-list-modal'
@@ -9,6 +10,7 @@ import ContractModal from '@/components/contract-modal'
 
 export default function ContractButton({ propertyId }: { propertyId: string }) {
   const token = useAuthStore((s: any) => s.token)
+  const router = useRouter()
   const [contract, setContract] = useState<any | null>(null)
   const [contractsList, setContractsList] = useState<any[] | null>(null)
   const [open, setOpen] = useState(false)
@@ -61,7 +63,17 @@ export default function ContractButton({ propertyId }: { propertyId: string }) {
         if (!res.ok) throw new Error(data?.message || 'Failed to create contract')
         setContract(data.contract)
       }
-      setOpen(true)
+      // Navigate to the contract page to avoid modal stacking/context issues
+      if (contract && (contract._id || contract.id)) {
+        try { router.push(`/contracts/${contract._id || contract.id}`) } catch(e) { window.location.href = `/contracts/${contract._id || contract.id}` }
+        setLoading(false)
+        return
+      }
+      if (contract) {
+        try { router.push(`/contracts/${contract._id || contract.id}`) } catch(e) { window.location.href = `/contracts/${contract._id || contract.id}` }
+        setLoading(false)
+        return
+      }
     } catch (e: any) {
       alert(e?.message || String(e))
     }
