@@ -79,7 +79,7 @@ export default function ContractButton({ propertyId }: { propertyId: string }) {
       )}
       {open && contract && (() => {
         if (typeof document === 'undefined') {
-          return <ContractModal contract={contract} contracts={contractsList || undefined} onClose={() => setOpen(false)} onSaved={(c) => setContract(c)} readOnly={true} hideChat={true} modalZIndex={99999} />
+          return <ContractModal contract={contract} contracts={contractsList || undefined} onClose={() => setOpen(false)} onSaved={(c) => setContract(c)} readOnly={false} hideChat={true} modalZIndex={99999} />
         }
 
         let portalRoot = document.getElementById('rentify-modal-root') as HTMLElement | null
@@ -97,7 +97,7 @@ export default function ContractButton({ propertyId }: { propertyId: string }) {
         }
 
         return ReactDOM.createPortal(
-          <ContractModal contract={contract} contracts={contractsList || undefined} onClose={() => setOpen(false)} onSaved={(c) => setContract(c)} readOnly={true} hideChat={true} modalZIndex={2147483646} />,
+          <ContractModal contract={contract} contracts={contractsList || undefined} onClose={() => setOpen(false)} onSaved={(c) => setContract(c)} readOnly={false} hideChat={true} modalZIndex={2147483646} />,
           portalRoot
         )
       })()}

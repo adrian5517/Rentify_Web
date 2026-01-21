@@ -39,10 +39,32 @@ export default function ContractModal({ contract: initialContract, contracts, on
   const propertyAddress = (p: any) => {
     if (!p) return ''
     if (typeof p === 'string') return ''
-    if (!p.address) return String(p.location || '')
-    if (typeof p.address === 'string') return p.address
-    if (typeof p.address === 'object') return String(p.address.address || p.address.formatted || `${p.address.latitude || ''}${p.address.longitude ? ',' + p.address.longitude : ''}`)
-    return ''
+    const a = p.address || p.location || ''
+    if (!a) return ''
+    if (typeof a === 'string') return a
+    // a is object - try to build a readable string from common fields
+    const parts: string[] = []
+    const tryAdd = (v: any) => {
+      if (!v) return
+      if (typeof v === 'string') parts.push(v)
+      else if (typeof v === 'object') {
+        // common nested fields
+        const candidates = [v.formatted, v.address, v.street, v.line1, v.city, v.locality, v.region, v.postcode, v.country]
+        for (const c of candidates) if (c) { parts.push(String(c)); break }
+        // as fallback add any string-valued properties
+        if (parts.length === 0) {
+          for (const key of Object.keys(v)) {
+            const val = v[key]
+            if (typeof val === 'string' && val.trim()) parts.push(val)
+          }
+        }
+      }
+    }
+    tryAdd(a)
+    if (parts.length) return parts.join(', ')
+    // fallback to lat/lon if present
+    if (a.latitude || a.lat || a.longitude || a.lng) return `${a.latitude||a.lat||''}${a.longitude||a.lng?','+ (a.longitude||a.lng):''}`
+    return String(a)
   }
 
   const personLabel = (u: any) => {
