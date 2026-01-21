@@ -5,6 +5,7 @@ import { useAuthStore } from '@/lib/auth-store'
 import config, { CLIENT_URL } from '@/lib/config'
 import ContractScheduleEditor from './contract-schedule-editor'
 import PaymentWidget from './payment-widget'
+import ContractChat from './contract-chat'
 import Swal from 'sweetalert2'
 import { useRouter } from 'next/navigation'
 
