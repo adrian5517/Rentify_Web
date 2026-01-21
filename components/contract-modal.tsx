@@ -116,7 +116,7 @@ export default function ContractModal({ contract: initialContract, contracts, on
 
       {/* Inline chat between renter and owner */}
       <div style={{ marginTop: 18 }}>
-        <ContractChat userA={contract?.owner?._id || contract?.owner} userB={contract?.renter?._id || contract?.renter} />
+        <ContractChat userA={contract?.owner?._id || contract?.owner} userB={contract?.renter?._id || contract?.renter} contractId={contract?._id} />
       </div>
     </div>
   )

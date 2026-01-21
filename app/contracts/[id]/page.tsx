@@ -3,7 +3,7 @@ import config from '@/lib/config'
 import dynamic from 'next/dynamic'
 
 const PaymentWidget = dynamic(() => import('@/components/payment-widget'))
-const ContractChat = dynamic(() => import('@/components/contract-chat'), { ssr: false })
+const ContractChat = dynamic(() => import('@/components/contract-chat'))
 
 interface PageProps { params: { id: string } }
 
@@ -79,6 +79,13 @@ export default async function Page({ params }: PageProps) {
                   <div className="text-sm text-slate-700">{p.status}</div>
                 </div>
               ))}
+            </div>
+          </div>
+
+          <div className="mt-6">
+            <h3 className="font-semibold">Conversation</h3>
+            <div className="mt-2 bg-white p-4 rounded">
+              <ContractChat userA={contract.owner?._id || contract.owner} userB={contract.renter?._id || contract.renter} contractId={contract._id} />
             </div>
           </div>
         </div>
