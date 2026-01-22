@@ -95,13 +95,9 @@ export default function ContractAgreement({ contract, onAccepted, readOnly }: { 
   const token = useAuthStore((s:any)=>s.token)
   const user = useAuthStore((s:any)=>s.user)
   const [agree, setAgree] = useState(false)
-  const [name, setName] = useState(user?.fullName || user?.name || '')
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState<string | null>(null)
-  const [proposeText, setProposeText] = useState('')
   const [debugFocus, setDebugFocus] = useState<string | null>(null)
-  const sigRef = useRef<HTMLInputElement | null>(null)
-  const proposeRef = useRef<HTMLTextAreaElement | null>(null)
 
   const [signed, setSigned] = useState<boolean>(() => {
     try {
@@ -215,7 +211,6 @@ export default function ContractAgreement({ contract, onAccepted, readOnly }: { 
 
   const handleSign = async () => {
     if (!agree) return alert('You must check the acceptance box before signing')
-    if (!name.trim()) return alert('Please enter your full name for the electronic signature')
     setLoading(true)
     setMessage(null)
     try {
@@ -223,7 +218,7 @@ export default function ContractAgreement({ contract, onAccepted, readOnly }: { 
         method: 'POST',
         headers: { 'Content-Type': 'application/json', ...(token?{ Authorization: `Bearer ${token}` }: {}) },
         credentials: 'include',
-        body: JSON.stringify({ signature: { name } })
+        body: JSON.stringify({ signature: { name: user?.fullName || user?.name || '' } })
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data?.message || 'Failed to sign contract')
@@ -233,28 +228,6 @@ export default function ContractAgreement({ contract, onAccepted, readOnly }: { 
       try { if (onAccepted && data?.contract) onAccepted(data.contract) } catch (e) { /* ignore */ }
       // attempt to download signed PDF if available
       try { await downloadPdf() } catch (e) { /* ignore download errors */ }
-    } catch (e:any) {
-      setMessage(e?.message || String(e))
-    }
-    setLoading(false)
-  }
-
-  const handleProposeEdit = async () => {
-    if (!proposeText.trim()) return alert('Please describe the proposed changes')
-    setLoading(true)
-    setMessage(null)
-    try {
-      // Send proposal via chat or log history
-      const res = await fetch(`${config.API_API}/api/contracts/${contract._id}/propose-edit`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', ...(token?{ Authorization: `Bearer ${token}` }: {}) },
-        credentials: 'include',
-        body: JSON.stringify({ proposal: proposeText })
-      })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data?.message || 'Failed to propose edit')
-      setMessage('Proposal sent to landlord')
-      setProposeText('')
     } catch (e:any) {
       setMessage(e?.message || String(e))
     }
@@ -296,23 +269,7 @@ export default function ContractAgreement({ contract, onAccepted, readOnly }: { 
           />
         </div>
 
-        <div style={{ marginTop:8 }}>
-          <label htmlFor="contract-propose-text" style={{ display:'block', marginBottom:6, color:'#374151', fontSize:13 }}>Propose Changes (optional)</label>
-          <textarea
-            ref={proposeRef}
-            id="contract-propose-text"
-            name="proposeText"
-            aria-label="Proposed changes description"
-            autoComplete="off"
-            value={proposeText}
-            onChange={(e)=>setProposeText(e.target.value)}
-            onFocus={() => { setDebugFocus('Propose textarea focused'); console.log('contract-propose-text focused') }}
-            placeholder="Describe changes..."
-            rows={3}
-            style={{ width:'100%', padding:10, borderRadius:8, border:'1px solid #e5e7eb', background:'#fafafa', color:'#0f172f', minHeight:80 }}
-          />
-          <button onClick={handleProposeEdit} disabled={loading || !!readOnly} style={{ marginTop:8, padding:'8px 12px', background:'#f59e0b', color:'#072f2f', borderRadius:8, border:'none', fontWeight:600, opacity: readOnly ? 0.7 : 1 }}>Propose Changes</button>
-        </div>
+        {/* Propose Changes removed: acceptance is via checkbox + Sign & Accept */}
 
         <div style={{ marginTop:12, display:'flex', gap:8 }}>
           <button onClick={handleSign} disabled={loading || signed || !agree || !!readOnly} style={{ padding:'10px 14px', background:'#10b981', color:'#fff', borderRadius:10, border:'none', fontWeight:700, boxShadow:'0 6px 18px rgba(16,185,129,0.12)', opacity: readOnly ? 0.7 : 1 }}>{loading? 'Signing…' : signed ? 'Accepted' : 'Sign & Accept'}</button>
