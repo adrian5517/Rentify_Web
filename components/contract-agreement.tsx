@@ -1,6 +1,7 @@
 "use client"
 
 import React, { useMemo, useState, useEffect } from 'react'
+import { Mail, Phone, MapPin } from 'lucide-react'
 import { useAuthStore } from '@/lib/auth-store'
 import config from '@/lib/config'
 
@@ -191,6 +192,19 @@ export default function ContractAgreement({ contract, onAccepted, readOnly }: { 
     security_deposit: contract?.securityDeposit || '',
   }), [contract])
 
+  const currentUserId = useAuthStore((s:any)=>s.user?._id || s.user?.id)
+
+  const personInfo = (p:any) => {
+    if (!p) return { name: '—', email: '', phone: '' }
+    if (typeof p === 'string') return { name: p, email: '', phone: '' }
+    return { name: p.name || p.fullName || p.displayName || p.email || '—', email: p.email || '', phone: p.phone || '' }
+  }
+
+  const ownerInfo = personInfo(contract?.owner)
+  const renterInfo = personInfo(contract?.renter)
+  const isOwner = !!currentUserId && String(contract?.owner?._id || contract?.owner) === String(currentUserId)
+  const isRenter = !!currentUserId && String(contract?.renter?._id || contract?.renter) === String(currentUserId)
+
   const filled = useMemo(() => fillTemplate(TEMPLATE, fields), [fields])
   // If the filled template still contains placeholders or many key fields are missing,
   // use a temporary readable template with sensible defaults so users can see the agreement.
@@ -246,6 +260,42 @@ export default function ContractAgreement({ contract, onAccepted, readOnly }: { 
 
   return (
     <div style={{ background:'#fff', padding:16, borderRadius:8, color:'#0f172a', boxShadow:'0 6px 18px rgba(15,23,42,0.06)' }}>
+      <div style={{ display:'flex', gap:12, alignItems:'flex-start', marginBottom:12 }}>
+        <div style={{ width:96, height:72, borderRadius:8, background:'#f1f5f9', display:'flex', alignItems:'center', justifyContent:'center', overflow:'hidden' }}>
+          {(contract?.property?.photos && contract.property.photos[0]) ? (
+            // @ts-ignore
+            <img src={contract.property.photos[0]} alt={contract.property?.name || 'property'} style={{ width:'100%', height:'100%', objectFit:'cover' }} />
+          ) : (
+            <div style={{ textAlign:'center', color:'#94a3b8' }}>🏠</div>
+          )}
+        </div>
+
+        <div style={{ flex:1, display:'flex', gap:12, alignItems:'center', justifyContent:'space-between' }}>
+          <div style={{ display:'flex', gap:24, alignItems:'center' }}>
+            <div style={{ display:'flex', gap:8, alignItems:'center' }}>
+              <div style={{ width:44, height:44, borderRadius:22, background:'#eef2ff', display:'flex', alignItems:'center', justifyContent:'center', fontWeight:700, color:'#4f46e5' }}>{(ownerInfo.name || 'O').charAt(0).toUpperCase()}</div>
+              <div>
+                <div style={{ fontWeight:700 }}>{ownerInfo.name}{isOwner ? ' (You)' : ''}</div>
+                <div style={{ fontSize:12, color:'#475569', display:'flex', gap:8, alignItems:'center' }}><Mail style={{ width:12, height:12 }} /> {ownerInfo.email || 'No email'}</div>
+              </div>
+            </div>
+
+            <div style={{ display:'flex', gap:8, alignItems:'center' }}>
+              <div style={{ width:44, height:44, borderRadius:22, background:'#ecfdf5', display:'flex', alignItems:'center', justifyContent:'center', fontWeight:700, color:'#059669' }}>{(renterInfo.name || 'R').charAt(0).toUpperCase()}</div>
+              <div>
+                <div style={{ fontWeight:700 }}>{renterInfo.name}{isRenter ? ' (You)' : ''}</div>
+                <div style={{ fontSize:12, color:'#475569', display:'flex', gap:8, alignItems:'center' }}><Mail style={{ width:12, height:12 }} /> {renterInfo.email || 'No email'}</div>
+              </div>
+            </div>
+          </div>
+
+          <div style={{ textAlign:'right', color:'#475569' }}>
+            <div style={{ display:'flex', gap:8, alignItems:'center', justifyContent:'flex-end' }}><MapPin style={{ width:12, height:12 }} /> <span style={{ fontSize:12 }}>{fields.property_address || 'No address provided'}</span></div>
+            <div style={{ marginTop:6, fontSize:12, color:'#6b7280' }}><strong>Rent:</strong> {fields.monthly_rent || '—'} {fields.currency || ''}</div>
+          </div>
+        </div>
+      </div>
+
       <div style={{ maxHeight: 520, overflow: 'auto', paddingRight:8 }}>
         {nodes.map((n, i) => (
           <div key={i} style={{ marginBottom: 10 }}>
