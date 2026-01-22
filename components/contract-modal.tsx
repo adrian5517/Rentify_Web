@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react'
 import { useAuthStore } from '@/lib/auth-store'
 import config, { CLIENT_URL } from '@/lib/config'
-import ContractChat from './contract-chat'
+// ContractChat removed from modal per request
 import ContractAgreement from './contract-agreement'
 import PremiumModal from './premium-modal'
 import Swal from 'sweetalert2'
@@ -125,11 +125,7 @@ export default function ContractModal({ contract: initialContract, contracts, on
           {message && <div style={{ marginTop:8, color:'#86efac' }}>{message}</div>}
         </div>
 
-        {!hideChat && (
-          <div style={{ marginTop: 16 }}>
-            <ContractChat userA={idFor(contract?.owner)} userB={idFor(contract?.renter)} contractId={contract?._id} />
-          </div>
-        )}
+        {/* Conversation removed from agreement modal */}
       </div>
     </PremiumModal>
   )

@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useMemo, useState, useEffect, useRef } from 'react'
+import React, { useMemo, useState, useEffect } from 'react'
 import { useAuthStore } from '@/lib/auth-store'
 import config from '@/lib/config'
 
@@ -252,22 +252,7 @@ export default function ContractAgreement({ contract, onAccepted, readOnly }: { 
           <span style={{ color:'inherit' }}>{readOnly ? 'I have read the terms of this Rental Agreement.' : 'I have read and agree to the terms of this Rental Agreement.'}</span>
         </label>
 
-        <div style={{ marginTop:8 }}>
-          <label htmlFor="contract-signature-name" style={{ display:'block', marginBottom:6, color:'#374151', fontSize:13 }}>Signature name</label>
-          <input
-            ref={sigRef}
-            id="contract-signature-name"
-            name="signatureName"
-            type="text"
-            autoComplete="name"
-            aria-label="Signature full name"
-            value={name}
-            onChange={(e)=>setName(e.target.value)}
-            onFocus={() => { setDebugFocus('Signature input focused'); console.log('contract-signature-name focused') }}
-            placeholder="Full name"
-            style={{ width:'100%', padding:10, borderRadius:8, border:'1px solid #e5e7eb', background:'#fff', color:'#0f172a', boxShadow:'inset 0 1px 2px rgba(16,24,40,0.04)' }}
-          />
-        </div>
+        {/* Signature name removed — acceptance via checkbox only */}
 
         {/* Propose Changes removed: acceptance is via checkbox + Sign & Accept */}
 

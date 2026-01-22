@@ -72,7 +72,8 @@ export async function authFetch(input: FetchInput, init?: FetchInit) {
 }
 
 export default authFetch
-const API_BASE_URL = 'https://rentify-server-ge0f.onrender.com/api';
+// Use centralized config API_API so NEXT_PUBLIC_API_URL / env overrides work in dev
+const API_BASE_URL = ((API_API || '').replace(/\/$/, '')) + '/api'
 
 // Helper function to handle 401 errors (expired token)
 const handleUnauthorized = () => {

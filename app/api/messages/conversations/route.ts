@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server'
+import config from '@/lib/config'
 
-const REMOTE_API_BASE = 'https://rentify-server-ge0f.onrender.com/api'
+// Use central config so dev env (NEXT_PUBLIC_API_URL) is respected
+const REMOTE_API_BASE = `${config.API_API.replace(/\/$/, '')}/api`
 
 export async function GET(req: Request) {
   try {
@@ -37,7 +39,7 @@ export async function GET(req: Request) {
       : []
 
     // For each other user, fetch messages between current user and them
-    const pairs = otherUsers.map((u: any) => ({ participant: u, id: u._1 || u._id || u.id }))
+    const pairs = otherUsers.map((u: any) => ({ participant: u, id: u._id || u.id }))
 
     const fetchPromises = pairs.map(async ({ participant, id }) => {
       try {
