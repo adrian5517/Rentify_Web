@@ -7,67 +7,101 @@ import config from '@/lib/config'
 
 type ContractData = any
 
-const TEMPLATE = `Residential Rental Agreement
+const TEMPLATE = `RENTAL AGREEMENT
 
-Effective Date: {{effective_date}}
+THIS RENTAL AGREEMENT (the “Agreement”) is made and entered into on {{effective_date}} between the undersigned parties as follows:
 
-Parties
+PARTIES
 
-Landlord (Rentee): {{rentee_name}} — {{rentee_address}} — Email: {{rentee_email}} — Phone: {{rentee_phone}}
-Tenant (Renter): {{tenant_name}} — {{tenant_address}} — Email: {{tenant_email}} — Phone: {{tenant_phone}}
+1. Landlord (referred to herein as “Owner” or “Landlord”): {{rentee_name}}
+  Address: {{rentee_address}}
+  Email: {{rentee_email}}
+  Phone: {{rentee_phone}}
 
-Property
+2. Tenant (referred to herein as “Renter” or “Tenant”): {{tenant_name}}
+  Address: {{tenant_address}}
+  Email: {{tenant_email}}
+  Phone: {{tenant_phone}}
 
-Address: {{property_address}}
-Type: {{property_type}}
-Description: {{property_description}}
+PROPERTY
 
-1. Rental Term
-Start Date: {{rental_start_date}}
-End Date: {{rental_end_date}}
-Renewal: {{renewal_terms}}
+The Owner hereby rents to the Tenant the real property located at:
+  Address: {{property_address}}
+  Type: {{property_type}}
+  Description: {{property_description}}
 
-2. Rent & Payment
-Monthly Rent: {{monthly_rent}} {{currency}}
-Due Date: Day {{rent_due_day}} of each month
-Late Fee: {{late_fee}}
+TERM
 
-3. Security Deposit
-Amount: {{security_deposit}} {{currency}}
+1. Term: The term of this Agreement shall commence on {{rental_start_date}} and end on {{rental_end_date}} unless earlier terminated in accordance with this Agreement.
+2. Renewal: {{renewal_terms}}
 
-4. Payment Methods
-Accepted Methods: GCash, Maya, Bank Transfer, Credit/Debit Card
+RENT, DEPOSIT, AND PAYMENTS
 
-10. Digital Agreement Clause
-Acceptance: Parties accept by checking the acceptance box and applying an electronic signature in the web app. Acceptance timestamps recorded.
+3. Rent: Tenant shall pay to Owner the sum of {{monthly_rent}} {{currency}} per month, payable in advance on or before the {{rent_due_day}} day of each month.
+4. Security Deposit: Tenant shall deposit {{security_deposit}} {{currency}} as security for performance of Tenant’s obligations under this Agreement. The deposit shall be held in accordance with applicable law.
+5. Late Payment: Late payments may incur a late fee as set forth: {{late_fee}}.
+6. Payment Methods: Accepted payment methods include bank transfer, credit/debit card, and other methods agreed by the parties.
+
+USE AND OCCUPANCY
+
+7. Use: The Property shall be used solely as a residential dwelling by the Tenant and occupants listed in writing by the Tenant and approved by the Owner.
+8. Maintenance: Tenant shall maintain the premises in good condition and promptly notify Owner of any damage or necessary repairs. Owner shall be responsible for major structural repairs unless damage is caused by Tenant’s negligence.
+
+TERMINATION
+
+9. Termination: Either party may terminate this Agreement according to applicable notice provisions and local law. Upon termination Tenant shall vacate the Property and return keys and possession to Owner.
+
+GOVERNING LAW AND DISPUTE RESOLUTION
+
+10. Governing Law: This Agreement shall be governed by the laws of the jurisdiction where the Property is located.
+11. Dispute Resolution: The parties agree to attempt mediation prior to pursuing litigation for any dispute arising under this Agreement.
+
+DIGITAL SIGNATURE AND ACCEPTANCE
+
+12. Electronic Acceptance: The parties agree that electronic acceptance via the web application (checkbox and recorded signature name and timestamp) constitutes a valid and binding signature for the purposes of this Agreement.
+
+SIGNATURES
+
+By accepting below, the parties acknowledge they have read, understood, and agree to the terms set forth in this Agreement.
+
+Owner / Landlord: {{rentee_name}}
+Signature (electronic): ____________________    Date: ________
+
+Tenant / Renter: {{tenant_name}}
+Signature (electronic): ____________________    Date: ________
 `
 
-const TEMP_TEMPLATE = `Property
+const TEMP_TEMPLATE = `DRAFT RENTAL AGREEMENT
+
+This is a simplified draft of the Rental Agreement. Some fields may be placeholders. Please review and accept when ready.
+
+PROPERTY
 Address: {{property_address}}
 Type: {{property_type}}
 Description: {{property_description}}
-1. Rental Term
+
+TERM
 Start Date: {{rental_start_date}}
 End Date: {{rental_end_date}}
 Renewal: {{renewal_terms}}
-2. Rent & Payment
+
+FINANCIALS
 Monthly Rent: {{monthly_rent}} {{currency}}
-Due Date: Day {{rent_due_day}} of each month
+Security Deposit: {{security_deposit}} {{currency}}
 Late Fee: {{late_fee}}
-3. Security Deposit
-Amount: {{security_deposit}} {{currency}}
-4. Payment Methods
-Accepted Methods: GCash, Maya, Bank Transfer, Credit/Debit Card
-10. Digital Agreement Clause
+
+DIGITAL ACCEPTANCE
 Acceptance: Parties accept by checking the acceptance box and applying an electronic signature in the web app. Acceptance timestamps recorded.
 
-I have read and agree to the t
+Owner: {{rentee_name}} — Email: {{rentee_email}} — Phone: {{rentee_phone}}
+Tenant: {{tenant_name}} — Email: {{tenant_email}} — Phone: {{tenant_phone}}
+
 `
 
 function fillTemplate(tpl: string, data: Record<string, any>) {
   return tpl.replace(/{{\s*([\w_\.]+)\s*}}/g, (_, key) => {
     const val = key.split('.').reduce((s, k) => (s && s[k] !== undefined ? s[k] : undefined), data)
-    return val === undefined || val === null ? `{{${key}}}` : String(val)
+    return val === undefined || val === null ? '' : String(val)
   })
 }
 
@@ -130,6 +164,48 @@ export default function ContractAgreement({ contract, onAccepted, readOnly }: { 
     }
   }, [contract, user])
 
+  // local copy of contract so we can enrich owner/renter when only IDs are present
+  const [localContract, setLocalContract] = useState<any>(contract)
+  useEffect(()=> setLocalContract(contract), [contract])
+
+  // Fetch full user profiles for owner/renter if the contract only contains IDs
+  useEffect(()=>{
+    const fetchUser = async (id:string) => {
+      try {
+        const res = await fetch(`${config.API_API}/api/users/${id}`, { headers: { ...(token?{ Authorization:`Bearer ${token}` }: {}) }, credentials: 'include' })
+        if (!res.ok) return null
+        const data = await res.json()
+        return data.user || data || null
+      } catch (e) { return null }
+    }
+
+    if (!localContract) return
+    const needsOwner = localContract.owner && (typeof localContract.owner === 'string' || (!localContract.owner.email && !localContract.owner.phone))
+    const needsRenter = localContract.renter && (typeof localContract.renter === 'string' || (!localContract.renter.email && !localContract.renter.phone))
+    if (!needsOwner && !needsRenter) return
+
+    let cancelled = false
+    ;(async ()=>{
+      const update: any = {}
+      if (needsOwner) {
+        const id = typeof localContract.owner === 'string' ? localContract.owner : (localContract.owner._id || localContract.owner.id)
+        if (id) {
+          const u = await fetchUser(String(id))
+          if (u && !cancelled) update.owner = u
+        }
+      }
+      if (needsRenter) {
+        const id = typeof localContract.renter === 'string' ? localContract.renter : (localContract.renter._id || localContract.renter.id)
+        if (id) {
+          const u = await fetchUser(String(id))
+          if (u && !cancelled) update.renter = u
+        }
+      }
+      if (!cancelled && Object.keys(update).length) setLocalContract((s:any)=> ({ ...(s||{}), ...update }))
+    })()
+    return ()=>{ cancelled = true }
+  }, [localContract, token])
+
   const downloadPdf = async () => {
     if (!contract?._id) return
     setLoading(true)
@@ -160,37 +236,37 @@ export default function ContractAgreement({ contract, onAccepted, readOnly }: { 
   }
 
   const fields = useMemo(() => ({
-    effective_date: contract?.createdAt || new Date().toISOString(),
+    effective_date: localContract?.createdAt || contract?.createdAt || new Date().toISOString(),
     rentee_name: (() => {
-      const p = contract?.owner
+      const p = localContract?.owner || contract?.owner
       if (!p) return ''
       if (typeof p === 'string') return p
       return p.name || p.fullName || p.email || p._id || ''
     })(),
-    rentee_address: contract?.owner?.address || '',
-    rentee_email: contract?.owner?.email || '',
-    rentee_phone: contract?.owner?.phone || '',
+    rentee_address: (localContract?.owner && (localContract.owner.address || localContract.owner.location)) || contract?.owner?.address || 'No address provided',
+    rentee_email: localContract?.owner?.email || contract?.owner?.email || 'No email provided',
+    rentee_phone: localContract?.owner?.phone || contract?.owner?.phone || 'No phone provided',
     tenant_name: (() => {
-      const p = contract?.renter
+      const p = localContract?.renter || contract?.renter
       if (!p) return ''
       if (typeof p === 'string') return p
       return p.name || p.fullName || p.email || p._id || ''
     })(),
-    tenant_address: contract?.renter?.address || '',
-    tenant_email: contract?.renter?.email || '',
-    tenant_phone: contract?.renter?.phone || '',
-    property_address: contract?.property?.address || contract?.property?.name || contract?.property?._id || '',
-    property_type: contract?.property?.type || (contract?.property?.propertyType) || '',
-    property_description: contract?.property?.description || contract?.property?.name || '',
-    rental_start_date: contract?.startDate || contract?.rentalStart || '',
-    rental_end_date: contract?.endDate || contract?.rentalEnd || '',
-    renewal_terms: contract?.renewalTerms || 'See agreement',
-    monthly_rent: contract?.rentAmount || contract?.monthlyRent || '',
-    currency: contract?.currency || 'PHP',
-    rent_due_day: contract?.dueDay || 1,
-    late_fee: contract?.lateFee || 'See agreement',
-    security_deposit: contract?.securityDeposit || '',
-  }), [contract])
+    tenant_address: (localContract?.renter && (localContract.renter.address || localContract.renter.location)) || contract?.renter?.address || 'No address provided',
+    tenant_email: localContract?.renter?.email || contract?.renter?.email || 'No email provided',
+    tenant_phone: localContract?.renter?.phone || contract?.renter?.phone || 'No phone provided',
+    property_address: (localContract?.property && (localContract.property.address || localContract.property.name)) || contract?.property?.address || contract?.property?.name || contract?.property?._id || 'No address provided',
+    property_type: (localContract?.property && (localContract.property.type || localContract.property.propertyType)) || contract?.property?.type || (contract?.property?.propertyType) || '',
+    property_description: (localContract?.property && (localContract.property.description || localContract.property.name)) || contract?.property?.description || contract?.property?.name || 'No description provided',
+    rental_start_date: localContract?.startDate || contract?.startDate || localContract?.rentalStart || contract?.rentalStart || '',
+    rental_end_date: localContract?.endDate || contract?.endDate || localContract?.rentalEnd || contract?.rentalEnd || '',
+    renewal_terms: localContract?.renewalTerms || contract?.renewalTerms || 'See agreement',
+    monthly_rent: localContract?.rentAmount || contract?.rentAmount || localContract?.monthlyRent || contract?.monthlyRent || 'TBD',
+    currency: localContract?.currency || contract?.currency || 'PHP',
+    rent_due_day: localContract?.dueDay || contract?.dueDay || 1,
+    late_fee: localContract?.lateFee || contract?.lateFee || 'See agreement',
+    security_deposit: localContract?.securityDeposit || contract?.securityDeposit || 'TBD',
+  }), [localContract, contract])
 
   const currentUserId = useAuthStore((s:any)=>s.user?._id || s.user?.id)
 
@@ -261,7 +337,7 @@ export default function ContractAgreement({ contract, onAccepted, readOnly }: { 
   return (
     <div style={{ background:'#fff', padding:16, borderRadius:8, color:'#0f172a', boxShadow:'0 6px 18px rgba(15,23,42,0.06)' }}>
       <div style={{ display:'flex', gap:12, alignItems:'flex-start', marginBottom:12 }}>
-        <div style={{ width:96, height:72, borderRadius:8, background:'#f1f5f9', display:'flex', alignItems:'center', justifyContent:'center', overflow:'hidden' }}>
+        <div style={{ width:160, height:110, borderRadius:8, background:'#f1f5f9', display:'flex', alignItems:'center', justifyContent:'center', overflow:'hidden' }}>
           {(contract?.property?.photos && contract.property.photos[0]) ? (
             // @ts-ignore
             <img src={contract.property.photos[0]} alt={contract.property?.name || 'property'} style={{ width:'100%', height:'100%', objectFit:'cover' }} />
@@ -277,6 +353,7 @@ export default function ContractAgreement({ contract, onAccepted, readOnly }: { 
               <div>
                 <div style={{ fontWeight:700 }}>{ownerInfo.name}{isOwner ? ' (You)' : ''}</div>
                 <div style={{ fontSize:12, color:'#475569', display:'flex', gap:8, alignItems:'center' }}><Mail style={{ width:12, height:12 }} /> {ownerInfo.email || 'No email'}</div>
+                <div style={{ fontSize:12, color:'#475569', display:'flex', gap:8, alignItems:'center', marginTop:4 }}><Phone style={{ width:12, height:12 }} /> {ownerInfo.phone || 'No phone'}</div>
               </div>
             </div>
 
@@ -285,6 +362,7 @@ export default function ContractAgreement({ contract, onAccepted, readOnly }: { 
               <div>
                 <div style={{ fontWeight:700 }}>{renterInfo.name}{isRenter ? ' (You)' : ''}</div>
                 <div style={{ fontSize:12, color:'#475569', display:'flex', gap:8, alignItems:'center' }}><Mail style={{ width:12, height:12 }} /> {renterInfo.email || 'No email'}</div>
+                <div style={{ fontSize:12, color:'#475569', display:'flex', gap:8, alignItems:'center', marginTop:4 }}><Phone style={{ width:12, height:12 }} /> {renterInfo.phone || 'No phone'}</div>
               </div>
             </div>
           </div>
@@ -292,9 +370,28 @@ export default function ContractAgreement({ contract, onAccepted, readOnly }: { 
           <div style={{ textAlign:'right', color:'#475569' }}>
             <div style={{ display:'flex', gap:8, alignItems:'center', justifyContent:'flex-end' }}><MapPin style={{ width:12, height:12 }} /> <span style={{ fontSize:12 }}>{fields.property_address || 'No address provided'}</span></div>
             <div style={{ marginTop:6, fontSize:12, color:'#6b7280' }}><strong>Rent:</strong> {fields.monthly_rent || '—'} {fields.currency || ''}</div>
+            <div style={{ marginTop:6, fontSize:12, color:'#6b7280' }}><strong>Contract:</strong> {contract?._id || '—'} • <strong>Status:</strong> {contract?.status || '—'}</div>
           </div>
         </div>
       </div>
+
+      {/* If the current user is the owner, surface renter contact more prominently */}
+      {isOwner && (
+        <div style={{ marginBottom:12, padding:12, borderRadius:8, background:'#fff7ed', border:'1px solid #ffedd5', display:'flex', alignItems:'center', gap:12 }}>
+          <div style={{ width:44, height:44, borderRadius:22, background:'#fff5f3', display:'flex', alignItems:'center', justifyContent:'center', fontWeight:700, color:'#c2410c' }}>{(renterInfo.name || 'R').charAt(0).toUpperCase()}</div>
+          <div style={{ flex:1 }}>
+            <div style={{ fontWeight:700 }}>{renterInfo.name}</div>
+            <div style={{ display:'flex', gap:12, marginTop:6, color:'#475569', alignItems:'center' }}>
+              <div style={{ display:'flex', gap:6, alignItems:'center' }}><Mail style={{ width:12, height:12 }} /> {renterInfo.email || 'No email'}</div>
+              <div style={{ display:'flex', gap:6, alignItems:'center' }}><Phone style={{ width:12, height:12 }} /> {renterInfo.phone || 'No phone'}</div>
+            </div>
+          </div>
+          <div>
+            {renterInfo.email && <a href={`mailto:${renterInfo.email}`} style={{ display:'inline-block', padding:'8px 12px', background:'#4f46e5', color:'#fff', borderRadius:8, textDecoration:'none' }}>Email renter</a>}
+            {renterInfo.phone && <a href={`tel:${renterInfo.phone}`} style={{ display:'inline-block', marginLeft:8, padding:'8px 12px', background:'#059669', color:'#fff', borderRadius:8, textDecoration:'none' }}>Call</a>}
+          </div>
+        </div>
+      )}
 
       <div style={{ maxHeight: 520, overflow: 'auto', paddingRight:8 }}>
         {nodes.map((n, i) => (

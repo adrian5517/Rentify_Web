@@ -113,8 +113,21 @@ export default function ContractModal({ contract: initialContract, contracts, on
           ) : null}
 
           <div style={{ display:'flex', gap:12, marginTop:8, alignItems:'center' }}>
-            <div style={{ fontSize:13, color:'rgba(255,255,255,0.8)' }}><strong style={{ fontWeight:700 }}>Owner:</strong> {personLabel(contract?.owner)}</div>
-            <div style={{ fontSize:13, color:'rgba(255,255,255,0.8)' }}><strong style={{ fontWeight:700 }}>Renter:</strong> {personLabel(contract?.renter)}</div>
+            <div style={{ fontSize:13, color:'rgba(255,255,255,0.8)' }}>
+              <strong style={{ fontWeight:700 }}>Owner:</strong> {personLabel(contract?.owner)}
+              <div style={{ fontSize:12, color:'rgba(255,255,255,0.75)', marginTop:4 }}>
+                {contract?.owner?.email ? (<span style={{ marginRight:8 }}>📧 {contract.owner.email}</span>) : null}
+                {contract?.owner?.phone ? (<span>📞 {contract.owner.phone}</span>) : null}
+              </div>
+            </div>
+
+            <div style={{ fontSize:13, color:'rgba(255,255,255,0.8)' }}>
+              <strong style={{ fontWeight:700 }}>Renter:</strong> {personLabel(contract?.renter)}
+              <div style={{ fontSize:12, color:'rgba(255,255,255,0.75)', marginTop:4 }}>
+                {contract?.renter?.email ? (<span style={{ marginRight:8 }}>📧 {contract.renter.email}</span>) : null}
+                {contract?.renter?.phone ? (<span>📞 {contract.renter.phone}</span>) : null}
+              </div>
+            </div>
           </div>
 
           <div style={{ marginTop:8, fontSize:13, color:'rgba(255,255,255,0.8)' }}><strong>Rent:</strong> {contract?.rentAmount || '—'} {contract?.currency || ''} — <strong>Status:</strong> {contract?.status || '—'}</div>
