@@ -65,10 +65,10 @@ SIGNATURES
 By accepting below, the parties acknowledge they have read, understood, and agree to the terms set forth in this Agreement.
 
 Owner / Landlord: {{rentee_name}}
-Signature (electronic): ____________________    Date: ________
+Signature: ____________________    Date: ________
 
 Tenant / Renter: {{tenant_name}}
-Signature (electronic): ____________________    Date: ________
+Signature: ____________________    Date: ________
 `
 
 const TEMP_TEMPLATE = `DRAFT RENTAL AGREEMENT
