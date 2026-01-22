@@ -276,8 +276,11 @@ export default function ContractAgreement({ contract, onAccepted, readOnly }: { 
     return { name: p.name || p.fullName || p.displayName || p.email || '—', email: p.email || '', phone: p.phone || '' }
   }
 
-  const ownerInfo = personInfo(contract?.owner)
-  const renterInfo = personInfo(contract?.renter)
+  const ownerInfo = personInfo(localContract?.owner || contract?.owner)
+  // If renter object is missing, fall back to recorded signature name/email if present
+  const rawRenter = localContract?.renter || contract?.renter
+  const renterFromSignature = contract?.renterAccepted?.signature ? { name: contract.renterAccepted.signature.name || undefined, email: contract.renterAccepted.signature.email || undefined, phone: undefined } : undefined
+  const renterInfo = personInfo(rawRenter || renterFromSignature)
   const isOwner = !!currentUserId && String(contract?.owner?._id || contract?.owner) === String(currentUserId)
   const isRenter = !!currentUserId && String(contract?.renter?._id || contract?.renter) === String(currentUserId)
 
