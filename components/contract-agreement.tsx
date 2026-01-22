@@ -160,11 +160,21 @@ export default function ContractAgreement({ contract, onAccepted, readOnly }: { 
 
   const fields = useMemo(() => ({
     effective_date: contract?.createdAt || new Date().toISOString(),
-    rentee_name: contract?.owner?.name || contract?.owner || '',
+    rentee_name: (() => {
+      const p = contract?.owner
+      if (!p) return ''
+      if (typeof p === 'string') return p
+      return p.name || p.fullName || p.email || p._id || ''
+    })(),
     rentee_address: contract?.owner?.address || '',
     rentee_email: contract?.owner?.email || '',
     rentee_phone: contract?.owner?.phone || '',
-    tenant_name: contract?.renter?.name || contract?.renter || '',
+    tenant_name: (() => {
+      const p = contract?.renter
+      if (!p) return ''
+      if (typeof p === 'string') return p
+      return p.name || p.fullName || p.email || p._id || ''
+    })(),
     tenant_address: contract?.renter?.address || '',
     tenant_email: contract?.renter?.email || '',
     tenant_phone: contract?.renter?.phone || '',
