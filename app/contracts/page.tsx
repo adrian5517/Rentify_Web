@@ -1,7 +1,9 @@
 "use client"
 
 import React, { useEffect, useState } from 'react'
+import { useSearchParams, usePathname } from 'next/navigation'
 import config from '@/lib/config'
+import { useRouter } from 'next/navigation'
 import { useAuthStore } from '@/lib/auth-store'
 import ContractModal from '@/components/contract-modal'
 import Link from 'next/link'
@@ -16,6 +18,9 @@ export default function ContractsPage() {
   const [loading, setLoading] = useState(false)
   const [selected, setSelected] = useState<any|null>(null)
   const [error, setError] = useState<string | null>(null)
+  const searchParams = useSearchParams()
+  const pathname = usePathname()
+  const router = useRouter()
 
   const fmtPerson = (p:any) => {
     if (!p) return ''
@@ -31,6 +36,53 @@ export default function ContractsPage() {
     }
     fetchContracts()
   }, [token])
+
+  // Auto-open modal when URL contains openModal=1 and either a contractId query or a path segment
+  useEffect(() => {
+    const openModal = searchParams?.get('openModal') === '1' || searchParams?.get('openModal') === 'true'
+    const qid = searchParams?.get('contractId')
+    // Path may be /contracts/<id>
+    let pathId: string | null = null
+    try {
+      const parts = (pathname || '').split('/').filter(Boolean)
+      if (parts.length >= 2 && parts[0] === 'contracts') pathId = parts[1]
+    } catch (e) { pathId = null }
+
+    const cid = qid || pathId
+    if (!openModal || !cid) return
+
+    const openById = async () => {
+      // If we already have the contract in the list, select it
+      if (contracts && contracts.length) {
+        const found = contracts.find((c:any) => String(c._id || c.id) === String(cid))
+        if (found) { setSelected(found); return }
+      }
+
+      // Otherwise fetch the contract directly
+      try {
+        const res = await fetch(`${config.API_API}/api/contracts/${cid}`, { headers: { ...(token?{ Authorization:`Bearer ${token}` }: {}) }, credentials: 'include' })
+        if (!res.ok) return
+        const data = await res.json()
+        if (data && data.contract) setSelected(data.contract)
+      } catch (e) {
+        // ignore
+      }
+    }
+
+    openById()
+    // Clean up the URL to remove query params after opening modal for a cleaner UX
+    try {
+      const cleaned = new URL(window.location.href)
+      cleaned.searchParams.delete('openModal')
+      cleaned.searchParams.delete('contractId')
+      const newUrl = cleaned.pathname + cleaned.search
+      // replace so user doesn't get stuck with modal params in history
+      router.replace(newUrl)
+    } catch (e) {
+      // ignore
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams, pathname, contracts, token])
 
   const fetchContracts = async () => {
     setLoading(true)

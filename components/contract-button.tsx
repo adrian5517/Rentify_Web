@@ -39,7 +39,8 @@ export default function ContractButton({ propertyId }: { propertyId: string }) {
                   setContract(found)
                   setContractsList(list)
                   const cid = found._id || found.id
-                  try { router.push(`/contracts/${cid}?openModal=1`) } catch(e) { window.location.href = `/contracts/${cid}?openModal=1` }
+                  const target = `/contracts?contractId=${cid}&openModal=1`
+                  try { router.push(target) } catch(e) { window.location.href = target }
                   setLoading(false)
                   return
                 }
@@ -66,7 +67,8 @@ export default function ContractButton({ propertyId }: { propertyId: string }) {
         const created = data.contract
         setContract(created)
         const cid = created._id || created.id
-        try { router.push(`/contracts/${cid}?openModal=1`) } catch(e) { window.location.href = `/contracts/${cid}?openModal=1` }
+        const target = `/contracts?contractId=${cid}&openModal=1`
+        try { router.push(target) } catch(e) { window.location.href = target }
         setLoading(false)
         return
       }
