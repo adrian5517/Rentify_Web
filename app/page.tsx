@@ -1245,15 +1245,11 @@ export default function PropertyListingPage() {
         <div className="container mx-auto px-2 sm:px-4 py-3 sm:py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2 sm:gap-4">
-              <Image
-                src="/RentNova.png"
-                alt="RentNova - Find Your Perfect Home"
-                width={80}
-                height={24}
-                priority
-                className="h-12 sm:h-14 md:h-17 w-auto"
-                loading="eager"
-              />
+              <div className="flex flex-col leading-none select-none">
+                <span className="text-3xl sm:text-4xl font-black tracking-tight text-violet-600 drop-shadow-sm">
+                  RentaPo
+                </span>
+              </div>
               <div className="hidden sm:block h-6 w-px bg-slate-300"></div>
               {/* Inline navbar with better spacing */}
               <div className="ml-1">

@@ -7,13 +7,13 @@ import ClientLayout from '@/components/client-layout'
 
 
 export const metadata: Metadata = {
-  title: 'Rentify Web',
-  description: 'Find your perfect rental property in Naga City with Rentify Web. Browse apartments, houses, and villas with ease.',
-  generator: 'Rentify Web',
+  title: 'RentaPo',
+  description: 'Find your perfect rental property in Naga City with RentaPo. Browse apartments, houses, and villas with ease.',
+  generator: 'RentaPo',
   icons: {
-    icon: '/RentNova.png',
-    shortcut: '/RentNova.png',
-    apple: '/RentNova.png'
+    icon: '/rentify-logo.png',
+    shortcut: '/rentify-logo.png',
+    apple: '/rentify-logo.png'
   }
 }
 
